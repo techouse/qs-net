@@ -38,3 +38,49 @@ jobs:
           --api-key ${{ secrets.NUGET_API_KEY }} \
           --source https://api.nuget.org/v3/index.json \
           --skip-duplicate
+
+      - name: Upload .nupkg artefact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nuget-package
+          path: ./artifacts/*.nupkg
+  release:
+    needs:
+      - test
+      - publish
+    name: Github Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Get name, version, and group from Gradle files
+        id: get_version_and_name
+        run: |
+          set -e
+          VERSION=$(awk -F'[<>]' '/^[[:space:]]*<Version>/ {print $3}' QsNet/QsNet.csproj)
+          NAME=$(awk -F'[<>]' '/<PackageId>/ {print $3}' QsNet/QsNet.csproj)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "NAME=$NAME" >> $GITHUB_ENV
+      - name: Create tag-specific CHANGELOG
+        id: create_changelog
+        run: |
+          set -e
+          CHANGELOG_PATH=$RUNNER_TEMP/CHANGELOG.md
+          awk '/^##[[:space:]].*/ { if (count == 1) exit; count++; print } count == 1 && !/^##[[:space:]].*/ { print }' CHANGELOG.md | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > $CHANGELOG_PATH
+          echo -en "\n[https://www.nuget.org/packages/$NAME](https://www.nuget.org/packages/$NAME)" >> $CHANGELOG_PATH
+          echo "CHANGELOG_PATH=$CHANGELOG_PATH" >> $GITHUB_ENV
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ env.VERSION }}
+          tag_name: v${{ env.VERSION }}
+          body_path: ${{ env.CHANGELOG_PATH }}
+          files: ./artifacts/*.nupkg
+      - name: Clean up
+        id: clean_up
+        if: ${{ always() }}
+        run: |
+          rm -rf $CHANGELOG_PATH
+          rm -rf ./artifacts/*.nupkg
