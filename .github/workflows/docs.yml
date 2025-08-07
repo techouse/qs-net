@@ -1,0 +1,41 @@
+name: Docs
+
+on:
+  workflow_call:
+  workflow_dispatch:
+
+permissions:
+  contents: write 
+
+concurrency:
+  group: docs-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install DocFX
+        id: docfx-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.dotnet/tools
+          key: docfx-${{ runner.os }}-v3
+      - name: dotnet tool install docfx
+        if: steps.docfx-cache.outputs.cache-hit != 'true'
+        run: dotnet tool install -g docfx
+      - name: Build documentation site
+        run: docfx docs/docfx.json
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: docs/_site
+          force_orphan: true
