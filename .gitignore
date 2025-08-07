@@ -1,0 +1,33 @@
+# Build outputs (any project)
+**/bin/
+**/obj/
+**/publish/
+**/artifacts/
+**/TestResults/
+
+# NuGet
+*.nupkg
+*.snupkg
+/packages/   # keep only if using packages.config
+
+# JetBrains / VS
+.idea/
+.vs/
+_ReSharper.Caches/
+*.DotSettings.user
+*.sln.DotSettings.user
+riderModule.iml
+
+# User-specific/legacy
+*.user
+*.suo
+
+# Coverage / perf
+*.coverage
+*.coveragexml
+coverage*
+BenchmarkDotNet.Artifacts/
+
+# OS
+.DS_Store
+Thumbs.db
