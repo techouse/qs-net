@@ -94,11 +94,12 @@ jobs:
         with:
           name: test-results-${{ matrix.dotnet }}
           path: '**/*.trx'
+          overwrite: true
 
       - name: Upload raw coverage
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-${{ matrix.dotnet-version }}
+          name: coverage-${{ matrix.dotnet }}
           path: QsNet.Tests/TestResults/**/*.cobertura.xml
           if-no-files-found: error
           overwrite: true
