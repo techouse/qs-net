@@ -46,8 +46,8 @@ jobs:
       - name: Upload .nupkg artefact
         uses: actions/upload-artifact@v4
         with:
-          name: nuget-package
-          path: ./artifacts/*.nupkg
+          name: QsNet.${{ env.VERSION }}
+          path: ./artifacts/QsNet.${{ env.VERSION }}.nupkg
           retention-days: 7
   release:
     needs:
@@ -65,6 +65,11 @@ jobs:
           set -e
           VERSION=$(awk -F'[<>]' '/^[[:space:]]*<Version>/ {print $3}' QsNet/QsNet.csproj)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: QsNet.${{ env.VERSION }}
+          path: ./artifacts
       - name: Create tag-specific CHANGELOG
         id: create_changelog
         run: |
@@ -80,7 +85,7 @@ jobs:
           name: ${{ env.VERSION }}
           tag_name: v${{ env.VERSION }}
           body_path: ${{ env.CHANGELOG_PATH }}
-          files: ./artifacts/*.nupkg
+          files: ./artifacts/QsNet.${{ env.VERSION }}.nupkg
       - name: Clean up
         id: clean_up
         if: ${{ always() }}
