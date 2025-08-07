@@ -31,3 +31,7 @@ BenchmarkDotNet.Artifacts/
 # OS
 .DS_Store
 Thumbs.db
+
+# docfx
+docs/_site/
+docs/api/
