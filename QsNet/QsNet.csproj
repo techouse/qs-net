@@ -5,12 +5,18 @@
     <LangVersion>latest</LangVersion>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>QsNet</PackageId>
+    <Authors>Klemen Tusar</Authors>
+    <PackageTags>querystring; parser; encoder; qs</PackageTags>
     <Description>.NET port of the “qs” query-string codec</Description>
+    <PackageProjectUrl>https://github.com/techouse/qs-net</PackageProjectUrl>
     <RepositoryUrl>https://github.com/techouse/qs-net</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\LICENSE" Pack="true" PackagePath="\" />
     <InternalsVisibleTo Include="QsNet.Tests" />
   </ItemGroup>
 </Project>
