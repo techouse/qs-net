@@ -66,7 +66,7 @@ jobs:
           VERSION=$(awk -F'[<>]' '/^[[:space:]]*<Version>/ {print $3}' QsNet/QsNet.csproj)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - name: Download package artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
         with:
           name: QsNet.${{ env.VERSION }}
           path: ./artifacts
