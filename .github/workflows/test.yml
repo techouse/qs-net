@@ -92,7 +92,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ matrix.dotnet-version }}
-          path: TestResults/**/*.cobertura.xml
+          path: QsNet.Tests/TestResults/**/*.cobertura.xml
           if-no-files-found: error
   
   coverage:
