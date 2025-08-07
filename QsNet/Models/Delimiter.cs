@@ -18,7 +18,7 @@ public interface IDelimiter
 
 /// <summary>
 ///     String-based delimiter for better performance with simple delimiters.
-///     This is suitable for common delimiters like `&`, `,`, or `;`. It uses the String.Split method
+///     This is suitable for common delimiters like `&amp;`, `,`, or `;`. It uses the String.Split method
 ///     for efficient splitting.
 /// </summary>
 public sealed record StringDelimiter(string Value) : IDelimiter

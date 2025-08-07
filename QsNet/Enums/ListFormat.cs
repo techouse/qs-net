@@ -16,7 +16,7 @@ public delegate string ListFormatGenerator(string prefix, string? key);
 public enum ListFormat
 {
     /// <summary>
-    ///     Use brackets to represent list items, for example `foo[]=123&foo[]=456&foo[]=789`
+    ///     Use brackets to represent list items, for example `foo[]=123&amp;foo[]=456&amp;foo[]=789`
     /// </summary>
     Brackets,
 
@@ -26,12 +26,12 @@ public enum ListFormat
     Comma,
 
     /// <summary>
-    ///     Repeat the same key to represent list items, for example `foo=123&foo=456&foo=789`
+    ///     Repeat the same key to represent list items, for example `foo=123&amp;foo=456&amp;foo=789`
     /// </summary>
     Repeat,
 
     /// <summary>
-    ///     Use indices in brackets to represent list items, for example `foo[0]=123&foo[1]=456&foo[2]=789`
+    ///     Use indices in brackets to represent list items, for example `foo[0]=123&amp;foo[1]=456&amp;foo[2]=789`
     /// </summary>
     Indices,
 }
