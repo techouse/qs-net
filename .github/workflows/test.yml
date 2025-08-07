@@ -22,7 +22,6 @@ jobs:
   lint:
     name: Lint & Build (Release, warn-as-error)
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET 8 SDK
