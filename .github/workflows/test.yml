@@ -127,7 +127,7 @@ jobs:
       - name: Generate HTML & Cobertura
         run: |
           reportgenerator \
-            -reports:"coverage/**/coverage.cobertura.xml" \
+            -reports:"coverage/**/*.cobertura.xml"
             -targetdir:"coverage/report" \
             -reporttypes:"Html;Cobertura;JsonSummary"
 
