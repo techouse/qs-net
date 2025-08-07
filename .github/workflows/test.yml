@@ -94,6 +94,7 @@ jobs:
           name: coverage-${{ matrix.dotnet-version }}
           path: QsNet.Tests/TestResults/**/*.cobertura.xml
           if-no-files-found: error
+          overwrite: true
   
   coverage:
     name: Coverage (merged)
