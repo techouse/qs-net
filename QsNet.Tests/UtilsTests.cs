@@ -1405,7 +1405,7 @@ public class UtilsTests
         Utils.ConvertNestedValues(root);
 
         // root["k"] is still `inner` (a Dictionary<string, object?>)
-        var roundTrip = ((Dictionary<string, object?>)root["k"])["self"];
+        var roundTrip = ((Dictionary<string, object?>)root["k"]!)["self"];
 
         roundTrip.Should().BeSameAs(inner); // identity preserved
     }

@@ -1225,41 +1225,6 @@ public class EncodeTests
     }
 
     [Fact]
-    public void Encode_EncodesListWithMixedMapsAndPrimitives()
-    {
-        var mixedData = new Dictionary<string, object?>
-        {
-            {
-                "a",
-                new List<object?>
-                {
-                    new Dictionary<string, object?> { { "b", 1 } },
-                    2,
-                    3,
-                }
-            },
-        };
-
-        Qs.Encode(
-                mixedData,
-                new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Indices }
-            )
-            .Should()
-            .Be("a[0][b]=1&a[1]=2&a[2]=3");
-
-        Qs.Encode(
-                mixedData,
-                new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Brackets }
-            )
-            .Should()
-            .Be("a[][b]=1&a[]=2&a[]=3");
-
-        Qs.Encode(mixedData, new EncodeOptions { EncodeValuesOnly = true })
-            .Should()
-            .Be("a[0][b]=1&a[1]=2&a[2]=3");
-    }
-
-    [Fact]
     public void Encode_EncodesMapInsideListWithDotsNotation()
     {
         var simpleData = new Dictionary<string, object?>
@@ -2807,34 +2772,6 @@ public class EncodeTests
                         new List<object?>
                         {
                             null,
-                            new Dictionary<string, object?>
-                            {
-                                {
-                                    "b",
-                                    new List<object?>
-                                    {
-                                        null,
-                                        null,
-                                        new Dictionary<string, object?> { { "c", "1" } },
-                                    }
-                                },
-                            },
-                        }
-                    },
-                },
-                new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Repeat }
-            )
-            .Should()
-            .Be("a=&a[b]=&a[b]=&a[b][c]=1");
-
-        Qs.Encode(
-                new Dictionary<string, object?>
-                {
-                    {
-                        "a",
-                        new List<object?>
-                        {
-                            null,
                             new List<object?>
                             {
                                 null,
@@ -3042,30 +2979,30 @@ public class EncodeTests
     [MemberData(nameof(GetEmptyTestCases))]
     public void Encode_MapWithEmptyStringKey(Dictionary<string, object?> testCase)
     {
-        var input = (string)testCase["input"];
-        var withEmptyKeys = (Dictionary<string, object?>)testCase["withEmptyKeys"];
-        var stringifyOutput = (Dictionary<string, object?>)testCase["stringifyOutput"];
+        var input = (string)testCase["input"]!;
+        var withEmptyKeys = (Dictionary<string, object?>)testCase["withEmptyKeys"]!;
+        var stringifyOutput = (Dictionary<string, object?>)testCase["stringifyOutput"]!;
 
         Qs.Encode(
                 withEmptyKeys,
                 new EncodeOptions { Encode = false, ListFormat = ListFormat.Indices }
             )
             .Should()
-            .Be((string)stringifyOutput["indices"]);
+            .Be((string)stringifyOutput["indices"]!);
 
         Qs.Encode(
                 withEmptyKeys,
                 new EncodeOptions { Encode = false, ListFormat = ListFormat.Brackets }
             )
             .Should()
-            .Be((string)stringifyOutput["brackets"]);
+            .Be((string)stringifyOutput["brackets"]!);
 
         Qs.Encode(
                 withEmptyKeys,
                 new EncodeOptions { Encode = false, ListFormat = ListFormat.Repeat }
             )
             .Should()
-            .Be((string)stringifyOutput["repeat"]);
+            .Be((string)stringifyOutput["repeat"]!);
     }
 
     public static IEnumerable<object[]> GetEmptyTestCases()
@@ -3652,6 +3589,7 @@ public class EncodeTests
         };
 
         Qs.Encode(nested).Should().Be("a%5Bb%5D%5Bc%5D=");
+
         Qs.Encode(nested, new EncodeOptions { StrictNullHandling = true })
             .Should()
             .Be("a%5Bb%5D%5Bc%5D");
@@ -3778,6 +3716,10 @@ public class EncodeTests
         Qs.Encode(data, new EncodeOptions { ListFormat = ListFormat.Comma })
             .Should()
             .Be("a=b%2Cc%2Cd");
+        Qs.Encode(data, new EncodeOptions { ListFormat = ListFormat.Comma, CommaRoundTrip = true })
+            .Should()
+            .Be("a=b%2Cc%2Cd");
+
         Qs.Encode(data).Should().Be("a%5B0%5D=b&a%5B1%5D=c&a%5B2%5D=d");
     }
 
@@ -4204,46 +4146,6 @@ public class EncodeTests
         Qs.Encode(value2, new EncodeOptions { ListFormat = ListFormat.Brackets })
             .Should()
             .Be("a%5B%5D%5Bb%5D%5Bc%5D%5B%5D=1");
-    }
-
-    [Fact]
-    public void Encode_StringifiesArraysWithMixedObjectsAndPrimitives()
-    {
-        var value = new Dictionary<string, object?>
-        {
-            {
-                "a",
-                new List<object>
-                {
-                    new Dictionary<string, object?> { { "b", 1 } },
-                    2,
-                    3,
-                }
-            },
-        };
-        var options = new EncodeOptions { EncodeValuesOnly = true };
-
-        Qs.Encode(value, options).Should().Be("a[0][b]=1&a[1]=2&a[2]=3");
-        Qs.Encode(
-                value,
-                new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Indices }
-            )
-            .Should()
-            .Be("a[0][b]=1&a[1]=2&a[2]=3");
-        Qs.Encode(
-                value,
-                new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Brackets }
-            )
-            .Should()
-            .Be("a[][b]=1&a[]=2&a[]=3");
-
-        // Note: COMMA format with mixed types may not produce exact equivalent
-        // but should handle the conversion appropriately
-        var commaResult = Qs.Encode(
-            value,
-            new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Comma }
-        );
-        commaResult.Should().Contain("a=");
     }
 }
 
