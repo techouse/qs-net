@@ -21,28 +21,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        
       - name: Get name, version, and group from csproj files
         id: get_version
         run: |
           set -e
           VERSION=$(awk -F'[<>]' '/^[[:space:]]*<Version>/ {print $3}' QsNet/QsNet.csproj)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
-
       - name: Restore
         run: dotnet restore
-
       - name: Build & Pack
         run: dotnet pack QsNet/QsNet.csproj -c Release -o ./artifacts
-        
       - name: Push to NuGet
         run: dotnet nuget push ./artifacts/QsNet.$VERSION.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-
       - name: Upload .nupkg artefact
         uses: actions/upload-artifact@v4
         with:
@@ -92,3 +86,11 @@ jobs:
         run: |
           rm -rf $CHANGELOG_PATH
           rm -rf ./artifacts/*.nupkg
+  docs:
+    uses: ./.github/workflows/docs.yml
+    secrets: inherit
+    needs:
+      - test
+      - publish
+    permissions:
+      contents: write
