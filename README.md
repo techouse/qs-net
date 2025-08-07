@@ -5,7 +5,7 @@ A query string encoding and decoding library for C#/.NET.
 Ported from [qs](https://www.npmjs.com/package/qs) for JavaScript.
 
 [![NuGet Version](https://img.shields.io/nuget/v/QsNet)](https://www.nuget.org/packages/QsNet)
-[![Test](https://github.com/techouse/qs-net/actions/workflows/test.yml/badge.svg)](https://github.com/techouse/QsNet/actions/workflows/test.yml)
+[![Test](https://github.com/techouse/qs-net/actions/workflows/test.yml/badge.svg)](https://github.com/techouse/qs-net/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/techouse/qs-net/graph/badge.svg?token=ClCDNcsxqQ)](https://codecov.io/gh/techouse/qs-net)
 [![GitHub](https://img.shields.io/github/license/techouse/qs-net)](LICENSE)
 [![GitHub Repo stars](https://img.shields.io/github/stars/techouse/qs-net)](https://github.com/techouse/qs-net/stargazers)
