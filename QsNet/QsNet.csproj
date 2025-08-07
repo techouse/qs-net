@@ -7,9 +7,9 @@
         <PackageId>QsNet</PackageId>
         <Version>1.0.0</Version>
         <Authors>Klemen Tusar</Authors>
-        <PackageTags>querystring; parser; encoder; qs</PackageTags>
-        <Description>.NET port of the “qs” query-string codec</Description>
-        <PackageProjectUrl>https://github.com/techouse/qs-net</PackageProjectUrl>
+        <PackageTags>query-string; parser; encoder; qs</PackageTags>
+        <Description>A query string encoding and decoding library for C#/.NET. Ported from qs for JavaScript.</Description>
+        <PackageProjectUrl>https://techouse.github.io/qs-net/</PackageProjectUrl>
         <RepositoryUrl>https://github.com/techouse/qs-net</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
