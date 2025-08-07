@@ -13,26 +13,35 @@ env:
 
 jobs:
   lint:
+    name: Lint & Build (Release, warn-as-error)
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup .NET 8 SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.[cC][sS]proj', '**/*.props', '**/*.targets') }}
+          restore-keys: nuget-${{ runner.os }}-
 
       - name: Restore
         run: dotnet restore
 
-      - name: Verify formatting
-        run: dotnet format --verify-no-changes --verbosity diagnostic
+      - name: dotnet format (verify)
+        run: dotnet format --verify-no-changes --verbosity minimal
 
-      - name: Build (warnings as errors)
-        run: dotnet build --configuration Release -p:TreatWarningsAsErrors=true
-
+      - name: Build (warnings -> errors)
+        run: dotnet build --configuration Release -p:TreatWarningsAsErrors=true --no-restore
+  
   test:
+    name: Test ${{ matrix.dotnet }} on ${{ matrix.os }}
     needs: lint
     runs-on: ${{ matrix.os }}
 
@@ -40,23 +49,23 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-latest ]
-        dotnet-version: [ '8.0.x', '9.0.x' ]
+        dotnet: [ '8.0.x', '9.0.x' ]
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup .NET ${{ matrix.dotnet-version }}
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: ${{ matrix.dotnet-version }}
+          dotnet-version: ${{ matrix.dotnet }}
 
       - name: Cache NuGet
         uses: actions/cache@v4
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-${{ hashFiles('**/*.csproj') }}
+          key: nuget-${{ runner.os }}-${{ matrix.dotnet }}-${{ hashFiles('**/*.[cC][sS]proj') }}
           restore-keys: |
+            nuget-${{ runner.os }}-${{ matrix.dotnet }}-
             nuget-${{ runner.os }}-
 
       - name: Restore
@@ -65,65 +74,62 @@ jobs:
       - name: Build
         run: dotnet build --configuration Release --no-restore
 
-      - name: Test (with coverage)
+      - name: Test + Coverage
         run: |
           dotnet test --configuration Release --no-build \
             --verbosity normal \
             --logger "trx;LogFileName=test-results.trx" \
-            --collect "XPlat Code Coverage" \
-            --results-directory ./TestResults \
-            -- \
-            DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura \
-            DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.OutputDirectory=coverage
+            --collect "XPlat Code Coverage"
 
-      - name: Upload TRX results
+      - name: Upload TRX
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: test-results-${{ matrix.dotnet-version }}
-          path: TestResults/*.trx
+          name: test-results-${{ matrix.dotnet }}
+          path: '**/*.trx'
 
-      - name: Upload raw coverage
+      - name: Upload coverage
         uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: coverage-${{ matrix.dotnet-version }}
-          path: coverage/**/*.cobertura.xml
-          if-no-files-found: error
-
+          name: coverage-${{ matrix.dotnet }}
+          path: '**/coverage.cobertura.xml'
+  
   coverage:
-    needs: test
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    name: Coverage (merged)
     runs-on: ubuntu-latest
+    needs: test
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup .NET 8 SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: '8.0.x'
 
-      - name: Download coverage artifacts
-        uses: actions/download-artifact@v4
-        with:
-          pattern: coverage-*
-          path: coverage
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test w/ coverage (8.0—single run)
+        run: |
+          dotnet test --configuration Release --no-build \
+            --collect "XPlat Code Coverage" \
+            --results-directory coverage \
+            --settings coverlet.runsettings
 
       - name: Install ReportGenerator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
 
-      - name: Generate consolidated report
+      - name: Generate HTML & Cobertura
         run: |
           reportgenerator \
-            -reports:"coverage/**/*.cobertura.xml" \
+            -reports:"coverage/**/*.cobertura.xml"
             -targetdir:"coverage/report" \
             -reporttypes:"Html;Cobertura;JsonSummary"
-
-      - name: Upload coverage report artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: coverage/report
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
@@ -132,4 +138,11 @@ jobs:
         with:
           files: coverage/report/Cobertura.xml
           flags: unittests
+          name: codecov-umbrella
           fail_ci_if_error: false
+
+      - name: Upload coverage report artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/report/
