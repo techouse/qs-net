@@ -95,6 +95,7 @@ jobs:
           name: test-results-${{ matrix.dotnet }}
           path: '**/*.trx'
           overwrite: true
+          retention-days: 7
 
       - name: Upload raw coverage
         uses: actions/upload-artifact@v4
@@ -103,6 +104,7 @@ jobs:
           path: QsNet.Tests/TestResults/**/*.cobertura.xml
           if-no-files-found: error
           overwrite: true
+          retention-days: 7
   
   coverage:
     name: Coverage (merged)
@@ -155,3 +157,4 @@ jobs:
         with:
           name: coverage-report
           path: coverage/report/
+          retention-days: 7

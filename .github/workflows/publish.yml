@@ -21,6 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        
+      - name: Get name, version, and group from csproj files
+        id: get_version
+        run: |
+          set -e
+          VERSION=$(awk -F'[<>]' '/^[[:space:]]*<Version>/ {print $3}' QsNet/QsNet.csproj)
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -32,18 +39,16 @@ jobs:
 
       - name: Build & Pack
         run: dotnet pack QsNet/QsNet.csproj -c Release -o ./artifacts
-
+        
       - name: Push to NuGet
-        run: dotnet nuget push ./artifacts/*.nupkg \
-          --api-key ${{ secrets.NUGET_API_KEY }} \
-          --source https://api.nuget.org/v3/index.json \
-          --skip-duplicate
+        run: dotnet nuget push ./artifacts/QsNet.$VERSION.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
 
       - name: Upload .nupkg artefact
         uses: actions/upload-artifact@v4
         with:
           name: nuget-package
           path: ./artifacts/*.nupkg
+          retention-days: 7
   release:
     needs:
       - test
@@ -54,21 +59,19 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Get name, version, and group from Gradle files
-        id: get_version_and_name
+      - name: Get name, version, and group from csproj files
+        id: get_version
         run: |
           set -e
           VERSION=$(awk -F'[<>]' '/^[[:space:]]*<Version>/ {print $3}' QsNet/QsNet.csproj)
-          NAME=$(awk -F'[<>]' '/<PackageId>/ {print $3}' QsNet/QsNet.csproj)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "NAME=$NAME" >> $GITHUB_ENV
       - name: Create tag-specific CHANGELOG
         id: create_changelog
         run: |
           set -e
           CHANGELOG_PATH=$RUNNER_TEMP/CHANGELOG.md
           awk '/^##[[:space:]].*/ { if (count == 1) exit; count++; print } count == 1 && !/^##[[:space:]].*/ { print }' CHANGELOG.md | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > $CHANGELOG_PATH
-          echo -en "\n[https://www.nuget.org/packages/$NAME](https://www.nuget.org/packages/$NAME)" >> $CHANGELOG_PATH
+          echo -en "\n[https://www.nuget.org/packages/QsNet](https://www.nuget.org/packages/QsNet)" >> $CHANGELOG_PATH
           echo "CHANGELOG_PATH=$CHANGELOG_PATH" >> $GITHUB_ENV
       - name: Create release
         id: create_release
