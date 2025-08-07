@@ -252,14 +252,14 @@ internal static partial class Decoder
                     switch (isBracketedNumeric)
                     {
                         case true when options.ParseLists && idx >= 0 && idx <= options.ListLimit:
-                        {
-                            // Within list limit → build a list up to idx
-                            var list = new List<object?>();
-                            for (var j = 0; j <= idx; j++)
-                                list.Add(j == idx ? leaf : Undefined.Instance);
-                            obj = list;
-                            break;
-                        }
+                            {
+                                // Within list limit → build a list up to idx
+                                var list = new List<object?>();
+                                for (var j = 0; j <= idx; j++)
+                                    list.Add(j == idx ? leaf : Undefined.Instance);
+                                obj = list;
+                                break;
+                            }
                         case true:
                             // Bracketed numeric but *not* a list (limit 0/too small or arrays disabled) → object-keyed map
                             obj = new Dictionary<object, object?> { [idx] = leaf };

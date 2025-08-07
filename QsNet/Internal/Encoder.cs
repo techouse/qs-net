@@ -227,66 +227,66 @@ internal static class Encoder
                         break;
 
                     case Array arr:
-                    {
-                        var idx = key as int? ?? (key is IConvertible c ? c.ToInt32(null) : -1);
-                        if (idx >= 0 && idx < arr.Length)
                         {
-                            value = arr.GetValue(idx);
-                        }
-                        else
-                        {
-                            value = null;
-                            valueUndefined = true;
-                        }
+                            var idx = key as int? ?? (key is IConvertible c ? c.ToInt32(null) : -1);
+                            if (idx >= 0 && idx < arr.Length)
+                            {
+                                value = arr.GetValue(idx);
+                            }
+                            else
+                            {
+                                value = null;
+                                valueUndefined = true;
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
 
                     case IList list:
-                    {
-                        var idx = key switch
                         {
-                            int j => j,
-                            IConvertible when int.TryParse(key.ToString(), out var parsed) =>
-                                parsed,
-                            _ => -1,
-                        };
-                        if (idx >= 0 && idx < list.Count)
-                        {
-                            value = list[idx];
-                        }
-                        else
-                        {
-                            value = null;
-                            valueUndefined = true;
-                        }
+                            var idx = key switch
+                            {
+                                int j => j,
+                                IConvertible when int.TryParse(key.ToString(), out var parsed) =>
+                                    parsed,
+                                _ => -1,
+                            };
+                            if (idx >= 0 && idx < list.Count)
+                            {
+                                value = list[idx];
+                            }
+                            else
+                            {
+                                value = null;
+                                valueUndefined = true;
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
 
                     case IEnumerable ie
                     and not string:
-                    {
-                        var idx = key switch
                         {
-                            int j => j,
-                            IConvertible when int.TryParse(key.ToString(), out var parsed) =>
-                                parsed,
-                            _ => -1,
-                        };
-                        var list2 = ie.Cast<object?>().ToList();
-                        if (idx >= 0 && idx < list2.Count)
-                        {
-                            value = list2[idx];
-                        }
-                        else
-                        {
-                            value = null;
-                            valueUndefined = true;
-                        }
+                            var idx = key switch
+                            {
+                                int j => j,
+                                IConvertible when int.TryParse(key.ToString(), out var parsed) =>
+                                    parsed,
+                                _ => -1,
+                            };
+                            var list2 = ie.Cast<object?>().ToList();
+                            if (idx >= 0 && idx < list2.Count)
+                            {
+                                value = list2[idx];
+                            }
+                            else
+                            {
+                                value = null;
+                                valueUndefined = true;
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
 
                     default:
                         value = null;

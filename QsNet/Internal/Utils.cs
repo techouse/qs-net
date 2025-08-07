@@ -54,110 +54,110 @@ internal static partial class Utils
             switch (target)
             {
                 case IEnumerable<object?> targetEnum:
-                {
-                    var targetList = targetEnum.ToList();
-
-                    // Case: the target contains Undefined -> treat as index map first
-                    if (targetList.Any(v => v is Undefined))
                     {
-                        var indexMap = new Dictionary<object, object?>();
-                        for (var i = 0; i < targetList.Count; i++)
-                            indexMap[i] = targetList[i];
+                        var targetList = targetEnum.ToList();
 
-                        if (source is IEnumerable<object?> srcEnum)
+                        // Case: the target contains Undefined -> treat as index map first
+                        if (targetList.Any(v => v is Undefined))
                         {
-                            var i = 0;
-                            foreach (var item in srcEnum)
-                            {
-                                if (item is not Undefined)
-                                    indexMap[i] = item;
-                                i++;
-                            }
-                        }
-                        else
-                        {
-                            indexMap[indexMap.Count] = source;
-                        }
-
-                        // If parseLists is disabled and Undefined present, drop them
-                        if (!options.ParseLists && indexMap.Values.Any(v => v is Undefined))
-                            indexMap = indexMap
-                                .Where(kv => kv.Value is not Undefined)
-                                .ToDictionary(kv => kv.Key, kv => kv.Value);
-
-                        if (target is ISet<object?>)
-                            return new HashSet<object?>(indexMap.Values);
-                        return indexMap.Values.ToList();
-                    }
-
-                    // Otherwise: both sides are iterables / primitives
-                    if (source is IEnumerable<object?> srcIt)
-                    {
-                        // If both sequences are maps-or-Undefined only, fold by index merging
-                        var targetAllMaps = targetList.All(v => v is IDictionary or Undefined);
-                        var srcAllMaps = srcIt.All(v => v is IDictionary or Undefined);
-
-                        if (targetAllMaps && srcAllMaps)
-                        {
-                            var mutable = new SortedDictionary<int, object?>();
+                            var indexMap = new Dictionary<object, object?>();
                             for (var i = 0; i < targetList.Count; i++)
-                                mutable[i] = targetList[i];
+                                indexMap[i] = targetList[i];
 
-                            var j = 0;
-                            foreach (var item in srcIt)
+                            if (source is IEnumerable<object?> srcEnum)
                             {
-                                if (!mutable.TryAdd(j, item))
-                                    mutable[j] = Merge(mutable[j], item, options);
-
-                                j++;
+                                var i = 0;
+                                foreach (var item in srcEnum)
+                                {
+                                    if (item is not Undefined)
+                                        indexMap[i] = item;
+                                    i++;
+                                }
                             }
+                            else
+                            {
+                                indexMap[indexMap.Count] = source;
+                            }
+
+                            // If parseLists is disabled and Undefined present, drop them
+                            if (!options.ParseLists && indexMap.Values.Any(v => v is Undefined))
+                                indexMap = indexMap
+                                    .Where(kv => kv.Value is not Undefined)
+                                    .ToDictionary(kv => kv.Key, kv => kv.Value);
 
                             if (target is ISet<object?>)
-                                return new HashSet<object?>(mutable.Values);
-                            return mutable.Values.ToList();
+                                return new HashSet<object?>(indexMap.Values);
+                            return indexMap.Values.ToList();
                         }
 
-                        // Fallback: concat, filtering out Undefined from source
-                        var filtered = srcIt.Where(v => v is not Undefined);
-                        if (target is ISet<object?>)
-                            return new HashSet<object?>(targetList.Concat(filtered));
-                        return targetList.Concat(filtered).ToList();
-                    }
-
-                    // source is primitive -> append/merge
-                    if (target is ISet<object?>)
-                        return new HashSet<object?>(targetList.Append(source));
-                    return targetList.Append(source).ToList();
-                }
-
-                case IDictionary targetMap:
-                {
-                    var mutable = ToDictionary(targetMap);
-
-                    switch (source)
-                    {
-                        case IEnumerable<object?> srcIter:
+                        // Otherwise: both sides are iterables / primitives
+                        if (source is IEnumerable<object?> srcIt)
                         {
-                            var i = 0;
-                            foreach (var item in srcIter)
+                            // If both sequences are maps-or-Undefined only, fold by index merging
+                            var targetAllMaps = targetList.All(v => v is IDictionary or Undefined);
+                            var srcAllMaps = srcIt.All(v => v is IDictionary or Undefined);
+
+                            if (targetAllMaps && srcAllMaps)
                             {
-                                if (item is not Undefined)
-                                    mutable[i] = item;
-                                i++;
+                                var mutable = new SortedDictionary<int, object?>();
+                                for (var i = 0; i < targetList.Count; i++)
+                                    mutable[i] = targetList[i];
+
+                                var j = 0;
+                                foreach (var item in srcIt)
+                                {
+                                    if (!mutable.TryAdd(j, item))
+                                        mutable[j] = Merge(mutable[j], item, options);
+
+                                    j++;
+                                }
+
+                                if (target is ISet<object?>)
+                                    return new HashSet<object?>(mutable.Values);
+                                return mutable.Values.ToList();
                             }
 
-                            return mutable;
+                            // Fallback: concat, filtering out Undefined from source
+                            var filtered = srcIt.Where(v => v is not Undefined);
+                            if (target is ISet<object?>)
+                                return new HashSet<object?>(targetList.Concat(filtered));
+                            return targetList.Concat(filtered).ToList();
                         }
-                        // ignore
-                        case Undefined:
-                            return mutable;
+
+                        // source is primitive -> append/merge
+                        if (target is ISet<object?>)
+                            return new HashSet<object?>(targetList.Append(source));
+                        return targetList.Append(source).ToList();
                     }
 
-                    var k = source.ToString()!;
-                    if (k.Length > 0)
-                        mutable[k] = true;
-                    return mutable;
-                }
+                case IDictionary targetMap:
+                    {
+                        var mutable = ToDictionary(targetMap);
+
+                        switch (source)
+                        {
+                            case IEnumerable<object?> srcIter:
+                                {
+                                    var i = 0;
+                                    foreach (var item in srcIter)
+                                    {
+                                        if (item is not Undefined)
+                                            mutable[i] = item;
+                                        i++;
+                                    }
+
+                                    return mutable;
+                                }
+                            // ignore
+                            case Undefined:
+                                return mutable;
+                        }
+
+                        var k = source.ToString()!;
+                        if (k.Length > 0)
+                            mutable[k] = true;
+                        return mutable;
+                    }
 
                 default:
                     // target is primitive/null
@@ -178,33 +178,33 @@ internal static partial class Utils
                 break;
 
             case IEnumerable<object?> tenum:
-            {
-                // (keep your existing behavior for lists)
-                var dict = new Dictionary<object, object?>();
-                var i = 0;
-                foreach (var v in tenum)
                 {
-                    if (v is not Undefined)
-                        dict[i] = v;
-                    i++;
+                    // (keep your existing behavior for lists)
+                    var dict = new Dictionary<object, object?>();
+                    var i = 0;
+                    foreach (var v in tenum)
+                    {
+                        if (v is not Undefined)
+                            dict[i] = v;
+                        i++;
+                    }
+
+                    mergeTarget = dict;
+                    break;
                 }
 
-                mergeTarget = dict;
-                break;
-            }
-
             default:
-            {
-                if (target is null or Undefined)
-                    return NormalizeForTarget((IDictionary)source);
+                {
+                    if (target is null or Undefined)
+                        return NormalizeForTarget((IDictionary)source);
 
-                var list = new List<object?>
+                    var list = new List<object?>
                 {
                     target,
                     ToStringKeyedDictionary((IDictionary)source),
                 };
-                return list;
-            }
+                    return list;
+                }
         }
 
         foreach (DictionaryEntry entry in sourceMap)
@@ -469,126 +469,126 @@ internal static partial class Utils
             switch (node)
             {
                 case Dictionary<object, object?> dict:
-                {
-                    var toRemove = new List<object>();
-                    foreach (var kv in dict)
-                        switch (kv.Value)
-                        {
-                            case Undefined:
-                                toRemove.Add(kv.Key);
-                                break;
-                            case Dictionary<object, object?> d when visited.Add(d):
-                                stack.Push(d);
-                                break;
-                            case Dictionary<string, object?> ds when visited.Add(ds):
-                                stack.Push(ds);
-                                break;
-                            case List<object?> l when visited.Add(l):
-                                stack.Push(l);
-                                break;
-                            case IDictionary id when visited.Add(id):
-                                if (
-                                    id is Dictionary<object, object?> or Dictionary<string, object?>
-                                )
-                                {
-                                    stack.Push(id); // just keep walking
-                                }
-                                else
-                                {
-                                    // Fallback for the odd non-generic IDictionary (e.g. Hashtable)
-                                    var converted = ToObjectKeyedDictionary(id);
-                                    dict[kv.Key] = converted;
-                                    stack.Push(converted);
-                                }
+                    {
+                        var toRemove = new List<object>();
+                        foreach (var kv in dict)
+                            switch (kv.Value)
+                            {
+                                case Undefined:
+                                    toRemove.Add(kv.Key);
+                                    break;
+                                case Dictionary<object, object?> d when visited.Add(d):
+                                    stack.Push(d);
+                                    break;
+                                case Dictionary<string, object?> ds when visited.Add(ds):
+                                    stack.Push(ds);
+                                    break;
+                                case List<object?> l when visited.Add(l):
+                                    stack.Push(l);
+                                    break;
+                                case IDictionary id when visited.Add(id):
+                                    if (
+                                        id is Dictionary<object, object?> or Dictionary<string, object?>
+                                    )
+                                    {
+                                        stack.Push(id); // just keep walking
+                                    }
+                                    else
+                                    {
+                                        // Fallback for the odd non-generic IDictionary (e.g. Hashtable)
+                                        var converted = ToObjectKeyedDictionary(id);
+                                        dict[kv.Key] = converted;
+                                        stack.Push(converted);
+                                    }
 
-                                break;
-                        }
+                                    break;
+                            }
 
-                    foreach (var k in toRemove)
-                        dict.Remove(k);
-                    break;
-                }
+                        foreach (var k in toRemove)
+                            dict.Remove(k);
+                        break;
+                    }
 
                 case Dictionary<string, object?> dictS:
-                {
-                    // allow mixed nested maps
-                    var toRemove = new List<string>();
-                    foreach (var kv in dictS)
-                        switch (kv.Value)
-                        {
-                            case Undefined:
-                                toRemove.Add(kv.Key);
-                                break;
-                            case Dictionary<object, object?> d when visited.Add(d):
-                                stack.Push(d);
-                                break;
-                            case Dictionary<string, object?> ds when visited.Add(ds):
-                                stack.Push(ds);
-                                break;
-                            case List<object?> l when visited.Add(l):
-                                stack.Push(l);
-                                break;
-                            case IDictionary id when visited.Add(id):
-                                if (
-                                    id is Dictionary<object, object?> or Dictionary<string, object?>
-                                )
-                                {
-                                    stack.Push(id);
-                                }
-                                else
-                                {
-                                    var converted = ToObjectKeyedDictionary(id);
-                                    dictS[kv.Key] = converted;
-                                    stack.Push(converted);
-                                }
+                    {
+                        // allow mixed nested maps
+                        var toRemove = new List<string>();
+                        foreach (var kv in dictS)
+                            switch (kv.Value)
+                            {
+                                case Undefined:
+                                    toRemove.Add(kv.Key);
+                                    break;
+                                case Dictionary<object, object?> d when visited.Add(d):
+                                    stack.Push(d);
+                                    break;
+                                case Dictionary<string, object?> ds when visited.Add(ds):
+                                    stack.Push(ds);
+                                    break;
+                                case List<object?> l when visited.Add(l):
+                                    stack.Push(l);
+                                    break;
+                                case IDictionary id when visited.Add(id):
+                                    if (
+                                        id is Dictionary<object, object?> or Dictionary<string, object?>
+                                    )
+                                    {
+                                        stack.Push(id);
+                                    }
+                                    else
+                                    {
+                                        var converted = ToObjectKeyedDictionary(id);
+                                        dictS[kv.Key] = converted;
+                                        stack.Push(converted);
+                                    }
 
-                                break;
-                        }
+                                    break;
+                            }
 
-                    foreach (var k in toRemove)
-                        dictS.Remove(k);
-                    break;
-                }
+                        foreach (var k in toRemove)
+                            dictS.Remove(k);
+                        break;
+                    }
 
                 case List<object?> list:
-                {
-                    for (var i = list.Count - 1; i >= 0; i--)
-                        switch (list[i])
-                        {
-                            case Undefined:
-                                if (allowSparseLists)
-                                    list[i] = null;
-                                else
-                                    list.RemoveAt(i);
-                                break;
-                            case Dictionary<object, object?> d when visited.Add(d):
-                                stack.Push(d);
-                                break;
-                            case Dictionary<string, object?> ds when visited.Add(ds):
-                                stack.Push(ds);
-                                break;
-                            case List<object?> l when visited.Add(l):
-                                stack.Push(l);
-                                break;
-                            case IDictionary id when visited.Add(id):
-                                if (
-                                    id is Dictionary<object, object?> or Dictionary<string, object?>
-                                )
-                                {
-                                    stack.Push(id);
-                                }
-                                else
-                                {
-                                    var converted = ToObjectKeyedDictionary(id);
-                                    list[i] = converted;
-                                    stack.Push(converted);
-                                }
+                    {
+                        for (var i = list.Count - 1; i >= 0; i--)
+                            switch (list[i])
+                            {
+                                case Undefined:
+                                    if (allowSparseLists)
+                                        list[i] = null;
+                                    else
+                                        list.RemoveAt(i);
+                                    break;
+                                case Dictionary<object, object?> d when visited.Add(d):
+                                    stack.Push(d);
+                                    break;
+                                case Dictionary<string, object?> ds when visited.Add(ds):
+                                    stack.Push(ds);
+                                    break;
+                                case List<object?> l when visited.Add(l):
+                                    stack.Push(l);
+                                    break;
+                                case IDictionary id when visited.Add(id):
+                                    if (
+                                        id is Dictionary<object, object?> or Dictionary<string, object?>
+                                    )
+                                    {
+                                        stack.Push(id);
+                                    }
+                                    else
+                                    {
+                                        var converted = ToObjectKeyedDictionary(id);
+                                        list[i] = converted;
+                                        stack.Push(converted);
+                                    }
 
-                                break;
-                        }
+                                    break;
+                            }
 
-                    break;
-                }
+                        break;
+                    }
             }
         }
 
