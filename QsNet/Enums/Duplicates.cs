@@ -18,5 +18,5 @@ public enum Duplicates
     /// <summary>
     ///     Use the last value for duplicate keys.
     /// </summary>
-    Last,
+    Last
 }

@@ -22,7 +22,7 @@ public enum Format
     /// <summary>
     ///     RFC 1738 format https://datatracker.ietf.org/doc/html/rfc1738
     /// </summary>
-    Rfc1738,
+    Rfc1738
 }
 
 /// <summary>
@@ -41,7 +41,7 @@ public static class FormatExtensions
         {
             Format.Rfc3986 => value => value,
             Format.Rfc1738 => value => value.Replace("%20", "+"),
-            _ => throw new ArgumentOutOfRangeException(nameof(format)),
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
     }
 }

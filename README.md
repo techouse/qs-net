@@ -632,13 +632,17 @@ Qs.Encode(new Dictionary<string, object?> { ["a"] = "b c" }, new EncodeOptions {
 
 ## Design notes
 
-- **Performance:** The implementation mirrors qs semantics but is optimized for C#/.NET. Deep parsing, list compaction, and cycle-safe compaction are implemented iteratively where it matters.
-- **Safety:** Defaults (depth, parameterLimit) help mitigate abuse in user-supplied inputs; you can loosen them when you fully trust the source.
-- **Interop:** Exposes knobs similar to qs (filters, sorters, custom encoders/decoders) to make migrations straightforward.
+- **Performance:** The implementation mirrors qs semantics but is optimized for C#/.NET. Deep parsing, list compaction,
+  and cycle-safe compaction are implemented iteratively where it matters.
+- **Safety:** Defaults (depth, parameterLimit) help mitigate abuse in user-supplied inputs; you can loosen them when you
+  fully trust the source.
+- **Interop:** Exposes knobs similar to qs (filters, sorters, custom encoders/decoders) to make migrations
+  straightforward.
 
 ---
 
 Special thanks to the authors of [qs](https://www.npmjs.com/package/qs) for JavaScript:
+
 - [Jordan Harband](https://github.com/ljharb)
 - [TJ Holowaychuk](https://github.com/visionmedia/node-querystring)
 

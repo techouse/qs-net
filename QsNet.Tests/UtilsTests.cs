@@ -529,9 +529,9 @@ public class UtilsTests
                 new List<object?>
                 {
                     new Dictionary<string, object?> { { "a", "a" }, { "b", "b" } },
-                    new Dictionary<string, object?> { { "a", "aa" } },
+                    new Dictionary<string, object?> { { "a", "aa" } }
                 }
-            },
+            }
         };
         var source = new Dictionary<string, object?>
         {
@@ -540,9 +540,9 @@ public class UtilsTests
                 new List<object?>
                 {
                     Undefined.Create(),
-                    new Dictionary<string, object?> { { "b", "bb" } },
+                    new Dictionary<string, object?> { { "b", "bb" } }
                 }
-            },
+            }
         };
         var expected = new Dictionary<string, object?>
         {
@@ -551,9 +551,9 @@ public class UtilsTests
                 new List<object?>
                 {
                     new Dictionary<string, object?> { { "a", "a" }, { "b", "b" } },
-                    new Dictionary<string, object?> { { "a", "aa" }, { "b", "bb" } },
+                    new Dictionary<string, object?> { { "a", "aa" }, { "b", "bb" } }
                 }
-            },
+            }
         };
 
         Utils.Merge(target, source).Should().BeEquivalentTo(expected);
@@ -573,10 +573,10 @@ public class UtilsTests
                         {
                             "baz",
                             new List<object?> { "15" }
-                        },
-                    },
+                        }
+                    }
                 }
-            },
+            }
         };
         var source = new Dictionary<string, object?>
         {
@@ -589,10 +589,10 @@ public class UtilsTests
                         {
                             "baz",
                             new List<object?> { Undefined.Create(), "16" }
-                        },
-                    },
+                        }
+                    }
                 }
-            },
+            }
         };
         var expected = new Dictionary<string, object?>
         {
@@ -605,10 +605,10 @@ public class UtilsTests
                         {
                             "baz",
                             new List<object?> { "15", "16" }
-                        },
-                    },
+                        }
+                    }
                 }
-            },
+            }
         };
 
         Utils.Merge(target, source).Should().BeEquivalentTo(expected);
@@ -622,14 +622,14 @@ public class UtilsTests
             {
                 "foo",
                 new List<object?> { new Dictionary<string, object?> { { "a", "b" } } }
-            },
+            }
         };
         var source = new Dictionary<string, object?>
         {
             {
                 "foo",
                 new List<object?> { new Dictionary<string, object?> { { "c", "d" } } }
-            },
+            }
         };
         var expected = new Dictionary<string, object?>
         {
@@ -637,9 +637,9 @@ public class UtilsTests
                 "foo",
                 new List<object?>
                 {
-                    new Dictionary<string, object?> { { "a", "b" }, { "c", "d" } },
+                    new Dictionary<string, object?> { { "a", "b" }, { "c", "d" } }
                 }
-            },
+            }
         };
 
         Utils.Merge(target, source).Should().BeEquivalentTo(expected);
@@ -696,7 +696,7 @@ public class UtilsTests
             {
                 "a",
                 new List<object?> { "b", "c" }
-            },
+            }
         };
 
         result.Should().BeEquivalentTo(expected);
@@ -716,7 +716,7 @@ public class UtilsTests
                 {
                     "foo",
                     new Dictionary<string, object?> { { "first", "123" } }
-                },
+                }
             }
         );
         var expected = new Dictionary<object, object?>
@@ -726,9 +726,9 @@ public class UtilsTests
                 new List<object?>
                 {
                     "bar",
-                    new Dictionary<string, object?> { { "first", "123" } },
+                    new Dictionary<string, object?> { { "first", "123" } }
                 }
-            },
+            }
         };
 
         result.Should().BeEquivalentTo(expected);
@@ -745,16 +745,16 @@ public class UtilsTests
                     new List<object?>
                     {
                         "bar",
-                        new Dictionary<string, object?> { { "first", "123" } },
+                        new Dictionary<string, object?> { { "first", "123" } }
                     }
-                },
+                }
             },
             new Dictionary<string, object?>
             {
                 {
                     "foo",
                     new Dictionary<string, object?> { { "second", "456" } }
-                },
+                }
             }
         );
         var expected = new Dictionary<object, object?>
@@ -768,9 +768,9 @@ public class UtilsTests
                         1,
                         new Dictionary<string, object?> { { "first", "123" } }
                     },
-                    { "second", "456" },
+                    { "second", "456" }
                 }
-            },
+            }
         };
 
         result.Should().BeEquivalentTo(expected);
@@ -787,9 +787,9 @@ public class UtilsTests
                     new List<object?>
                     {
                         "bar",
-                        new Dictionary<string, object?> { { "first", "123" }, { "second", "456" } },
+                        new Dictionary<string, object?> { { "first", "123" }, { "second", "456" } }
                     }
-                },
+                }
             },
             new Dictionary<string, object?> { { "foo", "baz" } }
         );
@@ -801,9 +801,9 @@ public class UtilsTests
                 {
                     "bar",
                     new Dictionary<string, object?> { { "first", "123" }, { "second", "456" } },
-                    "baz",
+                    "baz"
                 }
-            },
+            }
         };
 
         result.Should().BeEquivalentTo(expected);
@@ -827,14 +827,14 @@ public class UtilsTests
                 {
                     "foo",
                     new List<object?> { "baz" }
-                },
+                }
             },
             new Dictionary<string, object?>
             {
                 {
                     "foo",
                     new List<object?> { "bar", "xyzzy" }
-                },
+                }
             }
         );
         var expected2 = new Dictionary<object, object?>
@@ -842,7 +842,7 @@ public class UtilsTests
             {
                 "foo",
                 new List<object?> { "baz", "bar", "xyzzy" }
-            },
+            }
         };
 
         result2.Should().BeEquivalentTo(expected2);
@@ -870,14 +870,14 @@ public class UtilsTests
                 {
                     "foo",
                     new HashSet<object?> { "baz" }
-                },
+                }
             },
             new Dictionary<string, object?>
             {
                 {
                     "foo",
                     new HashSet<object?> { "bar", "xyzzy" }
-                },
+                }
             }
         );
         var expected2 = new Dictionary<object, object?>
@@ -885,7 +885,7 @@ public class UtilsTests
             {
                 "foo",
                 new HashSet<object?> { "baz", "bar", "xyzzy" }
-            },
+            }
         };
 
         result2.Should().BeEquivalentTo(expected2);
@@ -904,14 +904,14 @@ public class UtilsTests
                 {
                     "foo",
                     new List<object?> { "baz" }
-                },
+                }
             },
             new Dictionary<string, object?>
             {
                 {
                     "foo",
                     new HashSet<object?> { "bar" }
-                },
+                }
             }
         );
         var expected = new Dictionary<object, object?>
@@ -919,7 +919,7 @@ public class UtilsTests
             {
                 "foo",
                 new List<object?> { "baz", "bar" }
-            },
+            }
         };
 
         result.Should().BeEquivalentTo(expected);
@@ -938,14 +938,14 @@ public class UtilsTests
                 {
                     "foo",
                     new HashSet<object?> { "baz" }
-                },
+                }
             },
             new Dictionary<string, object?>
             {
                 {
                     "foo",
                     new List<object?> { "bar" }
-                },
+                }
             }
         );
         var expected = new Dictionary<object, object?>
@@ -953,7 +953,7 @@ public class UtilsTests
             {
                 "foo",
                 new HashSet<object?> { "baz", "bar" }
-            },
+            }
         };
 
         result.Should().BeEquivalentTo(expected);
@@ -972,14 +972,14 @@ public class UtilsTests
                 {
                     "foo",
                     new List<object?> { "baz" }
-                },
+                }
             },
             new Dictionary<string, object?>
             {
                 {
                     "foo",
                     new HashSet<object?> { "bar", "xyzzy" }
-                },
+                }
             }
         );
         var expected = new Dictionary<object, object?>
@@ -987,7 +987,7 @@ public class UtilsTests
             {
                 "foo",
                 new List<object?> { "baz", "bar", "xyzzy" }
-            },
+            }
         };
 
         result.Should().BeEquivalentTo(expected);
@@ -1006,14 +1006,14 @@ public class UtilsTests
                 {
                     "foo",
                     new List<object?> { "bar" }
-                },
+                }
             },
             new Dictionary<string, object?>
             {
                 {
                     "foo",
                     new Dictionary<string, object?> { { "baz", "xyzzy" } }
-                },
+                }
             }
         );
         var expected = new Dictionary<object, object?>
@@ -1021,7 +1021,7 @@ public class UtilsTests
             {
                 "foo",
                 new Dictionary<object, object?> { { 0, "bar" }, { "baz", "xyzzy" } }
-            },
+            }
         };
 
         result.Should().BeEquivalentTo(expected);
@@ -1040,14 +1040,14 @@ public class UtilsTests
                 {
                     "foo",
                     new Dictionary<string, object?> { { "bar", "baz" } }
-                },
+                }
             },
             new Dictionary<string, object?>
             {
                 {
                     "foo",
                     new List<object?> { "xyzzy" }
-                },
+                }
             }
         );
         var expected = new Dictionary<object, object?>
@@ -1055,7 +1055,7 @@ public class UtilsTests
             {
                 "foo",
                 new Dictionary<object, object?> { { "bar", "baz" }, { 0, "xyzzy" } }
-            },
+            }
         };
 
         result.Should().BeEquivalentTo(expected);
@@ -1076,14 +1076,14 @@ public class UtilsTests
                 {
                     "foo",
                     new HashSet<object?> { "bar" }
-                },
+                }
             },
             new Dictionary<string, object?>
             {
                 {
                     "foo",
                     new HashSet<object?> { undefined, "baz" }
-                },
+                }
             }
         );
         var expected1 = new Dictionary<object, object?>
@@ -1091,7 +1091,7 @@ public class UtilsTests
             {
                 "foo",
                 new HashSet<object?> { "bar", "baz" }
-            },
+            }
         };
 
         result1.Should().BeEquivalentTo(expected1);
@@ -1106,14 +1106,14 @@ public class UtilsTests
                 {
                     "foo",
                     new HashSet<object?> { undefined, "bar" }
-                },
+                }
             },
             new Dictionary<string, object?>
             {
                 {
                     "foo",
                     new HashSet<object?> { "baz" }
-                },
+                }
             }
         );
         var expected2 = new Dictionary<object, object?>
@@ -1121,7 +1121,7 @@ public class UtilsTests
             {
                 "foo",
                 new HashSet<object?> { "bar", "baz" }
-            },
+            }
         };
 
         result2.Should().BeEquivalentTo(expected2);
@@ -1140,7 +1140,7 @@ public class UtilsTests
         );
         var expected1 = new HashSet<object?>
         {
-            new Dictionary<string, object?> { { "bar", "baz" }, { "baz", "xyzzy" } },
+            new Dictionary<string, object?> { { "bar", "baz" }, { "baz", "xyzzy" } }
         };
 
         result1.Should().BeEquivalentTo(expected1);
@@ -1152,14 +1152,14 @@ public class UtilsTests
                 {
                     "foo",
                     new HashSet<object?> { new Dictionary<string, object?> { { "bar", "baz" } } }
-                },
+                }
             },
             new Dictionary<string, object?>
             {
                 {
                     "foo",
                     new HashSet<object?> { new Dictionary<string, object?> { { "baz", "xyzzy" } } }
-                },
+                }
             }
         );
         var expected2 = new Dictionary<object, object?>
@@ -1168,9 +1168,9 @@ public class UtilsTests
                 "foo",
                 new HashSet<object?>
                 {
-                    new Dictionary<string, object?> { { "bar", "baz" }, { "baz", "xyzzy" } },
+                    new Dictionary<string, object?> { { "bar", "baz" }, { "baz", "xyzzy" } }
                 }
-            },
+            }
         };
 
         result2.Should().BeEquivalentTo(expected2);
@@ -1361,17 +1361,17 @@ public class UtilsTests
         {
             { "a", 1 }, // string key
             { 2, "b" }, // int   key
-            { "", 3 }, // null  key
+            { "", 3 } // null  key
         };
 
         var dict =
             (Dictionary<string, object?>)
-                typeof(Utils)
-                    .GetMethod(
-                        "ToStringKeyedDictionary",
-                        BindingFlags.NonPublic | BindingFlags.Static
-                    )!
-                    .Invoke(null, [src])!;
+            typeof(Utils)
+                .GetMethod(
+                    "ToStringKeyedDictionary",
+                    BindingFlags.NonPublic | BindingFlags.Static
+                )!
+                .Invoke(null, [src])!;
 
         dict.Should()
             .BeEquivalentTo(
@@ -1379,7 +1379,7 @@ public class UtilsTests
                 {
                     ["a"] = 1,
                     ["2"] = "b", // int key → "2"
-                    [""] = 3, // null key → ""
+                    [""] = 3 // null key → ""
                 }
             );
     }
@@ -1416,7 +1416,7 @@ public class UtilsTests
         IDictionary src = new Hashtable
         {
             ["a"] = 1,
-            [2] = new Hashtable { [3] = "x" },
+            [2] = new Hashtable { [3] = "x" }
         };
 
         var res = Utils.ConvertNestedDictionary(src);
@@ -1426,7 +1426,7 @@ public class UtilsTests
                 new Dictionary<string, object?>
                 {
                     ["a"] = 1,
-                    ["2"] = new Dictionary<string, object?> { ["3"] = "x" },
+                    ["2"] = new Dictionary<string, object?> { ["3"] = "x" }
                 }
             );
     }
@@ -1473,7 +1473,7 @@ public class UtilsTests
                     {
                         "a",
                         new List<object?> { "b", "c" }
-                    },
+                    }
                 }
             );
         Utils
@@ -1487,9 +1487,9 @@ public class UtilsTests
                         new List<object?>
                         {
                             "b",
-                            new Dictionary<string, object?> { { "a", "c" } },
+                            new Dictionary<string, object?> { { "a", "c" } }
                         }
-                    },
+                    }
                 }
             );
 
@@ -1500,16 +1500,16 @@ public class UtilsTests
                 new List<object?>
                 {
                     "bar",
-                    new Dictionary<string, object?> { { "first", "123" } },
+                    new Dictionary<string, object?> { { "first", "123" } }
                 }
-            },
+            }
         };
         var d2 = new Dictionary<string, object?>
         {
             {
                 "foo",
                 new Dictionary<string, object?> { { "second", "456" } }
-            },
+            }
         };
 
         var expected1 = new Dictionary<object, object?>
@@ -1523,9 +1523,9 @@ public class UtilsTests
                         1,
                         new Dictionary<string, object?> { { "first", "123" } }
                     },
-                    { "second", "456" },
+                    { "second", "456" }
                 }
-            },
+            }
         };
         Utils.Merge(d1, d2).Should().BeEquivalentTo(expected1);
 
@@ -1534,14 +1534,14 @@ public class UtilsTests
             {
                 "foo",
                 new List<object?> { "baz" }
-            },
+            }
         };
         var b = new Dictionary<string, object?>
         {
             {
                 "foo",
                 new List<object?> { "bar", "xyzz" }
-            },
+            }
         };
         Utils
             .Merge(a, b)
@@ -1552,7 +1552,7 @@ public class UtilsTests
                     {
                         "foo",
                         new List<object?> { "baz", "bar", "xyzz" }
-                    },
+                    }
                 }
             );
 

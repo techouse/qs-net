@@ -48,7 +48,7 @@ public static class Qs
 
             IDictionary raw => Utils.ConvertNestedDictionary(raw),
 
-            _ => null,
+            _ => null
         };
 
         var finalOptions = opts;
@@ -78,7 +78,7 @@ public static class Qs
             {
                 Dictionary<object, object?> d => d,
                 IDictionary id => Utils.ToObjectKeyedDictionary(id),
-                _ => obj,
+                _ => obj
             };
         }
 
@@ -110,7 +110,7 @@ public static class Qs
             IEnumerable en and not string => en.Cast<object?>()
                 .Select((v, i) => (Key: i.ToString(), Val: v))
                 .ToDictionary(t => t.Key, t => t.Val),
-            _ => new Dictionary<string, object?>(),
+            _ => new Dictionary<string, object?>()
         };
 
         if (obj.Count == 0)
@@ -131,7 +131,7 @@ public static class Qs
                             object?
                         >(genericFiltered),
                         IDictionary m => Utils.ConvertDictionaryToStringKeyed(m),
-                        _ => obj,
+                        _ => obj
                     };
                 }
                 catch

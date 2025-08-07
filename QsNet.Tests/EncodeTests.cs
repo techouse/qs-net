@@ -28,7 +28,7 @@ public class EncodeTests
                 // Force the code to use the default initializations
                 ListFormat = null,
                 CommaRoundTrip = null,
-                Format = Format.Rfc3986,
+                Format = Format.Rfc3986
             }
         );
         result.Should().Be("a=b");
@@ -40,7 +40,7 @@ public class EncodeTests
             {
                 // Force the code to use the default initializations
                 ListFormat = null,
-                CommaRoundTrip = null,
+                CommaRoundTrip = null
             }
         );
         result2.Should().Be("a%5B0%5D=b&a%5B1%5D=c");
@@ -63,7 +63,7 @@ public class EncodeTests
             new EncodeOptions
             {
                 Encode = false,
-                DateSerializer = null, // Force the code to use the default serialization
+                DateSerializer = null // Force the code to use the default serialization
             }
         );
         result.Should().Be("date=2023-01-01T00:00:00.0010000Z");
@@ -75,7 +75,7 @@ public class EncodeTests
             {
                 Encode = false,
                 DateSerializer = null,
-                ListFormat = ListFormat.Comma,
+                ListFormat = ListFormat.Comma
             }
         );
         result2.Should().Be("dates=2023-01-01T00:00:00.0010000Z,2023-01-01T00:00:00.0010000Z");
@@ -110,8 +110,7 @@ public class EncodeTests
                 new EncodeOptions
                 {
                     Encode = false,
-                    Filter = new FunctionFilter(
-                        (prefix, map) =>
+                    Filter = new FunctionFilter((prefix, map) =>
                         {
                             // This should trigger the code path that accesses properties of non-Map, non-Iterable objects
                             var result = new Dictionary<string, object?>();
@@ -124,7 +123,7 @@ public class EncodeTests
 
                             return result;
                         }
-                    ),
+                    )
                 }
             );
             // Check if the result contains the expected value
@@ -168,7 +167,7 @@ public class EncodeTests
         {
             ListFormat = ListFormat.Comma,
             CommaRoundTrip = true,
-            Encode = false,
+            Encode = false
         };
 
         // This should append [] to single-item lists
@@ -228,7 +227,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<long> { three }
-                    },
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Brackets }
             )
@@ -240,13 +239,13 @@ public class EncodeTests
                     {
                         "a",
                         new List<long> { three }
-                    },
+                    }
                 },
                 new EncodeOptions
                 {
                     EncodeValuesOnly = true,
                     Encoder = EncodeWithN,
-                    ListFormat = ListFormat.Brackets,
+                    ListFormat = ListFormat.Brackets
                 }
             )
             .Should()
@@ -261,7 +260,7 @@ public class EncodeTests
             {
                 "name.obj",
                 new Dictionary<string, object?> { { "first", "John" }, { "last", "Doe" } }
-            },
+            }
         };
 
         Qs.Encode(nestedData, new EncodeOptions { AllowDots = false, EncodeDotInKeys = false })
@@ -287,9 +286,9 @@ public class EncodeTests
                 new Dictionary<string, object?>
                 {
                     { "first.godly.name", "John" },
-                    { "last", "Doe" },
+                    { "last", "Doe" }
                 }
-            },
+            }
         };
 
         Qs.Encode(
@@ -316,7 +315,8 @@ public class EncodeTests
     }
 
     [Fact]
-    public void Encode_EncodeDotInKeyOfMapAndAutomaticallySetAllowDotsToTrueWhenEncodeDotInKeysIsTrueAndAllowDotsIsUndefined()
+    public void
+        Encode_EncodeDotInKeyOfMapAndAutomaticallySetAllowDotsToTrueWhenEncodeDotInKeysIsTrueAndAllowDotsIsUndefined()
     {
         var data = new Dictionary<string, object?>
         {
@@ -325,9 +325,9 @@ public class EncodeTests
                 new Dictionary<string, object?>
                 {
                     { "first.godly.name", "John" },
-                    { "last", "Doe" },
+                    { "last", "Doe" }
                 }
-            },
+            }
         };
 
         Qs.Encode(data, new EncodeOptions { EncodeDotInKeys = true })
@@ -338,14 +338,15 @@ public class EncodeTests
     }
 
     [Fact]
-    public void Encode_EncodeDotInKeyOfMapWhenEncodeDotInKeysAndAllowDotsIsProvidedAndNothingElseWhenEncodeValuesOnlyIsProvided()
+    public void
+        Encode_EncodeDotInKeyOfMapWhenEncodeDotInKeysAndAllowDotsIsProvidedAndNothingElseWhenEncodeValuesOnlyIsProvided()
     {
         var simpleData = new Dictionary<string, object?>
         {
             {
                 "name.obj",
                 new Dictionary<string, object?> { { "first", "John" }, { "last", "Doe" } }
-            },
+            }
         };
 
         Qs.Encode(
@@ -354,7 +355,7 @@ public class EncodeTests
                 {
                     EncodeDotInKeys = true,
                     AllowDots = true,
-                    EncodeValuesOnly = true,
+                    EncodeValuesOnly = true
                 }
             )
             .Should()
@@ -367,9 +368,9 @@ public class EncodeTests
                 new Dictionary<string, object?>
                 {
                     { "first.godly.name", "John" },
-                    { "last", "Doe" },
+                    { "last", "Doe" }
                 }
-            },
+            }
         };
 
         Qs.Encode(
@@ -378,7 +379,7 @@ public class EncodeTests
                 {
                     AllowDots = true,
                     EncodeDotInKeys = true,
-                    EncodeValuesOnly = true,
+                    EncodeValuesOnly = true
                 }
             )
             .Should()
@@ -413,9 +414,9 @@ public class EncodeTests
                     {
                         "b",
                         new Dictionary<string, object?> { { "c", null } }
-                    },
+                    }
                 }
-            },
+            }
         };
 
         Qs.Encode(nullData).Should().Be("a%5Bb%5D%5Bc%5D=");
@@ -433,9 +434,9 @@ public class EncodeTests
                     {
                         "b",
                         new Dictionary<string, object?> { { "c", false } }
-                    },
+                    }
                 }
-            },
+            }
         };
 
         Qs.Encode(falseData).Should().Be("a%5Bb%5D%5Bc%5D=false");
@@ -449,7 +450,7 @@ public class EncodeTests
             {
                 "a",
                 new Dictionary<string, object?> { { "b", "c" } }
-            },
+            }
         };
         Qs.Encode(nestedMap).Should().Be("a%5Bb%5D=c");
 
@@ -466,11 +467,11 @@ public class EncodeTests
                             {
                                 "c",
                                 new Dictionary<string, object?> { { "d", "e" } }
-                            },
+                            }
                         }
-                    },
+                    }
                 }
-            },
+            }
         };
         Qs.Encode(deeplyNestedMap).Should().Be("a%5Bb%5D%5Bc%5D%5Bd%5D=e");
     }
@@ -483,7 +484,7 @@ public class EncodeTests
             {
                 "a",
                 new Dictionary<string, object?> { { "b", "c" } }
-            },
+            }
         };
         Qs.Encode(nestedMap, new EncodeOptions { AllowDots = true }).Should().Be("a.b=c");
 
@@ -500,11 +501,11 @@ public class EncodeTests
                             {
                                 "c",
                                 new Dictionary<string, object?> { { "d", "e" } }
-                            },
+                            }
                         }
-                    },
+                    }
                 }
-            },
+            }
         };
         Qs.Encode(deeplyNestedMap, new EncodeOptions { AllowDots = true }).Should().Be("a.b.c.d=e");
     }
@@ -517,7 +518,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { "b", "c", "d" }
-            },
+            }
         };
 
         Qs.Encode(listData, new EncodeOptions { ListFormat = ListFormat.Indices })
@@ -553,7 +554,7 @@ public class EncodeTests
             {
                 "a",
                 new Dictionary<string, object?> { { "b", "c" }, { "d", null } }
-            },
+            }
         };
         Qs.Encode(nestedDataWithNulls, new EncodeOptions { SkipNulls = true })
             .Should()
@@ -568,7 +569,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { "b", "c", "d" }
-            },
+            }
         };
 
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -582,7 +583,7 @@ public class EncodeTests
         var dataWithEmptyList = new Dictionary<string, object?>
         {
             { "a", new List<string>() },
-            { "b", "zz" },
+            { "b", "zz" }
         };
         Qs.Encode(dataWithEmptyList).Should().Be("b=zz");
     }
@@ -593,7 +594,7 @@ public class EncodeTests
         var dataWithEmptyList = new Dictionary<string, object?>
         {
             { "a", new List<string>() },
-            { "b", "zz" },
+            { "b", "zz" }
         };
 
         Qs.Encode(dataWithEmptyList).Should().Be("b=zz");
@@ -612,7 +613,7 @@ public class EncodeTests
     {
         var emptyListData = new Dictionary<string, object?>
         {
-            { "testEmptyList", new List<string>() },
+            { "testEmptyList", new List<string>() }
         };
         Qs.Encode(
                 emptyListData,
@@ -659,7 +660,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { "c" }
-            },
+            }
         };
 
         Qs.Encode(
@@ -689,7 +690,7 @@ public class EncodeTests
                 {
                     EncodeValuesOnly = true,
                     ListFormat = ListFormat.Comma,
-                    CommaRoundTrip = true,
+                    CommaRoundTrip = true
                 }
             )
             .Should()
@@ -708,7 +709,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { "c", "d" }
-            },
+            }
         };
 
         Qs.Encode(
@@ -738,7 +739,7 @@ public class EncodeTests
                 {
                     EncodeValuesOnly = true,
                     ListFormat = ListFormat.Comma,
-                    CommaRoundTrip = true,
+                    CommaRoundTrip = true
                 }
             )
             .Should()
@@ -757,7 +758,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { "c,d", "e" }
-            },
+            }
         };
 
         Qs.Encode(
@@ -777,7 +778,7 @@ public class EncodeTests
                 {
                     EncodeValuesOnly = true,
                     ListFormat = ListFormat.Comma,
-                    CommaRoundTrip = true,
+                    CommaRoundTrip = true
                 }
             )
             .Should()
@@ -803,9 +804,9 @@ public class EncodeTests
                     {
                         "b",
                         new List<string> { "c", "d" }
-                    },
+                    }
                 }
-            },
+            }
         };
 
         Qs.Encode(
@@ -842,7 +843,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { ",", "", "c,d%" }
-            },
+            }
         };
 
         Qs.Encode(
@@ -879,7 +880,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Brackets,
+                    ListFormat = ListFormat.Brackets
                 }
             )
             .Should()
@@ -891,7 +892,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Comma,
+                    ListFormat = ListFormat.Comma
                 }
             )
             .Should()
@@ -903,7 +904,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Repeat,
+                    ListFormat = ListFormat.Repeat
                 }
             )
             .Should()
@@ -915,7 +916,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Indices,
+                    ListFormat = ListFormat.Indices
                 }
             )
             .Should()
@@ -927,7 +928,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = false,
-                    ListFormat = ListFormat.Brackets,
+                    ListFormat = ListFormat.Brackets
                 }
             )
             .Should()
@@ -939,7 +940,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = false,
-                    ListFormat = ListFormat.Comma,
+                    ListFormat = ListFormat.Comma
                 }
             )
             .Should()
@@ -951,7 +952,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = false,
-                    ListFormat = ListFormat.Repeat,
+                    ListFormat = ListFormat.Repeat
                 }
             )
             .Should()
@@ -963,7 +964,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = false,
-                    ListFormat = ListFormat.Indices,
+                    ListFormat = ListFormat.Indices
                 }
             )
             .Should()
@@ -977,7 +978,7 @@ public class EncodeTests
         {
             { "a", "," },
             { "b", "" },
-            { "c", "c,d%" },
+            { "c", "c,d%" }
         };
 
         Qs.Encode(commaData, new EncodeOptions { Encode = false, ListFormat = ListFormat.Indices })
@@ -1002,7 +1003,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Brackets,
+                    ListFormat = ListFormat.Brackets
                 }
             )
             .Should()
@@ -1014,7 +1015,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Comma,
+                    ListFormat = ListFormat.Comma
                 }
             )
             .Should()
@@ -1026,7 +1027,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Repeat,
+                    ListFormat = ListFormat.Repeat
                 }
             )
             .Should()
@@ -1038,7 +1039,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = false,
-                    ListFormat = ListFormat.Indices,
+                    ListFormat = ListFormat.Indices
                 }
             )
             .Should()
@@ -1050,7 +1051,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = false,
-                    ListFormat = ListFormat.Brackets,
+                    ListFormat = ListFormat.Brackets
                 }
             )
             .Should()
@@ -1062,7 +1063,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = false,
-                    ListFormat = ListFormat.Comma,
+                    ListFormat = ListFormat.Comma
                 }
             )
             .Should()
@@ -1074,7 +1075,7 @@ public class EncodeTests
                 {
                     Encode = true,
                     EncodeValuesOnly = false,
-                    ListFormat = ListFormat.Repeat,
+                    ListFormat = ListFormat.Repeat
                 }
             )
             .Should()
@@ -1093,9 +1094,9 @@ public class EncodeTests
                     {
                         "b",
                         new List<string> { "c", "d" }
-                    },
+                    }
                 }
-            },
+            }
         };
 
         Qs.Encode(
@@ -1104,7 +1105,7 @@ public class EncodeTests
                 {
                     AllowDots = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Indices,
+                    ListFormat = ListFormat.Indices
                 }
             )
             .Should()
@@ -1116,7 +1117,7 @@ public class EncodeTests
                 {
                     AllowDots = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Brackets,
+                    ListFormat = ListFormat.Brackets
                 }
             )
             .Should()
@@ -1128,7 +1129,7 @@ public class EncodeTests
                 {
                     AllowDots = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Comma,
+                    ListFormat = ListFormat.Comma
                 }
             )
             .Should()
@@ -1147,7 +1148,7 @@ public class EncodeTests
             {
                 "a",
                 new List<Dictionary<string, object?>> { new() { { "b", "c" } } }
-            },
+            }
         };
 
         Qs.Encode(
@@ -1190,12 +1191,12 @@ public class EncodeTests
                                 {
                                     "c",
                                     new List<int> { 1 }
-                                },
+                                }
                             }
-                        },
-                    },
+                        }
+                    }
                 }
-            },
+            }
         };
 
         Qs.Encode(
@@ -1232,7 +1233,7 @@ public class EncodeTests
             {
                 "a",
                 new List<Dictionary<string, object?>> { new() { { "b", "c" } } }
-            },
+            }
         };
 
         Qs.Encode(
@@ -1241,7 +1242,7 @@ public class EncodeTests
                 {
                     AllowDots = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Indices,
+                    ListFormat = ListFormat.Indices
                 }
             )
             .Should()
@@ -1253,7 +1254,7 @@ public class EncodeTests
                 {
                     AllowDots = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Brackets,
+                    ListFormat = ListFormat.Brackets
                 }
             )
             .Should()
@@ -1278,12 +1279,12 @@ public class EncodeTests
                                 {
                                     "c",
                                     new List<int> { 1 }
-                                },
+                                }
                             }
-                        },
-                    },
+                        }
+                    }
                 }
-            },
+            }
         };
 
         Qs.Encode(
@@ -1292,7 +1293,7 @@ public class EncodeTests
                 {
                     AllowDots = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Indices,
+                    ListFormat = ListFormat.Indices
                 }
             )
             .Should()
@@ -1304,7 +1305,7 @@ public class EncodeTests
                 {
                     AllowDots = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Brackets,
+                    ListFormat = ListFormat.Brackets
                 }
             )
             .Should()
@@ -1323,7 +1324,7 @@ public class EncodeTests
             {
                 "a",
                 new List<Dictionary<string, object?>> { new() { { "b", "c" } } }
-            },
+            }
         };
 
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -1339,7 +1340,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { "b", "c" }
-            },
+            }
         };
 
 #pragma warning disable CS0618 // Type or member is obsolete
@@ -1355,7 +1356,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { "b", "c" }
-            },
+            }
         };
 
         Qs.Encode(data).Should().Be("a%5B0%5D=b&a%5B1%5D=c");
@@ -1369,7 +1370,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { "b", "c" }
-            },
+            }
         };
 
         Qs.Encode(data, new EncodeOptions { ListFormat = ListFormat.Indices })
@@ -1385,7 +1386,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { "b", "c" }
-            },
+            }
         };
 
         Qs.Encode(data, new EncodeOptions { ListFormat = ListFormat.Repeat })
@@ -1401,7 +1402,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { "b", "c" }
-            },
+            }
         };
 
         Qs.Encode(data, new EncodeOptions { ListFormat = ListFormat.Brackets })
@@ -1417,7 +1418,7 @@ public class EncodeTests
             {
                 "a",
                 new Dictionary<string, object?> { { "b", "c" }, { "d", "e" } }
-            },
+            }
         };
 
         Qs.Encode(data).Should().Be("a%5Bb%5D=c&a%5Bd%5D=e");
@@ -1452,7 +1453,7 @@ public class EncodeTests
                     {
                         "a",
                         new Dictionary<string, object?> { { "b", "" } }
-                    },
+                    }
                 }
             )
             .Should()
@@ -1464,7 +1465,7 @@ public class EncodeTests
                     {
                         "a",
                         new Dictionary<string, object?> { { "b", null } }
-                    },
+                    }
                 },
                 new EncodeOptions { StrictNullHandling = true }
             )
@@ -1477,7 +1478,7 @@ public class EncodeTests
                     {
                         "a",
                         new Dictionary<string, object?> { { "b", null } }
-                    },
+                    }
                 },
                 new EncodeOptions { StrictNullHandling = false }
             )
@@ -1495,7 +1496,7 @@ public class EncodeTests
                 "b",
                 new List<object?> { null }
             },
-            { "c", "c" },
+            { "c", "c" }
         };
 
         Qs.Encode(data, new EncodeOptions { Encode = false }).Should().Be("b[0]=&c=c");
@@ -1511,7 +1512,7 @@ public class EncodeTests
                 "b",
                 new List<object?> { null }
             },
-            { "c", "c" },
+            { "c", "c" }
         };
 
         Qs.Encode(data, new EncodeOptions { Encode = false, ListFormat = ListFormat.Indices })
@@ -1536,7 +1537,7 @@ public class EncodeTests
                 {
                     Encode = false,
                     ListFormat = ListFormat.Comma,
-                    CommaRoundTrip = true,
+                    CommaRoundTrip = true
                 }
             )
             .Should()
@@ -1553,7 +1554,7 @@ public class EncodeTests
                 "b",
                 new List<object?> { null }
             },
-            { "c", "c" },
+            { "c", "c" }
         };
 
         Qs.Encode(
@@ -1562,7 +1563,7 @@ public class EncodeTests
                 {
                     Encode = false,
                     ListFormat = ListFormat.Brackets,
-                    StrictNullHandling = true,
+                    StrictNullHandling = true
                 }
             )
             .Should()
@@ -1574,7 +1575,19 @@ public class EncodeTests
                 {
                     Encode = false,
                     ListFormat = ListFormat.Repeat,
-                    StrictNullHandling = true,
+                    StrictNullHandling = true
+                }
+            )
+            .Should()
+            .Be("b&c=c");
+
+        Qs.Encode(
+                data,
+                new EncodeOptions
+                {
+                    Encode = false,
+                    ListFormat = ListFormat.Comma,
+                    StrictNullHandling = true
                 }
             )
             .Should()
@@ -1587,19 +1600,7 @@ public class EncodeTests
                     Encode = false,
                     ListFormat = ListFormat.Comma,
                     StrictNullHandling = true,
-                }
-            )
-            .Should()
-            .Be("b&c=c");
-
-        Qs.Encode(
-                data,
-                new EncodeOptions
-                {
-                    Encode = false,
-                    ListFormat = ListFormat.Comma,
-                    StrictNullHandling = true,
-                    CommaRoundTrip = true,
+                    CommaRoundTrip = true
                 }
             )
             .Should()
@@ -1616,7 +1617,7 @@ public class EncodeTests
                 "b",
                 new List<object?> { null }
             },
-            { "c", "c" },
+            { "c", "c" }
         };
 
         Qs.Encode(
@@ -1625,7 +1626,7 @@ public class EncodeTests
                 {
                     Encode = false,
                     ListFormat = ListFormat.Indices,
-                    SkipNulls = true,
+                    SkipNulls = true
                 }
             )
             .Should()
@@ -1637,7 +1638,7 @@ public class EncodeTests
                 {
                     Encode = false,
                     ListFormat = ListFormat.Brackets,
-                    SkipNulls = true,
+                    SkipNulls = true
                 }
             )
             .Should()
@@ -1649,7 +1650,7 @@ public class EncodeTests
                 {
                     Encode = false,
                     ListFormat = ListFormat.Repeat,
-                    SkipNulls = true,
+                    SkipNulls = true
                 }
             )
             .Should()
@@ -1661,7 +1662,7 @@ public class EncodeTests
                 {
                     Encode = false,
                     ListFormat = ListFormat.Comma,
-                    SkipNulls = true,
+                    SkipNulls = true
                 }
             )
             .Should()
@@ -1729,7 +1730,7 @@ public class EncodeTests
                     {
                         "a",
                         new Dictionary<string, object?> { { "b", true } }
-                    },
+                    }
                 }
             )
             .Should()
@@ -1743,7 +1744,7 @@ public class EncodeTests
                     {
                         "b",
                         new Dictionary<string, object?> { { "c", false } }
-                    },
+                    }
                 }
             )
             .Should()
@@ -1763,7 +1764,7 @@ public class EncodeTests
                     {
                         "a",
                         new Dictionary<string, object?> { { "b", Encoding.UTF8.GetBytes("test") } }
-                    },
+                    }
                 }
             )
             .Should()
@@ -1814,7 +1815,7 @@ public class EncodeTests
             {
                 "arguments",
                 new List<object?> { hourOfDay, 0 }
-            },
+            }
         };
         var p2 = new Dictionary<string, object?>
         {
@@ -1822,7 +1823,7 @@ public class EncodeTests
             {
                 "arguments",
                 new List<object?> { hourOfDay, 23 }
-            },
+            }
         };
 
         var data = new Dictionary<string, object?>
@@ -1834,9 +1835,9 @@ public class EncodeTests
                     {
                         "$and",
                         new List<object?> { p1, p2 }
-                    },
+                    }
                 }
-            },
+            }
         };
 
         Qs.Encode(
@@ -1895,15 +1896,15 @@ public class EncodeTests
                                 "b",
                                 new List<object?> { 1, 2, 3, 4 }
                             },
-                            { "c", "d" },
+                            { "c", "d" }
                         }
                     },
-                    { "c", "f" },
+                    { "c", "f" }
                 },
                 new EncodeOptions
                 {
                     Filter = new IterableFilter(new object[] { "a", "b", 0, 2 }),
-                    ListFormat = ListFormat.Indices,
+                    ListFormat = ListFormat.Indices
                 }
             )
             .Should()
@@ -1920,15 +1921,15 @@ public class EncodeTests
                                 "b",
                                 new List<object?> { 1, 2, 3, 4 }
                             },
-                            { "c", "d" },
+                            { "c", "d" }
                         }
                     },
-                    { "c", "f" },
+                    { "c", "f" }
                 },
                 new EncodeOptions
                 {
                     Filter = new IterableFilter(new object[] { "a", "b", 0, 2 }),
-                    ListFormat = ListFormat.Brackets,
+                    ListFormat = ListFormat.Brackets
                 }
             )
             .Should()
@@ -1945,10 +1946,10 @@ public class EncodeTests
                                 "b",
                                 new List<object?> { 1, 2, 3, 4 }
                             },
-                            { "c", "d" },
+                            { "c", "d" }
                         }
                     },
-                    { "c", "f" },
+                    { "c", "f" }
                 },
                 new EncodeOptions { Filter = new IterableFilter(new object[] { "a", "b", 0, 2 }) }
             )
@@ -1967,14 +1968,13 @@ public class EncodeTests
                 "e",
                 new Dictionary<string, object?>
                 {
-                    { "f", new DateTime(2009, 11, 10, 23, 0, 0, DateTimeKind.Utc) },
+                    { "f", new DateTime(2009, 11, 10, 23, 0, 0, DateTimeKind.Utc) }
                 }
-            },
+            }
         };
 
         var calls = 0;
-        var filterFunc = new FunctionFilter(
-            (prefix, value) =>
+        var filterFunc = new FunctionFilter((prefix, value) =>
             {
                 calls++;
 
@@ -2017,7 +2017,7 @@ public class EncodeTests
                     {
                         "a",
                         new Dictionary<string, object?> { { "b", "c" } }
-                    },
+                    }
                 },
                 new EncodeOptions { Encode = false }
             )
@@ -2045,7 +2045,7 @@ public class EncodeTests
                 {
                     { "a", "c" },
                     { "z", "y" },
-                    { "b", "f" },
+                    { "b", "f" }
                 },
                 new EncodeOptions { Sort = Sort }
             )
@@ -2060,7 +2060,7 @@ public class EncodeTests
                         "z",
                         new Dictionary<string, object?> { { "j", "a" }, { "i", "b" } }
                     },
-                    { "b", "f" },
+                    { "b", "f" }
                 },
                 new EncodeOptions { Sort = Sort }
             )
@@ -2089,7 +2089,7 @@ public class EncodeTests
                                 new Dictionary<string, object?>
                                 {
                                     { "zjb", "zjb" },
-                                    { "zja", "zja" },
+                                    { "zja", "zja" }
                                 }
                             },
                             {
@@ -2097,12 +2097,12 @@ public class EncodeTests
                                 new Dictionary<string, object?>
                                 {
                                     { "zib", "zib" },
-                                    { "zia", "zia" },
+                                    { "zia", "zia" }
                                 }
-                            },
+                            }
                         }
                     },
-                    { "b", "b" },
+                    { "b", "b" }
                 },
                 new EncodeOptions { Sort = Sort, Encode = false }
             )
@@ -2122,7 +2122,7 @@ public class EncodeTests
                                 new Dictionary<string, object?>
                                 {
                                     { "zjb", "zjb" },
-                                    { "zja", "zja" },
+                                    { "zja", "zja" }
                                 }
                             },
                             {
@@ -2130,12 +2130,12 @@ public class EncodeTests
                                 new Dictionary<string, object?>
                                 {
                                     { "zib", "zib" },
-                                    { "zia", "zia" },
+                                    { "zia", "zia" }
                                 }
-                            },
+                            }
                         }
                     },
-                    { "b", "b" },
+                    { "b", "b" }
                 },
                 new EncodeOptions { Sort = null, Encode = false }
             )
@@ -2180,7 +2180,7 @@ public class EncodeTests
             {
                 "d",
                 new List<int> { 1 }
-            },
+            }
         };
 
         Qs.Encode(obj, new EncodeOptions { Encoder = Encode });
@@ -2192,7 +2192,7 @@ public class EncodeTests
             return str switch
             {
                 string or int or bool => "",
-                _ => throw new InvalidOperationException($"Unexpected type: {str?.GetType()}"),
+                _ => throw new InvalidOperationException($"Unexpected type: {str?.GetType()}")
             };
         }
     }
@@ -2225,7 +2225,7 @@ public class EncodeTests
             {
                 string s => s,
                 byte[] bytes => new string((char)(bytes[0] + 97), 1),
-                _ => buffer?.ToString() ?? "",
+                _ => buffer?.ToString() ?? ""
             };
         }
 
@@ -2234,7 +2234,7 @@ public class EncodeTests
             return buffer switch
             {
                 byte[] bytes => Encoding.UTF8.GetString(bytes),
-                _ => buffer?.ToString() ?? "",
+                _ => buffer?.ToString() ?? ""
             };
         }
     }
@@ -2273,7 +2273,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<DateTime> { date }
-                    },
+                    }
                 },
                 new EncodeOptions { DateSerializer = serializeDate, ListFormat = ListFormat.Comma }
             )
@@ -2286,7 +2286,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<DateTime> { date }
-                    },
+                    }
                 },
                 new EncodeOptions { DateSerializer = serializeDate }
             )
@@ -2383,9 +2383,9 @@ public class EncodeTests
                         new List<object?>
                         {
                             new List<object?> { "g" },
-                            new List<object?> { "h" },
+                            new List<object?> { "h" }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Indices }
             )
@@ -2405,9 +2405,9 @@ public class EncodeTests
                         new List<object?>
                         {
                             new List<object?> { "g" },
-                            new List<object?> { "h" },
+                            new List<object?> { "h" }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Brackets }
             )
@@ -2427,9 +2427,9 @@ public class EncodeTests
                         new List<object?>
                         {
                             new List<object?> { "g" },
-                            new List<object?> { "h" },
+                            new List<object?> { "h" }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Repeat }
             )
@@ -2449,9 +2449,9 @@ public class EncodeTests
                         new List<object?>
                         {
                             new List<object?> { "g" },
-                            new List<object?> { "h" },
+                            new List<object?> { "h" }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { ListFormat = ListFormat.Indices }
             )
@@ -2471,9 +2471,9 @@ public class EncodeTests
                         new List<object?>
                         {
                             new List<object?> { "g" },
-                            new List<object?> { "h" },
+                            new List<object?> { "h" }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { ListFormat = ListFormat.Brackets }
             )
@@ -2493,9 +2493,9 @@ public class EncodeTests
                         new List<object?>
                         {
                             new List<object?> { "g" },
-                            new List<object?> { "h" },
+                            new List<object?> { "h" }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { ListFormat = ListFormat.Repeat }
             )
@@ -2512,7 +2512,7 @@ public class EncodeTests
                     {
                         "a",
                         new Dictionary<string, object?> { { "b", null } }
-                    },
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, StrictNullHandling = true }
             )
@@ -2574,7 +2574,7 @@ public class EncodeTests
                 new EncodeOptions
                 {
                     CharsetSentinel = true,
-                    Charset = Encoding.GetEncoding("ISO-8859-1"),
+                    Charset = Encoding.GetEncoding("ISO-8859-1")
                 }
             )
             .Should()
@@ -2598,7 +2598,7 @@ public class EncodeTests
         var options = new EncodeOptions
         {
             StrictNullHandling = true,
-            Filter = new FunctionFilter((_, value) => value),
+            Filter = new FunctionFilter((_, value) => value)
         };
 
         Qs.Encode(new Dictionary<string, object?> { { "key", null } }, options).Should().Be("key");
@@ -2616,9 +2616,9 @@ public class EncodeTests
                     {
                         "b",
                         new Dictionary<string, object?> { { "c", "d" }, { "e", "f" } }
-                    },
+                    }
                 }
-            },
+            }
         };
 
         var withList = new Dictionary<string, object?>
@@ -2631,11 +2631,11 @@ public class EncodeTests
                         "b",
                         new List<object?>
                         {
-                            new Dictionary<string, object?> { { "c", "d" }, { "e", "f" } },
+                            new Dictionary<string, object?> { { "c", "d" }, { "e", "f" } }
                         }
-                    },
+                    }
                 }
-            },
+            }
         };
 
         Qs.Encode(obj, new EncodeOptions { Encode = false }).Should().Be("a[b][c]=d&a[b][e]=f");
@@ -2675,7 +2675,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<object?> { null, "2", null, null, "1" }
-                    },
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Indices }
             )
@@ -2688,7 +2688,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<object?> { null, "2", null, null, "1" }
-                    },
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Brackets }
             )
@@ -2701,7 +2701,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<object?> { null, "2", null, null, "1" }
-                    },
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Repeat }
             )
@@ -2724,12 +2724,12 @@ public class EncodeTests
                                     {
                                         null,
                                         null,
-                                        new Dictionary<string, object?> { { "c", "1" } },
+                                        new Dictionary<string, object?> { { "c", "1" } }
                                     }
-                                },
-                            },
+                                }
+                            }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Indices }
             )
@@ -2752,12 +2752,12 @@ public class EncodeTests
                                     {
                                         null,
                                         null,
-                                        new Dictionary<string, object?> { { "c", "1" } },
+                                        new Dictionary<string, object?> { { "c", "1" } }
                                     }
-                                },
-                            },
+                                }
+                            }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Brackets }
             )
@@ -2779,11 +2779,11 @@ public class EncodeTests
                                 {
                                     null,
                                     null,
-                                    new Dictionary<string, object?> { { "c", "1" } },
-                                },
-                            },
+                                    new Dictionary<string, object?> { { "c", "1" } }
+                                }
+                            }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Indices }
             )
@@ -2805,11 +2805,11 @@ public class EncodeTests
                                 {
                                     null,
                                     null,
-                                    new Dictionary<string, object?> { { "c", "1" } },
-                                },
-                            },
+                                    new Dictionary<string, object?> { { "c", "1" } }
+                                }
+                            }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Brackets }
             )
@@ -2831,11 +2831,11 @@ public class EncodeTests
                                 {
                                     null,
                                     null,
-                                    new Dictionary<string, object?> { { "c", "1" } },
-                                },
-                            },
+                                    new Dictionary<string, object?> { { "c", "1" } }
+                                }
+                            }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Repeat }
             )
@@ -2849,7 +2849,7 @@ public class EncodeTests
         Qs.Encode(
                 new Dictionary<string, object?>
                 {
-                    { "url", "https://example.com?foo=bar&baz=qux" },
+                    { "url", "https://example.com?foo=bar&baz=qux" }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Indices }
             )
@@ -2885,9 +2885,9 @@ public class EncodeTests
                                             "date",
                                             new Dictionary<string, object?>
                                             {
-                                                { "$eq", "2020-01-01" },
+                                                { "$eq", "2020-01-01" }
                                             }
-                                        },
+                                        }
                                     },
                                     new Dictionary<string, object?>
                                     {
@@ -2895,10 +2895,10 @@ public class EncodeTests
                                             "date",
                                             new Dictionary<string, object?>
                                             {
-                                                { "$eq", "2020-01-02" },
+                                                { "$eq", "2020-01-02" }
                                             }
-                                        },
-                                    },
+                                        }
+                                    }
                                 }
                             },
                             {
@@ -2908,11 +2908,11 @@ public class EncodeTests
                                     {
                                         "name",
                                         new Dictionary<string, object?> { { "$eq", "John doe" } }
-                                    },
+                                    }
                                 }
-                            },
+                            }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { Encode = false, ListFormat = ListFormat.Brackets }
             )
@@ -2938,9 +2938,9 @@ public class EncodeTests
                                             "date",
                                             new Dictionary<string, object?>
                                             {
-                                                { "$eq", "2020-01-01" },
+                                                { "$eq", "2020-01-01" }
                                             }
-                                        },
+                                        }
                                     },
                                     new Dictionary<string, object?>
                                     {
@@ -2948,10 +2948,10 @@ public class EncodeTests
                                             "date",
                                             new Dictionary<string, object?>
                                             {
-                                                { "$eq", "2020-01-02" },
+                                                { "$eq", "2020-01-02" }
                                             }
-                                        },
-                                    },
+                                        }
+                                    }
                                 }
                             },
                             {
@@ -2961,11 +2961,11 @@ public class EncodeTests
                                     {
                                         "name",
                                         new Dictionary<string, object?> { { "$eq", "John doe" } }
-                                    },
+                                    }
                                 }
-                            },
+                            }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { ListFormat = ListFormat.Brackets }
             )
@@ -3024,9 +3024,9 @@ public class EncodeTests
                             {
                                 "",
                                 new List<object?> { 2, 3 }
-                            },
+                            }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { Encode = false }
             )
@@ -3044,9 +3044,9 @@ public class EncodeTests
                                 "",
                                 new List<object?> { 2, 3 }
                             },
-                            { "a", 2 },
+                            { "a", 2 }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { Encode = false }
             )
@@ -3063,9 +3063,9 @@ public class EncodeTests
                             {
                                 "",
                                 new List<object?> { 2, 3 }
-                            },
+                            }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { Encode = false, ListFormat = ListFormat.Indices }
             )
@@ -3083,9 +3083,9 @@ public class EncodeTests
                                 "",
                                 new List<object?> { 2, 3 }
                             },
-                            { "a", 2 },
+                            { "a", 2 }
                         }
-                    },
+                    }
                 },
                 new EncodeOptions { Encode = false, ListFormat = ListFormat.Indices }
             )
@@ -3100,13 +3100,13 @@ public class EncodeTests
                 new Dictionary<string, object?>
                 {
                     { "a", "b" },
-                    { "false", new Dictionary<string, object?>() },
+                    { "false", new Dictionary<string, object?>() }
                 },
                 new EncodeOptions
                 {
                     Filter = new IterableFilter(new List<object?> { "a", false, null }),
                     AllowDots = true,
-                    EncodeDotInKeys = true,
+                    EncodeDotInKeys = true
                 }
             )
             .Should()
@@ -3178,7 +3178,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<object?> { 1, 2, 3 }
-                    },
+                    }
                 }
             )
             .Should()
@@ -3194,7 +3194,7 @@ public class EncodeTests
                     {
                         "a",
                         new Dictionary<string, object?> { { "b", "c" } }
-                    },
+                    }
                 }
             )
             .Should()
@@ -3221,7 +3221,7 @@ public class EncodeTests
             {
                 "a",
                 new Dictionary<string, object?> { { "b", "c" } }
-            },
+            }
         };
         Qs.Encode(obj).Should().Be("a%5Bb%5D=c");
     }
@@ -3235,7 +3235,7 @@ public class EncodeTests
             { "b", "foo" },
             { "c", 1 },
             { "d", 1.234 },
-            { "e", true },
+            { "e", true }
         };
         Qs.Encode(obj).Should().Be("a=Monday&b=foo&c=1&d=1.234&e=true");
     }
@@ -3255,7 +3255,7 @@ public class EncodeTests
                     {
                         "search",
                         new Dictionary<string, object?> { { "withbracket[]", "foobar" } }
-                    },
+                    }
                 },
                 new EncodeOptions { Encode = false }
             )
@@ -3297,7 +3297,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<object?> { a, b }
-                    },
+                    }
                 },
                 opts
             )
@@ -3321,7 +3321,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<object?> { a, b }
-                    },
+                    }
                 },
                 opts
             )
@@ -3341,7 +3341,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<object?> { only }
-                    },
+                    }
                 },
                 opts
             )
@@ -3357,7 +3357,7 @@ public class EncodeTests
         {
             Encode = false,
             ListFormat = ListFormat.Comma,
-            CommaRoundTrip = true,
+            CommaRoundTrip = true
         };
 
         Qs.Encode(
@@ -3366,7 +3366,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<object?> { only }
-                    },
+                    }
                 },
                 opts
             )
@@ -3390,7 +3390,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<object?> { a, b }
-                    },
+                    }
                 }
             )
             .Should()
@@ -3426,7 +3426,7 @@ public class EncodeTests
                 {
                     "a",
                     new List<object?> { "x", "y" }
-                },
+                }
             },
             new EncodeOptions { Encode = false, ListFormat = ListFormat.Comma }
         );
@@ -3445,13 +3445,13 @@ public class EncodeTests
                 {
                     "a",
                     new List<object?> { only }
-                },
+                }
             },
             new EncodeOptions
             {
                 Encode = false,
                 ListFormat = ListFormat.Comma,
-                CommaRoundTrip = true,
+                CommaRoundTrip = true
             }
         );
 
@@ -3469,13 +3469,13 @@ public class EncodeTests
                 {
                     "a",
                     new List<object?> { only }
-                },
+                }
             },
             new EncodeOptions
             {
                 Encode = false,
                 ListFormat = ListFormat.Comma,
-                CommaRoundTrip = false,
+                CommaRoundTrip = false
             }
         );
 
@@ -3523,7 +3523,7 @@ public class EncodeTests
         {
             Encoder = encoder,
             EncodeValuesOnly = true,
-            ListFormat = ListFormat.Brackets,
+            ListFormat = ListFormat.Brackets
         };
 
         Qs.Encode(3).Should().Be("");
@@ -3537,7 +3537,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<object?> { 3 }
-                    },
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true, ListFormat = ListFormat.Brackets }
             )
@@ -3549,7 +3549,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<object?> { 3 }
-                    },
+                    }
                 },
                 optionsValuesOnly
             )
@@ -3583,9 +3583,9 @@ public class EncodeTests
                     {
                         "b",
                         new Dictionary<string, object?> { { "c", null } }
-                    },
+                    }
                 }
-            },
+            }
         };
 
         Qs.Encode(nested).Should().Be("a%5Bb%5D%5Bc%5D=");
@@ -3603,9 +3603,9 @@ public class EncodeTests
                             {
                                 "b",
                                 new Dictionary<string, object?> { { "c", false } }
-                            },
+                            }
                         }
-                    },
+                    }
                 }
             )
             .Should()
@@ -3621,7 +3621,7 @@ public class EncodeTests
                     {
                         "a",
                         new Dictionary<string, object?> { { "b", "c" } }
-                    },
+                    }
                 }
             )
             .Should()
@@ -3641,11 +3641,11 @@ public class EncodeTests
                                     {
                                         "c",
                                         new Dictionary<string, object?> { { "d", "e" } }
-                                    },
+                                    }
                                 }
-                            },
+                            }
                         }
-                    },
+                    }
                 }
             )
             .Should()
@@ -3663,7 +3663,7 @@ public class EncodeTests
                     {
                         "a",
                         new Dictionary<string, object?> { { "b", "c" } }
-                    },
+                    }
                 },
                 options
             )
@@ -3684,11 +3684,11 @@ public class EncodeTests
                                     {
                                         "c",
                                         new Dictionary<string, object?> { { "d", "e" } }
-                                    },
+                                    }
                                 }
-                            },
+                            }
                         }
-                    },
+                    }
                 },
                 options
             )
@@ -3704,7 +3704,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { "b", "c", "d" }
-            },
+            }
         };
 
         Qs.Encode(data, new EncodeOptions { ListFormat = ListFormat.Indices })
@@ -3742,7 +3742,7 @@ public class EncodeTests
                     {
                         "a",
                         new Dictionary<string, object?> { { "b", "c" }, { "d", null } }
-                    },
+                    }
                 },
                 options
             )
@@ -3760,7 +3760,7 @@ public class EncodeTests
                     {
                         "a",
                         new List<string> { "b", "c", "d" }
-                    },
+                    }
                 },
                 options
             )
@@ -3804,7 +3804,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { "c" }
-            },
+            }
         };
 
         Qs.Encode(value, options).Should().Be("a[0]=c");
@@ -3832,7 +3832,7 @@ public class EncodeTests
                 {
                     EncodeValuesOnly = true,
                     ListFormat = ListFormat.Comma,
-                    CommaRoundTrip = true,
+                    CommaRoundTrip = true
                 }
             )
             .Should()
@@ -3848,7 +3848,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { "c", "d" }
-            },
+            }
         };
 
         Qs.Encode(value, options).Should().Be("a[0]=c&a[1]=d");
@@ -3880,7 +3880,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { "c,d", "e" }
-            },
+            }
         };
 
         Qs.Encode(value, new EncodeOptions { ListFormat = ListFormat.Comma })
@@ -3907,9 +3907,9 @@ public class EncodeTests
                     {
                         "b",
                         new List<string> { "c", "d" }
-                    },
+                    }
                 }
-            },
+            }
         };
 
         Qs.Encode(value, options).Should().Be("a[b][0]=c&a[b][1]=d");
@@ -3941,7 +3941,7 @@ public class EncodeTests
             {
                 "a",
                 new List<string> { ",", "", "c,d%" }
-            },
+            }
         };
 
         // Without encoding
@@ -4018,7 +4018,7 @@ public class EncodeTests
         {
             { "a", "," },
             { "b", "" },
-            { "c", "c,d%" },
+            { "c", "c,d%" }
         };
 
         // All array formats should produce the same result for non-arrays
@@ -4055,9 +4055,9 @@ public class EncodeTests
                     {
                         "b",
                         new List<string> { "c", "d" }
-                    },
+                    }
                 }
-            },
+            }
         };
         var options = new EncodeOptions { AllowDots = true, EncodeValuesOnly = true };
 
@@ -4068,7 +4068,7 @@ public class EncodeTests
                 {
                     AllowDots = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Indices,
+                    ListFormat = ListFormat.Indices
                 }
             )
             .Should()
@@ -4079,7 +4079,7 @@ public class EncodeTests
                 {
                     AllowDots = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Brackets,
+                    ListFormat = ListFormat.Brackets
                 }
             )
             .Should()
@@ -4090,7 +4090,7 @@ public class EncodeTests
                 {
                     AllowDots = true,
                     EncodeValuesOnly = true,
-                    ListFormat = ListFormat.Comma,
+                    ListFormat = ListFormat.Comma
                 }
             )
             .Should()
@@ -4105,7 +4105,7 @@ public class EncodeTests
             {
                 "a",
                 new List<object> { new Dictionary<string, object?> { { "b", "c" } } }
-            },
+            }
         };
         var value2 = new Dictionary<string, object?>
         {
@@ -4122,12 +4122,12 @@ public class EncodeTests
                                 {
                                     "c",
                                     new List<int> { 1 }
-                                },
+                                }
                             }
-                        },
-                    },
+                        }
+                    }
                 }
-            },
+            }
         };
 
         Qs.Encode(value).Should().Be("a%5B0%5D%5Bb%5D=c");

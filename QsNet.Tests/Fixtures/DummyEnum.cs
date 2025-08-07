@@ -4,5 +4,5 @@ internal enum DummyEnum
 {
     LOREM,
     IPSUM,
-    DOLOR,
+    DOLOR
 }

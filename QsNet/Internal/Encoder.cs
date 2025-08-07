@@ -106,7 +106,7 @@ internal static class Encoder
                     {
                         DateTimeOffset inst => inst.ToString("o"),
                         DateTime ldt => serializeDate?.Invoke(ldt) ?? ldt.ToString("o"),
-                        _ => v,
+                        _ => v
                     };
                 })
                 .ToList();
@@ -160,8 +160,8 @@ internal static class Encoder
                 [
                     new Dictionary<string, object?>
                     {
-                        { "value", string.IsNullOrEmpty(joined) ? null : joined },
-                    },
+                        { "value", string.IsNullOrEmpty(joined) ? null : joined }
+                    }
                 ];
             }
             else
@@ -181,7 +181,7 @@ internal static class Encoder
                 Array arr => Enumerable.Range(0, arr.Length).Cast<object?>(),
                 IList list => Enumerable.Range(0, list.Count).Cast<object?>(),
                 IEnumerable ie and not string => ie.Cast<object?>().Select((_, i) => (object?)i),
-                _ => [],
+                _ => []
             };
 
             objKeys = keys.ToList();
@@ -223,69 +223,70 @@ internal static class Encoder
                             value = null;
                             valueUndefined = true;
                         }
+
                         break;
 
                     case Array arr:
-                    {
-                        var idx = key as int? ?? (key is IConvertible c ? c.ToInt32(null) : -1);
-                        if (idx >= 0 && idx < arr.Length)
                         {
-                            value = arr.GetValue(idx);
-                        }
-                        else
-                        {
-                            value = null;
-                            valueUndefined = true;
-                        }
+                            var idx = key as int? ?? (key is IConvertible c ? c.ToInt32(null) : -1);
+                            if (idx >= 0 && idx < arr.Length)
+                            {
+                                value = arr.GetValue(idx);
+                            }
+                            else
+                            {
+                                value = null;
+                                valueUndefined = true;
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
 
                     case IList list:
-                    {
-                        var idx = key switch
                         {
-                            int j => j,
-                            IConvertible when int.TryParse(key.ToString(), out var parsed) =>
-                                parsed,
-                            _ => -1,
-                        };
-                        if (idx >= 0 && idx < list.Count)
-                        {
-                            value = list[idx];
-                        }
-                        else
-                        {
-                            value = null;
-                            valueUndefined = true;
-                        }
+                            var idx = key switch
+                            {
+                                int j => j,
+                                IConvertible when int.TryParse(key.ToString(), out var parsed) =>
+                                    parsed,
+                                _ => -1
+                            };
+                            if (idx >= 0 && idx < list.Count)
+                            {
+                                value = list[idx];
+                            }
+                            else
+                            {
+                                value = null;
+                                valueUndefined = true;
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
 
                     case IEnumerable ie
-                    and not string:
-                    {
-                        var idx = key switch
+                        and not string:
                         {
-                            int j => j,
-                            IConvertible when int.TryParse(key.ToString(), out var parsed) =>
-                                parsed,
-                            _ => -1,
-                        };
-                        var list2 = ie.Cast<object?>().ToList();
-                        if (idx >= 0 && idx < list2.Count)
-                        {
-                            value = list2[idx];
-                        }
-                        else
-                        {
-                            value = null;
-                            valueUndefined = true;
-                        }
+                            var idx = key switch
+                            {
+                                int j => j,
+                                IConvertible when int.TryParse(key.ToString(), out var parsed) =>
+                                    parsed,
+                                _ => -1
+                            };
+                            var list2 = ie.Cast<object?>().ToList();
+                            if (idx >= 0 && idx < list2.Count)
+                            {
+                                value = list2[idx];
+                            }
+                            else
+                            {
+                                value = null;
+                                valueUndefined = true;
+                            }
 
-                        break;
-                    }
+                            break;
+                        }
 
                     default:
                         value = null;
@@ -302,8 +303,9 @@ internal static class Encoder
             var keyPrefix =
                 obj is IEnumerable and not string and not IDictionary
                     ? gen(adjustedPrefix, encodedKey)
-                : allowDots ? $"{adjustedPrefix}.{encodedKey}"
-                : $"{adjustedPrefix}[{encodedKey}]";
+                    : allowDots
+                        ? $"{adjustedPrefix}.{encodedKey}"
+                        : $"{adjustedPrefix}[{encodedKey}]";
 
             if (objKey is not null && obj is IDictionary or IEnumerable and not string)
                 sideChannel.Set(objKey, step);

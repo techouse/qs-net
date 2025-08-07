@@ -8,7 +8,9 @@ internal sealed class Undefined
     /// <summary>
     ///     Private constructor to prevent external instantiation.
     /// </summary>
-    private Undefined() { }
+    private Undefined()
+    {
+    }
 
     /// <summary>
     ///     Gets the singleton instance of Undefined.

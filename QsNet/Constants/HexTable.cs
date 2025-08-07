@@ -265,6 +265,6 @@ public static class HexTable
         "%FC",
         "%FD",
         "%FE",
-        "%FF",
+        "%FF"
     ];
 }

@@ -19,7 +19,7 @@ internal static class EndToEndTestCases
             {
                 { "a", "b" },
                 { "c", "d" },
-                { "e", "f" },
+                { "e", "f" }
             },
             "a=b&c=d&e=f"
         ),
@@ -32,7 +32,7 @@ internal static class EndToEndTestCases
                 {
                     "e",
                     new List<object?> { "f", "g", "h" }
-                },
+                }
             },
             "a=b&c=d&e[0]=f&e[1]=g&e[2]=h"
         ),
@@ -50,7 +50,7 @@ internal static class EndToEndTestCases
                 {
                     "i",
                     new Dictionary<string, object?> { { "j", "k" }, { "l", "m" } }
-                },
+                }
             },
             "a=b&c=d&e[0]=f&e[1]=g&e[2]=h&i[j]=k&i[l]=m"
         ),
@@ -62,7 +62,7 @@ internal static class EndToEndTestCases
                 {
                     "a",
                     new Dictionary<string, object?> { { "b", "c" } }
-                },
+                }
             },
             "a[b]=c"
         ),
@@ -78,9 +78,9 @@ internal static class EndToEndTestCases
                         {
                             "b",
                             new Dictionary<string, object?> { { "c", "d" } }
-                        },
+                        }
                     }
-                },
+                }
             },
             "a[b][c]=d"
         ),
@@ -94,9 +94,9 @@ internal static class EndToEndTestCases
                     new List<object?>
                     {
                         new Dictionary<string, object?> { { "b", "c" } },
-                        new Dictionary<string, object?> { { "d", "e" } },
+                        new Dictionary<string, object?> { { "d", "e" } }
                     }
-                },
+                }
             },
             "a[0][b]=c&a[1][d]=e"
         ),
@@ -108,7 +108,7 @@ internal static class EndToEndTestCases
                 {
                     "a",
                     new List<object?> { "f" }
-                },
+                }
             },
             "a[0]=f"
         ),
@@ -126,10 +126,10 @@ internal static class EndToEndTestCases
                             {
                                 "b",
                                 new List<object?> { "c" }
-                            },
-                        },
+                            }
+                        }
                     }
-                },
+                }
             },
             "a[0][b][0]=c"
         ),
@@ -143,7 +143,7 @@ internal static class EndToEndTestCases
                 {
                     "a",
                     new List<object?> { "", "b" }
-                },
+                }
             },
             "a[0]=&a[1]=b"
         ),
@@ -169,15 +169,15 @@ internal static class EndToEndTestCases
                                     {
                                         "date",
                                         new Dictionary<string, object?> { { "$eq", "2020-01-01" } }
-                                    },
+                                    }
                                 },
                                 new Dictionary<string, object?>
                                 {
                                     {
                                         "date",
                                         new Dictionary<string, object?> { { "$eq", "2020-01-02" } }
-                                    },
-                                },
+                                    }
+                                }
                             }
                         },
                         {
@@ -187,11 +187,11 @@ internal static class EndToEndTestCases
                                 {
                                     "name",
                                     new Dictionary<string, object?> { { "$eq", "John Doe" } }
-                                },
+                                }
                             }
-                        },
+                        }
                     }
-                },
+                }
             },
             "filters[$or][0][date][$eq]=2020-01-01&filters[$or][1][date][$eq]=2020-01-02&filters[author][name][$eq]=John Doe"
         ),
@@ -219,10 +219,10 @@ internal static class EndToEndTestCases
                                         { "id", "3" },
                                         { "comment_id", "1" },
                                         { "someId", "ma020-9ha15" },
-                                        { "text", "Hello" },
-                                    },
+                                        { "text", "Hello" }
+                                    }
                                 }
-                            },
+                            }
                         },
                         new Dictionary<string, object?>
                         {
@@ -239,20 +239,20 @@ internal static class EndToEndTestCases
                                         { "id", "4" },
                                         { "comment_id", "2" },
                                         { "someId", "mw023-9ha18" },
-                                        { "text", "Hello" },
+                                        { "text", "Hello" }
                                     },
                                     new Dictionary<string, object?>
                                     {
                                         { "id", "5" },
                                         { "comment_id", "2" },
                                         { "someId", "mw035-0ha22" },
-                                        { "text", "Hello" },
-                                    },
+                                        { "text", "Hello" }
+                                    }
                                 }
-                            },
-                        },
+                            }
+                        }
                     }
-                },
+                }
             },
             "commentsEmbedResponse[0][id]=1&commentsEmbedResponse[0][post_id]=1&commentsEmbedResponse[0][someId]=ma018-9ha12&commentsEmbedResponse[0][text]=Hello&commentsEmbedResponse[0][replies][0][id]=3&commentsEmbedResponse[0][replies][0][comment_id]=1&commentsEmbedResponse[0][replies][0][someId]=ma020-9ha15&commentsEmbedResponse[0][replies][0][text]=Hello&commentsEmbedResponse[1][id]=2&commentsEmbedResponse[1][post_id]=1&commentsEmbedResponse[1][someId]=mw012-7ha19&commentsEmbedResponse[1][text]=How are you?&commentsEmbedResponse[1][replies][0][id]=4&commentsEmbedResponse[1][replies][0][comment_id]=2&commentsEmbedResponse[1][replies][0][someId]=mw023-9ha18&commentsEmbedResponse[1][replies][0][text]=Hello&commentsEmbedResponse[1][replies][1][id]=5&commentsEmbedResponse[1][replies][1][comment_id]=2&commentsEmbedResponse[1][replies][1][someId]=mw035-0ha22&commentsEmbedResponse[1][replies][1][text]=Hello"
         ),
@@ -280,10 +280,10 @@ internal static class EndToEndTestCases
                                         { "id", "3" },
                                         { "comment_id", "1" },
                                         { "someId", "ma020-9ha15" },
-                                        { "text", "Hello" },
-                                    },
+                                        { "text", "Hello" }
+                                    }
                                 }
-                            },
+                            }
                         },
                         new Dictionary<string, object?>
                         {
@@ -300,20 +300,20 @@ internal static class EndToEndTestCases
                                         { "id", "4" },
                                         { "comment_id", "2" },
                                         { "someId", "mw023-9ha18" },
-                                        { "text", "Hello" },
+                                        { "text", "Hello" }
                                     },
                                     new Dictionary<string, object?>
                                     {
                                         { "id", "5" },
                                         { "comment_id", "2" },
                                         { "someId", "mw035-0ha22" },
-                                        { "text", "Hello" },
-                                    },
+                                        { "text", "Hello" }
+                                    }
                                 }
-                            },
-                        },
+                            }
+                        }
                     }
-                },
+                }
             },
             "commentsResponse[0][id]=1&commentsResponse[0][post_id]=1&commentsResponse[0][someId]=ma018-9ha12&commentsResponse[0][text]=Hello&commentsResponse[0][replies][0][id]=3&commentsResponse[0][replies][0][comment_id]=1&commentsResponse[0][replies][0][someId]=ma020-9ha15&commentsResponse[0][replies][0][text]=Hello&commentsResponse[1][id]=2&commentsResponse[1][post_id]=1&commentsResponse[1][someId]=mw012-7ha19&commentsResponse[1][text]=How are you?&commentsResponse[1][replies][0][id]=4&commentsResponse[1][replies][0][comment_id]=2&commentsResponse[1][replies][0][someId]=mw023-9ha18&commentsResponse[1][replies][0][text]=Hello&commentsResponse[1][replies][1][id]=5&commentsResponse[1][replies][1][comment_id]=2&commentsResponse[1][replies][1][someId]=mw035-0ha22&commentsResponse[1][replies][1][text]=Hello"
         ),
@@ -335,7 +335,7 @@ internal static class EndToEndTestCases
                             {
                                 { "firstname", "John" },
                                 { "lastname", "Doe" },
-                                { "age", "25" },
+                                { "age", "25" }
                             }
                         },
                         {
@@ -352,20 +352,20 @@ internal static class EndToEndTestCases
                                             {
                                                 new Dictionary<string, object?>
                                                 {
-                                                    { "name", "super" },
+                                                    { "name", "super" }
                                                 },
                                                 new Dictionary<string, object?>
                                                 {
-                                                    { "name", "awesome" },
-                                                },
+                                                    { "name", "awesome" }
+                                                }
                                             }
-                                        },
+                                        }
                                     }
-                                },
+                                }
                             }
-                        },
+                        }
                     }
-                },
+                }
             },
             "data[id]=1&data[someId]=af621-4aa41&data[text]=Lorem Ipsum Dolor&data[user][firstname]=John&data[user][lastname]=Doe&data[user][age]=25&data[relationships][tags][data][0][name]=super&data[relationships][tags][data][1][name]=awesome"
         ),
@@ -383,7 +383,7 @@ internal static class EndToEndTestCases
                     {
                         { "firstname", "John" },
                         { "lastname", "Doe" },
-                        { "age", "25" },
+                        { "age", "25" }
                     }
                 },
                 {
@@ -395,11 +395,11 @@ internal static class EndToEndTestCases
                             new List<object?>
                             {
                                 new Dictionary<string, object?> { { "name", "super" } },
-                                new Dictionary<string, object?> { { "name", "awesome" } },
+                                new Dictionary<string, object?> { { "name", "awesome" } }
                             }
-                        },
+                        }
                     }
-                },
+                }
             },
             "id=1&someId=af621-4aa41&text=Lorem Ipsum Dolor&user[firstname]=John&user[lastname]=Doe&user[age]=25&relationships[tags][0][name]=super&relationships[tags][1][name]=awesome"
         ),
@@ -423,7 +423,7 @@ internal static class EndToEndTestCases
                                 {
                                     { "firstname", "John" },
                                     { "lastname", "Doe" },
-                                    { "age", "25" },
+                                    { "age", "25" }
                                 }
                             },
                             {
@@ -437,12 +437,12 @@ internal static class EndToEndTestCases
                                             new Dictionary<string, object?> { { "name", "super" } },
                                             new Dictionary<string, object?>
                                             {
-                                                { "name", "awesome" },
-                                            },
+                                                { "name", "awesome" }
+                                            }
                                         }
-                                    },
+                                    }
                                 }
-                            },
+                            }
                         },
                         new Dictionary<string, object?>
                         {
@@ -455,7 +455,7 @@ internal static class EndToEndTestCases
                                 {
                                     { "firstname", "Mary" },
                                     { "lastname", "Doe" },
-                                    { "age", "25" },
+                                    { "age", "25" }
                                 }
                             },
                             {
@@ -469,15 +469,15 @@ internal static class EndToEndTestCases
                                             new Dictionary<string, object?> { { "name", "super" } },
                                             new Dictionary<string, object?>
                                             {
-                                                { "name", "awesome" },
-                                            },
+                                                { "name", "awesome" }
+                                            }
                                         }
-                                    },
+                                    }
                                 }
-                            },
-                        },
+                            }
+                        }
                     }
-                },
+                }
             },
             "postsResponse[0][id]=1&postsResponse[0][someId]=du761-8bc98&postsResponse[0][text]=Lorem Ipsum Dolor&postsResponse[0][user][firstname]=John&postsResponse[0][user][lastname]=Doe&postsResponse[0][user][age]=25&postsResponse[0][relationships][tags][0][name]=super&postsResponse[0][relationships][tags][1][name]=awesome&postsResponse[1][id]=1&postsResponse[1][someId]=pa813-7jx02&postsResponse[1][text]=Lorem Ipsum Dolor&postsResponse[1][user][firstname]=Mary&postsResponse[1][user][lastname]=Doe&postsResponse[1][user][age]=25&postsResponse[1][relationships][tags][0][name]=super&postsResponse[1][relationships][tags][1][name]=awesome"
         ),
@@ -501,7 +501,7 @@ internal static class EndToEndTestCases
                                 {
                                     { "firstname", "John" },
                                     { "lastname", "Doe" },
-                                    { "age", "25" },
+                                    { "age", "25" }
                                 }
                             },
                             {
@@ -515,12 +515,12 @@ internal static class EndToEndTestCases
                                             new Dictionary<string, object?> { { "name", "super" } },
                                             new Dictionary<string, object?>
                                             {
-                                                { "name", "awesome" },
-                                            },
+                                                { "name", "awesome" }
+                                            }
                                         }
-                                    },
+                                    }
                                 }
-                            },
+                            }
                         },
                         new Dictionary<string, object?>
                         {
@@ -533,7 +533,7 @@ internal static class EndToEndTestCases
                                 {
                                     { "firstname", "Mary" },
                                     { "lastname", "Doe" },
-                                    { "age", "25" },
+                                    { "age", "25" }
                                 }
                             },
                             {
@@ -547,18 +547,18 @@ internal static class EndToEndTestCases
                                             new Dictionary<string, object?> { { "name", "super" } },
                                             new Dictionary<string, object?>
                                             {
-                                                { "name", "awesome" },
-                                            },
+                                                { "name", "awesome" }
+                                            }
                                         }
-                                    },
+                                    }
                                 }
-                            },
-                        },
+                            }
+                        }
                     }
                 },
-                { "total", "2" },
+                { "total", "2" }
             },
             "posts[0][id]=1&posts[0][someId]=du761-8bc98&posts[0][text]=Lorem Ipsum Dolor&posts[0][user][firstname]=John&posts[0][user][lastname]=Doe&posts[0][user][age]=25&posts[0][relationships][tags][0][name]=super&posts[0][relationships][tags][1][name]=awesome&posts[1][id]=1&posts[1][someId]=pa813-7jx02&posts[1][text]=Lorem Ipsum Dolor&posts[1][user][firstname]=Mary&posts[1][user][lastname]=Doe&posts[1][user][age]=25&posts[1][relationships][tags][0][name]=super&posts[1][relationships][tags][1][name]=awesome&total=2"
-        ),
+        )
     ];
 }

@@ -19,7 +19,7 @@ public enum Sentinel
     ///     These are the percent-encoded utf-8 octets representing a checkmark, indicating that the
     ///     request actually is utf-8 encoded.
     /// </summary>
-    Charset,
+    Charset
 }
 
 /// <summary>
@@ -38,7 +38,7 @@ public static class SentinelExtensions
         {
             Sentinel.Iso => "&#10003;",
             Sentinel.Charset => "✓",
-            _ => throw new ArgumentOutOfRangeException(nameof(sentinel)),
+            _ => throw new ArgumentOutOfRangeException(nameof(sentinel))
         };
     }
 
@@ -53,7 +53,7 @@ public static class SentinelExtensions
         {
             Sentinel.Iso => "utf8=%26%2310003%3B",
             Sentinel.Charset => "utf8=%E2%9C%93",
-            _ => throw new ArgumentOutOfRangeException(nameof(sentinel)),
+            _ => throw new ArgumentOutOfRangeException(nameof(sentinel))
         };
     }
 

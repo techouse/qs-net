@@ -27,7 +27,7 @@ public class DecodeOptionsTests
             InterpretNumericEntities = true,
             ParameterLimit = 200,
             ParseLists = true,
-            StrictNullHandling = true,
+            StrictNullHandling = true
         };
 
         // Act
@@ -71,7 +71,7 @@ public class DecodeOptionsTests
             InterpretNumericEntities = true,
             ParameterLimit = 100,
             ParseLists = false,
-            StrictNullHandling = true,
+            StrictNullHandling = true
         };
 
         // Act

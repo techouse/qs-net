@@ -189,7 +189,7 @@ public sealed class EncodeOptions
     public string GetEncoder(object? value, Encoding? encoding = null, Format? format = null)
     {
         return Encoder?.Invoke(value, encoding ?? Charset, format ?? Format)
-            ?? Utils.Encode(value, encoding ?? Charset, format ?? Format);
+               ?? Utils.Encode(value, encoding ?? Charset, format ?? Format);
     }
 
     /// <summary>
@@ -270,7 +270,7 @@ public sealed class EncodeOptions
             Indices = indices ?? Indices,
 #pragma warning restore CS0618 // Type or member is obsolete
             Encoder = encoder ?? Encoder,
-            DateSerializer = dateSerializer ?? DateSerializer,
+            DateSerializer = dateSerializer ?? DateSerializer
         };
     }
 }

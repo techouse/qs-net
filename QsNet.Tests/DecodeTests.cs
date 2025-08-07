@@ -41,7 +41,7 @@ public class DecodeTest
         // Verify the result
         var expected = new Dictionary<string, object?>
         {
-            ["a"] = new List<object?> { new List<object?> { "nested" } },
+            ["a"] = new List<object?> { new List<object?> { "nested" } }
         };
         result.Should().BeEquivalentTo(expected);
 
@@ -52,7 +52,7 @@ public class DecodeTest
         // This should create a nested list structure
         var expected2 = new Dictionary<string, object?>
         {
-            ["a"] = new List<object?> { new List<object?> { "value" } },
+            ["a"] = new List<object?> { new List<object?> { "value" } }
         };
         result2.Should().BeEquivalentTo(expected2);
 
@@ -68,8 +68,8 @@ public class DecodeTest
         {
             ["a"] = new List<object?>
             {
-                new List<object?> { "first", "second" },
-            },
+                new List<object?> { "first", "second" }
+            }
         };
         result3.Should().BeEquivalentTo(expected3);
 
@@ -82,7 +82,7 @@ public class DecodeTest
         // Verify the result
         var expected4 = new Dictionary<string, object?>
         {
-            ["a"] = new List<object?> { new List<object?> { "third" } },
+            ["a"] = new List<object?> { new List<object?> { "third" } }
         };
         result4.Should().BeEquivalentTo(expected4);
     }
@@ -107,7 +107,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { [">="] = "23" },
+                    ["a"] = new Dictionary<string, object?> { [">="] = "23" }
                 }
             );
 
@@ -116,7 +116,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["<=>"] = "=23" },
+                    ["a"] = new Dictionary<string, object?> { ["<=>"] = "=23" }
                 }
             );
 
@@ -125,7 +125,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["=="] = "23" },
+                    ["a"] = new Dictionary<string, object?> { ["=="] = "23" }
                 }
             );
 
@@ -173,7 +173,7 @@ public class DecodeTest
                     ["cht"] = "p3",
                     ["chd"] = "t:60,40",
                     ["chs"] = "250x100",
-                    ["chl"] = "Hello|World",
+                    ["chl"] = "Hello|World"
                 }
             );
     }
@@ -186,7 +186,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -195,7 +195,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -208,7 +208,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
     }
@@ -223,7 +223,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -232,7 +232,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -241,7 +241,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -250,7 +250,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
     }
@@ -262,7 +262,7 @@ public class DecodeTest
         {
             Comma = true,
             ThrowOnLimitExceeded = true,
-            ListLimit = 3,
+            ListLimit = 3
         };
 
         var action = () => Qs.Decode("a=b,c,d,e,f", options);
@@ -287,7 +287,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" },
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
                 }
             );
     }
@@ -304,7 +304,7 @@ public class DecodeTest
                 new Dictionary<string, object?>
                 {
                     ["name%2Eobj.first"] = "John",
-                    ["name%2Eobj.last"] = "Doe",
+                    ["name%2Eobj.last"] = "Doe"
                 }
             );
 
@@ -321,9 +321,9 @@ public class DecodeTest
                         ["obj"] = new Dictionary<string, object?>
                         {
                             ["first"] = "John",
-                            ["last"] = "Doe",
-                        },
-                    },
+                            ["last"] = "Doe"
+                        }
+                    }
                 }
             );
 
@@ -338,8 +338,8 @@ public class DecodeTest
                     ["name%2Eobj"] = new Dictionary<string, object?>
                     {
                         ["first"] = "John",
-                        ["last"] = "Doe",
-                    },
+                        ["last"] = "Doe"
+                    }
                 }
             );
 
@@ -354,8 +354,8 @@ public class DecodeTest
                     ["name.obj"] = new Dictionary<string, object?>
                     {
                         ["first"] = "John",
-                        ["last"] = "Doe",
-                    },
+                        ["last"] = "Doe"
+                    }
                 }
             );
 
@@ -368,7 +368,7 @@ public class DecodeTest
                 new Dictionary<string, object?>
                 {
                     ["name%2Eobj%2Esubobject.first%2Egodly%2Ename"] = "John",
-                    ["name%2Eobj%2Esubobject.last"] = "Doe",
+                    ["name%2Eobj%2Esubobject.last"] = "Doe"
                 }
             );
 
@@ -390,13 +390,13 @@ public class DecodeTest
                                 {
                                     ["godly"] = new Dictionary<string, object?>
                                     {
-                                        ["name"] = "John",
-                                    },
+                                        ["name"] = "John"
+                                    }
                                 },
-                                ["last"] = "Doe",
-                            },
-                        },
-                    },
+                                ["last"] = "Doe"
+                            }
+                        }
+                    }
                 }
             );
 
@@ -411,8 +411,8 @@ public class DecodeTest
                     ["name.obj.subobject"] = new Dictionary<string, object?>
                     {
                         ["first.godly.name"] = "John",
-                        ["last"] = "Doe",
-                    },
+                        ["last"] = "Doe"
+                    }
                 }
             );
 
@@ -422,7 +422,7 @@ public class DecodeTest
                 new Dictionary<string, object?>
                 {
                     ["name%2Eobj.first"] = "John",
-                    ["name%2Eobj.last"] = "Doe",
+                    ["name%2Eobj.last"] = "Doe"
                 }
             );
 
@@ -435,7 +435,7 @@ public class DecodeTest
                 new Dictionary<string, object?>
                 {
                     ["name%2Eobj.first"] = "John",
-                    ["name%2Eobj.last"] = "Doe",
+                    ["name%2Eobj.last"] = "Doe"
                 }
             );
 
@@ -450,8 +450,8 @@ public class DecodeTest
                     ["name.obj"] = new Dictionary<string, object?>
                     {
                         ["first"] = "John",
-                        ["last"] = "Doe",
-                    },
+                        ["last"] = "Doe"
+                    }
                 }
             );
     }
@@ -470,8 +470,8 @@ public class DecodeTest
                     ["name.obj.subobject"] = new Dictionary<string, object?>
                     {
                         ["first.godly.name"] = "John",
-                        ["last"] = "Doe",
-                    },
+                        ["last"] = "Doe"
+                    }
                 }
             );
     }
@@ -491,7 +491,7 @@ public class DecodeTest
                 new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?> { "" },
-                    ["bar"] = "baz",
+                    ["bar"] = "baz"
                 }
             );
     }
@@ -517,7 +517,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" },
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
                 }
             );
     }
@@ -532,8 +532,8 @@ public class DecodeTest
                 {
                     ["a"] = new Dictionary<string, object?>
                     {
-                        ["b"] = new Dictionary<string, object?> { ["c"] = "d" },
-                    },
+                        ["b"] = new Dictionary<string, object?> { ["c"] = "d" }
+                    }
                 }
             );
     }
@@ -558,13 +558,13 @@ public class DecodeTest
                                     {
                                         ["f"] = new Dictionary<string, object?>
                                         {
-                                            ["[g][h]"] = "i",
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
+                                            ["[g][h]"] = "i"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             );
     }
@@ -579,8 +579,8 @@ public class DecodeTest
                 {
                     ["a"] = new Dictionary<string, object?>
                     {
-                        ["b"] = new Dictionary<string, object?> { ["[c]"] = "d" },
-                    },
+                        ["b"] = new Dictionary<string, object?> { ["[c]"] = "d" }
+                    }
                 }
             );
 
@@ -591,8 +591,8 @@ public class DecodeTest
                 {
                     ["a"] = new Dictionary<string, object?>
                     {
-                        ["b"] = new Dictionary<string, object?> { ["[c][d]"] = "e" },
-                    },
+                        ["b"] = new Dictionary<string, object?> { ["[c][d]"] = "e" }
+                    }
                 }
             );
     }
@@ -612,7 +612,7 @@ public class DecodeTest
                     ["a[0][0]"] = "b",
                     ["a[0][1]"] = "c",
                     ["a[1]"] = "d",
-                    ["e"] = "2",
+                    ["e"] = "2"
                 }
             );
     }
@@ -625,7 +625,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
     }
@@ -642,7 +642,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -651,7 +651,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c", "d" },
+                    ["a"] = new List<object?> { "b", "c", "d" }
                 }
             );
     }
@@ -664,7 +664,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -673,7 +673,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -682,7 +682,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -691,7 +691,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -700,7 +700,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -709,7 +709,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -718,7 +718,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -727,7 +727,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -736,7 +736,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -745,7 +745,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
     }
@@ -760,8 +760,8 @@ public class DecodeTest
                 {
                     ["a"] = new Dictionary<string, object?>
                     {
-                        ["b"] = new List<object?> { "c", "d" },
-                    },
+                        ["b"] = new List<object?> { "c", "d" }
+                    }
                 }
             );
 
@@ -770,7 +770,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { [">="] = "25" },
+                    ["a"] = new Dictionary<string, object?> { [">="] = "25" }
                 }
             );
     }
@@ -783,7 +783,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { new List<object?> { "b" } },
+                    ["a"] = new List<object?> { new List<object?> { "b" } }
                 }
             );
     }
@@ -796,7 +796,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c", "d" },
+                    ["a"] = new List<object?> { "b", "c", "d" }
                 }
             );
 
@@ -805,7 +805,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -818,7 +818,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<int, object?> { [1] = "c" },
+                    ["a"] = new Dictionary<int, object?> { [1] = "c" }
                 }
             );
 
@@ -831,7 +831,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<int, object?> { [0] = "b", [2] = "c" },
+                    ["a"] = new Dictionary<int, object?> { [0] = "b", [2] = "c" }
                 }
             );
 
@@ -840,7 +840,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -849,7 +849,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<int, object?> { [1] = "b", [15] = "c" },
+                    ["a"] = new Dictionary<int, object?> { [1] = "b", [15] = "c" }
                 }
             );
 
@@ -858,7 +858,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
     }
@@ -875,7 +875,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<int, object?> { [21] = "a" },
+                    ["a"] = new Dictionary<int, object?> { [21] = "a" }
                 }
             );
 
@@ -888,7 +888,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<int, object?> { [21] = "a" },
+                    ["a"] = new Dictionary<int, object?> { [21] = "a" }
                 }
             );
     }
@@ -901,7 +901,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["12b"] = "c" },
+                    ["a"] = new Dictionary<string, object?> { ["12b"] = "c" }
                 }
             );
     }
@@ -922,7 +922,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["b c"] = "d" },
+                    ["a"] = new Dictionary<string, object?> { ["b c"] = "d" }
                 }
             );
 
@@ -931,7 +931,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["b"] = "c d" },
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c d" }
                 }
             );
     }
@@ -964,7 +964,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { [0] = "bar", ["bad"] = "baz" },
+                    ["foo"] = new Dictionary<object, object?> { [0] = "bar", ["bad"] = "baz" }
                 }
             );
 
@@ -973,7 +973,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" },
+                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" }
                 }
             );
 
@@ -982,7 +982,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" },
+                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" }
                 }
             );
 
@@ -991,7 +991,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { [0] = "bar", ["bad"] = "baz" },
+                    ["foo"] = new Dictionary<object, object?> { [0] = "bar", ["bad"] = "baz" }
                 }
             );
 
@@ -1004,8 +1004,8 @@ public class DecodeTest
                     {
                         ["bad"] = "baz",
                         [0] = "bar",
-                        [1] = "foo",
-                    },
+                        [1] = "foo"
+                    }
                 }
             );
 
@@ -1017,8 +1017,8 @@ public class DecodeTest
                     ["foo"] = new List<object?>
                     {
                         new Dictionary<string, object?> { ["a"] = "a", ["b"] = "b" },
-                        new Dictionary<string, object?> { ["a"] = "aa", ["b"] = "bb" },
-                    },
+                        new Dictionary<string, object?> { ["a"] = "aa", ["b"] = "bb" }
+                    }
                 }
             );
     }
@@ -1033,9 +1033,9 @@ public class DecodeTest
                 {
                     ["foo"] = new List<object?>
                     {
-                        new Dictionary<string, object?> { ["baz"] = "bar" },
+                        new Dictionary<string, object?> { ["baz"] = "bar" }
                     },
-                    ["fool"] = new Dictionary<string, object?> { ["bad"] = "baz" },
+                    ["fool"] = new Dictionary<string, object?> { ["bad"] = "baz" }
                 }
             );
 
@@ -1046,12 +1046,12 @@ public class DecodeTest
                 {
                     ["foo"] = new List<object?>
                     {
-                        new Dictionary<string, object?> { ["baz"] = "bar" },
+                        new Dictionary<string, object?> { ["baz"] = "bar" }
                     },
                     ["fool"] = new Dictionary<string, object?>
                     {
-                        ["bad"] = new Dictionary<string, object?> { ["boo"] = "baz" },
-                    },
+                        ["bad"] = new Dictionary<string, object?> { ["boo"] = "baz" }
+                    }
                 }
             );
 
@@ -1062,9 +1062,9 @@ public class DecodeTest
                 {
                     ["foo"] = new List<object?>
                     {
-                        new List<object?> { new Dictionary<string, object?> { ["baz"] = "bar" } },
+                        new List<object?> { new Dictionary<string, object?> { ["baz"] = "bar" } }
                     },
-                    ["fool"] = new Dictionary<string, object?> { ["bad"] = "baz" },
+                    ["fool"] = new Dictionary<string, object?> { ["bad"] = "baz" }
                 }
             );
 
@@ -1078,9 +1078,9 @@ public class DecodeTest
                         new Dictionary<string, object?>
                         {
                             ["baz"] = new List<object?> { "15" },
-                            ["bar"] = "2",
-                        },
-                    },
+                            ["bar"] = "2"
+                        }
+                    }
                 }
             );
 
@@ -1097,9 +1097,9 @@ public class DecodeTest
                         new Dictionary<string, object?>
                         {
                             ["baz"] = new List<object?> { "15", "16" },
-                            ["bar"] = "2",
-                        },
-                    },
+                            ["bar"] = "2"
+                        }
+                    }
                 }
             );
 
@@ -1108,7 +1108,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" },
+                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" }
                 }
             );
 
@@ -1117,7 +1117,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" },
+                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" }
                 }
             );
 
@@ -1126,7 +1126,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { [0] = "bar", ["bad"] = "baz" },
+                    ["foo"] = new Dictionary<object, object?> { [0] = "bar", ["bad"] = "baz" }
                 }
             );
 
@@ -1139,8 +1139,8 @@ public class DecodeTest
                     {
                         ["bad"] = "baz",
                         [0] = "bar",
-                        [1] = "foo",
-                    },
+                        [1] = "foo"
+                    }
                 }
             );
 
@@ -1155,8 +1155,8 @@ public class DecodeTest
                     ["foo"] = new List<object?>
                     {
                         new Dictionary<string, object?> { ["a"] = "a", ["b"] = "b" },
-                        new Dictionary<string, object?> { ["a"] = "aa", ["b"] = "bb" },
-                    },
+                        new Dictionary<string, object?> { ["a"] = "aa", ["b"] = "bb" }
+                    }
                 }
             );
     }
@@ -1169,7 +1169,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<int, object?> { [2] = "b", [99999999] = "c" },
+                    ["a"] = new Dictionary<int, object?> { [2] = "b", [99999999] = "c" }
                 }
             );
     }
@@ -1206,7 +1206,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { new Dictionary<string, object?> { ["b"] = "c" } },
+                    ["a"] = new List<object?> { new Dictionary<string, object?> { ["b"] = "c" } }
                 }
             );
 
@@ -1215,7 +1215,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { new Dictionary<string, object?> { ["b"] = "c" } },
+                    ["a"] = new List<object?> { new Dictionary<string, object?> { ["b"] = "c" } }
                 }
             );
     }
@@ -1228,7 +1228,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "", "c" },
+                    ["a"] = new List<object?> { "b", "", "c" }
                 }
             );
 
@@ -1240,7 +1240,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", null, "c", "" },
+                    ["a"] = new List<object?> { "b", null, "c", "" }
                 }
             );
 
@@ -1252,7 +1252,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", null, "c", "" },
+                    ["a"] = new List<object?> { "b", null, "c", "" }
                 }
             );
 
@@ -1264,7 +1264,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "", "c", null },
+                    ["a"] = new List<object?> { "b", "", "c", null }
                 }
             );
 
@@ -1276,7 +1276,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "", "c", null },
+                    ["a"] = new List<object?> { "b", "", "c", null }
                 }
             );
 
@@ -1285,7 +1285,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "", "b", "c" },
+                    ["a"] = new List<object?> { "", "b", "c" }
                 }
             );
     }
@@ -1298,7 +1298,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "2", "1" },
+                    ["a"] = new List<object?> { "2", "1" }
                 }
             );
 
@@ -1313,10 +1313,10 @@ public class DecodeTest
                         {
                             ["b"] = new List<object?>
                             {
-                                new Dictionary<string, object?> { ["c"] = "1" },
-                            },
-                        },
-                    },
+                                new Dictionary<string, object?> { ["c"] = "1" }
+                            }
+                        }
+                    }
                 }
             );
 
@@ -1329,9 +1329,9 @@ public class DecodeTest
                     {
                         new List<object?>
                         {
-                            new List<object?> { new Dictionary<string, object?> { ["c"] = "1" } },
-                        },
-                    },
+                            new List<object?> { new Dictionary<string, object?> { ["c"] = "1" } }
+                        }
+                    }
                 }
             );
 
@@ -1348,11 +1348,11 @@ public class DecodeTest
                             {
                                 new Dictionary<string, object?>
                                 {
-                                    ["c"] = new List<object?> { "1" },
-                                },
-                            },
-                        },
-                    },
+                                    ["c"] = new List<object?> { "1" }
+                                }
+                            }
+                        }
+                    }
                 }
             );
     }
@@ -1365,7 +1365,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" },
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
                 }
             );
 
@@ -1374,7 +1374,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["b"] = "c", ["d"] = "e" },
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c", ["d"] = "e" }
                 }
             );
     }
@@ -1399,8 +1399,8 @@ public class DecodeTest
             {
                 new List<object?> { "int1", "=", "77" },
                 "and",
-                new List<object?> { "int2", "=", "8" },
-            },
+                new List<object?> { "int2", "=", "8" }
+            }
         };
 
         Qs.Decode(encoded).Should().BeEquivalentTo(expected);
@@ -1476,7 +1476,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [0] = "b" },
+                    ["a"] = new Dictionary<object, object?> { [0] = "b" }
                 }
             );
 
@@ -1489,7 +1489,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [-1] = "b" },
+                    ["a"] = new Dictionary<object, object?> { [-1] = "b" }
                 }
             );
 
@@ -1498,7 +1498,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [-1] = "b" },
+                    ["a"] = new Dictionary<object, object?> { [-1] = "b" }
                 }
             );
 
@@ -1507,7 +1507,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [0] = "b", [1] = "c" },
+                    ["a"] = new Dictionary<object, object?> { [0] = "b", [1] = "c" }
                 }
             );
 
@@ -1516,7 +1516,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [0] = "b", [1] = "c" },
+                    ["a"] = new Dictionary<object, object?> { [0] = "b", [1] = "c" }
                 }
             );
     }
@@ -1529,7 +1529,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [0] = "b", [1] = "c" },
+                    ["a"] = new Dictionary<object, object?> { [0] = "b", [1] = "c" }
                 }
             );
 
@@ -1538,7 +1538,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [0] = "b" },
+                    ["a"] = new Dictionary<object, object?> { [0] = "b" }
                 }
             );
     }
@@ -1565,7 +1565,7 @@ public class DecodeTest
         var input = new Dictionary<string, object?>
         {
             ["user[name]"] = new Dictionary<string, object?> { ["pop[bob]"] = 3 },
-            ["user[email]"] = null,
+            ["user[email]"] = null
         };
 
         var expected = new Dictionary<object, object?>
@@ -1573,8 +1573,8 @@ public class DecodeTest
             ["user"] = new Dictionary<object, object?>
             {
                 ["name"] = new Dictionary<object, object?> { ["pop[bob]"] = 3 },
-                ["email"] = null,
-            },
+                ["email"] = null
+            }
         };
 
         Qs.Decode(input).Should().BeEquivalentTo(expected);
@@ -1588,7 +1588,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new List<object?> { "bar", "tee" },
+                    ["foo"] = new List<object?> { "bar", "tee" }
                 }
             );
 
@@ -1599,8 +1599,8 @@ public class DecodeTest
                 {
                     ["foo"] = new Dictionary<object, object?>
                     {
-                        ["bar"] = new List<object?> { "coffee", "tee" },
-                    },
+                        ["bar"] = new List<object?> { "coffee", "tee" }
+                    }
                 }
             );
 
@@ -1633,7 +1633,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "c", "d" },
+                    ["a"] = new List<object?> { "c", "d" }
                 }
             );
 
@@ -1642,7 +1642,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "c", "d" },
+                    ["a"] = new List<object?> { "c", "d" }
                 }
             );
 
@@ -1651,7 +1651,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "c", "d" },
+                    ["a"] = new List<object?> { "c", "d" }
                 }
             );
     }
@@ -1670,7 +1670,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new List<object?> { "bar", "tee" },
+                    ["foo"] = new List<object?> { "bar", "tee" }
                 }
             );
     }
@@ -1708,8 +1708,8 @@ public class DecodeTest
                     ["foo"] = new List<object?>
                     {
                         new List<object?> { "1", "2", "3" },
-                        new List<object?> { "4", "5", "6" },
-                    },
+                        new List<object?> { "4", "5", "6" }
+                    }
                 }
             );
 
@@ -1721,8 +1721,8 @@ public class DecodeTest
                     ["foo"] = new List<object?>
                     {
                         new List<object?> { "1", "2", "3" },
-                        "",
-                    },
+                        ""
+                    }
                 }
             );
 
@@ -1734,8 +1734,8 @@ public class DecodeTest
                     ["foo"] = new List<object?>
                     {
                         new List<object?> { "1", "2", "3" },
-                        new List<object?> { "", "" },
-                    },
+                        new List<object?> { "", "" }
+                    }
                 }
             );
 
@@ -1747,8 +1747,8 @@ public class DecodeTest
                     ["foo"] = new List<object?>
                     {
                         new List<object?> { "1", "2", "3" },
-                        "a",
-                    },
+                        "a"
+                    }
                 }
             );
     }
@@ -1765,7 +1765,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new List<object?> { "a, b", "d" },
+                    ["foo"] = new List<object?> { "a, b", "d" }
                 }
             );
 
@@ -1774,7 +1774,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new List<object?> { "a, b", "c, d" },
+                    ["foo"] = new List<object?> { "a, b", "c, d" }
                 }
             );
     }
@@ -1785,7 +1785,7 @@ public class DecodeTest
         var input = new Dictionary<string, object?>
         {
             ["user.name"] = new Dictionary<string, object?> { ["pop[bob]"] = 3 },
-            ["user.email."] = null,
+            ["user.email."] = null
         };
 
         var expected = new Dictionary<object, object?>
@@ -1793,8 +1793,8 @@ public class DecodeTest
             ["user"] = new Dictionary<object, object?>
             {
                 ["name"] = new Dictionary<object, object?> { ["pop[bob]"] = 3 },
-                ["email"] = null,
-            },
+                ["email"] = null
+            }
         };
 
         Qs.Decode(input, new DecodeOptions { AllowDots = true }).Should().BeEquivalentTo(expected);
@@ -1807,9 +1807,9 @@ public class DecodeTest
         {
             ["user[name]"] = new Dictionary<string, object?>
             {
-                ["pop[bob]"] = new Dictionary<string, object?> { ["test"] = 3 },
+                ["pop[bob]"] = new Dictionary<string, object?> { ["test"] = 3 }
             },
-            ["user[email]"] = null,
+            ["user[email]"] = null
         };
 
         var expected = new Dictionary<object, object?>
@@ -1818,10 +1818,10 @@ public class DecodeTest
             {
                 ["name"] = new Dictionary<object, object?>
                 {
-                    ["pop[bob]"] = new Dictionary<object, object?> { ["test"] = 3 },
+                    ["pop[bob]"] = new Dictionary<object, object?> { ["test"] = 3 }
                 },
-                ["email"] = null,
-            },
+                ["email"] = null
+            }
         };
 
         Qs.Decode(input).Should().BeEquivalentTo(expected);
@@ -1948,7 +1948,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" },
+                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" }
                 }
             );
     }
@@ -2105,7 +2105,7 @@ public class DecodeTest
         var options = new DecodeOptions
         {
             Charset = Encoding.Latin1,
-            InterpretNumericEntities = true,
+            InterpretNumericEntities = true
         };
 
         Qs.Decode($"foo={urlEncodedNumSmiley}", options)
@@ -2127,7 +2127,7 @@ public class DecodeTest
         {
             Charset = Encoding.Latin1,
             Decoder = CustomDecoder,
-            InterpretNumericEntities = true,
+            InterpretNumericEntities = true
         };
 
         Qs.Decode($"foo=&bar={urlEncodedNumSmiley}", options)
@@ -2156,7 +2156,7 @@ public class DecodeTest
         {
             Comma = true,
             Charset = Encoding.Latin1,
-            InterpretNumericEntities = true,
+            InterpretNumericEntities = true
         };
 
         Qs.Decode($"b&a[]=1,{urlEncodedNumSmiley}", options)
@@ -2165,7 +2165,7 @@ public class DecodeTest
                 new Dictionary<object, object?>
                 {
                     ["b"] = "",
-                    ["a"] = new List<object?> { "1,☺" },
+                    ["a"] = new List<object?> { "1,☺" }
                 }
             );
     }
@@ -2178,7 +2178,7 @@ public class DecodeTest
         var options = new DecodeOptions
         {
             Charset = Encoding.UTF8,
-            InterpretNumericEntities = true,
+            InterpretNumericEntities = true
         };
 
         Qs.Decode($"foo={urlEncodedNumSmiley}", options)
@@ -2214,7 +2214,7 @@ public class DecodeTest
         yield return new object[]
         {
             "key=",
-            new Dictionary<object, object?> { ["key"] = "" },
+            new Dictionary<object, object?> { ["key"] = "" }
         };
         // Add more test cases as needed
     }
@@ -2227,7 +2227,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new List<object?> { "bar", "baz" },
+                    ["foo"] = new List<object?> { "bar", "baz" }
                 }
             );
     }
@@ -2241,7 +2241,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new List<object?> { "bar", "baz" },
+                    ["foo"] = new List<object?> { "bar", "baz" }
                 }
             );
     }
@@ -2319,7 +2319,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" },
+                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" }
                 }
             );
     }
@@ -2336,8 +2336,8 @@ public class DecodeTest
                 {
                     ["a"] = new Dictionary<object, object?>
                     {
-                        ["b"] = new Dictionary<object, object?> { ["[c][d][e][f][g][h][i]"] = "j" },
-                    },
+                        ["b"] = new Dictionary<object, object?> { ["[c][d][e][f][g][h][i]"] = "j" }
+                    }
                 }
             );
     }
@@ -2352,7 +2352,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" },
+                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" }
                 }
             );
     }
@@ -2369,8 +2369,8 @@ public class DecodeTest
                 {
                     ["a"] = new Dictionary<object, object?>
                     {
-                        ["b"] = new Dictionary<object, object?> { ["c"] = "d" },
-                    },
+                        ["b"] = new Dictionary<object, object?> { ["c"] = "d" }
+                    }
                 }
             );
     }
@@ -2387,7 +2387,7 @@ public class DecodeTest
                 {
                     ["a"] = "1",
                     ["b"] = "2",
-                    ["c"] = "3",
+                    ["c"] = "3"
                 }
             );
     }
@@ -2413,7 +2413,7 @@ public class DecodeTest
                 {
                     ["a"] = "1",
                     ["b"] = "2",
-                    ["c"] = "3",
+                    ["c"] = "3"
                 }
             );
     }
@@ -2430,7 +2430,7 @@ public class DecodeTest
                 {
                     ["a"] = "1",
                     ["b"] = "2",
-                    ["c"] = "3",
+                    ["c"] = "3"
                 }
             );
     }
@@ -2450,7 +2450,7 @@ public class DecodeTest
                     ["c"] = "3",
                     ["d"] = "4",
                     ["e"] = "5",
-                    ["f"] = "6",
+                    ["f"] = "6"
                 }
             );
     }
@@ -2465,7 +2465,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "1", "2", "3" },
+                    ["a"] = new List<object?> { "1", "2", "3" }
                 }
             );
     }
@@ -2496,8 +2496,8 @@ public class DecodeTest
                         [3] = "3",
                         [4] = "4",
                         [5] = "5",
-                        [6] = "6",
-                    },
+                        [6] = "6"
+                    }
                 }
             );
     }
@@ -2512,7 +2512,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "1", "2" },
+                    ["a"] = new List<object?> { "1", "2" }
                 }
             );
     }
@@ -2554,7 +2554,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [">="] = "23" },
+                    ["a"] = new Dictionary<object, object?> { [">="] = "23" }
                 }
             );
 
@@ -2563,7 +2563,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["<=>"] = "=23" },
+                    ["a"] = new Dictionary<object, object?> { ["<=>"] = "=23" }
                 }
             );
 
@@ -2572,7 +2572,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["=="] = "23" },
+                    ["a"] = new Dictionary<object, object?> { ["=="] = "23" }
                 }
             );
 
@@ -2624,7 +2624,7 @@ public class DecodeTest
                     ["cht"] = "p3",
                     ["chd"] = "t:60,40",
                     ["chs"] = "250x100",
-                    ["chl"] = "Hello|World",
+                    ["chl"] = "Hello|World"
                 }
             );
     }
@@ -2639,7 +2639,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -2648,7 +2648,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -2661,7 +2661,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
     }
@@ -2681,7 +2681,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" },
+                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" }
                 }
             );
     }
@@ -2698,7 +2698,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" },
+                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" }
                 }
             );
 
@@ -2709,8 +2709,8 @@ public class DecodeTest
                 {
                     ["a"] = new Dictionary<object, object?>
                     {
-                        ["b"] = new Dictionary<object, object?> { ["c"] = "d" },
-                    },
+                        ["b"] = new Dictionary<object, object?> { ["c"] = "d" }
+                    }
                 }
             );
 
@@ -2731,13 +2731,13 @@ public class DecodeTest
                                     {
                                         ["f"] = new Dictionary<object, object?>
                                         {
-                                            ["[g][h]"] = "i",
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
+                                            ["[g][h]"] = "i"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             );
 
@@ -2748,8 +2748,8 @@ public class DecodeTest
                 {
                     ["a"] = new Dictionary<object, object?>
                     {
-                        ["b"] = new Dictionary<object, object?> { ["[c]"] = "d" },
-                    },
+                        ["b"] = new Dictionary<object, object?> { ["[c]"] = "d" }
+                    }
                 }
             );
 
@@ -2760,8 +2760,8 @@ public class DecodeTest
                 {
                     ["a"] = new Dictionary<object, object?>
                     {
-                        ["b"] = new Dictionary<object, object?> { ["[c][d]"] = "e" },
-                    },
+                        ["b"] = new Dictionary<object, object?> { ["[c][d]"] = "e" }
+                    }
                 }
             );
 
@@ -2777,7 +2777,7 @@ public class DecodeTest
                     ["a[0][0]"] = "b",
                     ["a[0][1]"] = "c",
                     ["a[1]"] = "d",
-                    ["e"] = "2",
+                    ["e"] = "2"
                 }
             );
     }
@@ -2796,7 +2796,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -2805,7 +2805,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c", "d" },
+                    ["a"] = new List<object?> { "b", "c", "d" }
                 }
             );
     }
@@ -2822,7 +2822,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -2831,7 +2831,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -2840,7 +2840,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -2849,7 +2849,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -2858,7 +2858,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -2867,7 +2867,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -2876,7 +2876,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -2885,7 +2885,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
     }
@@ -2902,8 +2902,8 @@ public class DecodeTest
                 {
                     ["a"] = new Dictionary<object, object?>
                     {
-                        ["b"] = new List<object?> { "c", "d" },
-                    },
+                        ["b"] = new List<object?> { "c", "d" }
+                    }
                 }
             );
 
@@ -2912,7 +2912,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [">="] = "25" },
+                    ["a"] = new Dictionary<object, object?> { [">="] = "25" }
                 }
             );
     }
@@ -2929,7 +2929,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c", "d" },
+                    ["a"] = new List<object?> { "b", "c", "d" }
                 }
             );
 
@@ -2938,7 +2938,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
 
@@ -2951,7 +2951,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [1] = "c" },
+                    ["a"] = new Dictionary<object, object?> { [1] = "c" }
                 }
             );
 
@@ -2975,7 +2975,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [21] = "a" },
+                    ["a"] = new Dictionary<object, object?> { [21] = "a" }
                 }
             );
 
@@ -2988,7 +2988,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [21] = "a" },
+                    ["a"] = new Dictionary<object, object?> { [21] = "a" }
                 }
             );
     }
@@ -3003,7 +3003,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["12b"] = "c" },
+                    ["a"] = new Dictionary<object, object?> { ["12b"] = "c" }
                 }
             );
     }
@@ -3028,7 +3028,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b c"] = "d" },
+                    ["a"] = new Dictionary<object, object?> { ["b c"] = "d" }
                 }
             );
 
@@ -3037,7 +3037,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c d" },
+                    ["a"] = new Dictionary<object, object?> { ["b"] = "c d" }
                 }
             );
     }
@@ -3076,7 +3076,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { [0] = "bar", ["bad"] = "baz" },
+                    ["foo"] = new Dictionary<object, object?> { [0] = "bar", ["bad"] = "baz" }
                 }
             );
 
@@ -3085,7 +3085,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" },
+                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" }
                 }
             );
 
@@ -3094,7 +3094,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" },
+                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" }
                 }
             );
 
@@ -3103,7 +3103,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { [0] = "bar", ["bad"] = "baz" },
+                    ["foo"] = new Dictionary<object, object?> { [0] = "bar", ["bad"] = "baz" }
                 }
             );
 
@@ -3116,8 +3116,8 @@ public class DecodeTest
                     {
                         ["bad"] = "baz",
                         [0] = "bar",
-                        [1] = "foo",
-                    },
+                        [1] = "foo"
+                    }
                 }
             );
 
@@ -3129,8 +3129,8 @@ public class DecodeTest
                     ["foo"] = new List<object?>
                     {
                         new Dictionary<object, object?> { ["a"] = "a", ["b"] = "b" },
-                        new Dictionary<object, object?> { ["a"] = "aa", ["b"] = "bb" },
-                    },
+                        new Dictionary<object, object?> { ["a"] = "aa", ["b"] = "bb" }
+                    }
                 }
             );
     }
@@ -3147,9 +3147,9 @@ public class DecodeTest
                 {
                     ["foo"] = new List<object?>
                     {
-                        new Dictionary<object, object?> { ["baz"] = "bar" },
+                        new Dictionary<object, object?> { ["baz"] = "bar" }
                     },
-                    ["fool"] = new Dictionary<object, object?> { ["bad"] = "baz" },
+                    ["fool"] = new Dictionary<object, object?> { ["bad"] = "baz" }
                 }
             );
 
@@ -3160,12 +3160,12 @@ public class DecodeTest
                 {
                     ["foo"] = new List<object?>
                     {
-                        new Dictionary<object, object?> { ["baz"] = "bar" },
+                        new Dictionary<object, object?> { ["baz"] = "bar" }
                     },
                     ["fool"] = new Dictionary<object, object?>
                     {
-                        ["bad"] = new Dictionary<object, object?> { ["boo"] = "baz" },
-                    },
+                        ["bad"] = new Dictionary<object, object?> { ["boo"] = "baz" }
+                    }
                 }
             );
 
@@ -3176,9 +3176,9 @@ public class DecodeTest
                 {
                     ["foo"] = new List<object?>
                     {
-                        new List<object?> { new Dictionary<object, object?> { ["baz"] = "bar" } },
+                        new List<object?> { new Dictionary<object, object?> { ["baz"] = "bar" } }
                     },
-                    ["fool"] = new Dictionary<object, object?> { ["bad"] = "baz" },
+                    ["fool"] = new Dictionary<object, object?> { ["bad"] = "baz" }
                 }
             );
 
@@ -3192,9 +3192,9 @@ public class DecodeTest
                         new Dictionary<object, object?>
                         {
                             ["baz"] = new List<object?> { "15" },
-                            ["bar"] = "2",
-                        },
-                    },
+                            ["bar"] = "2"
+                        }
+                    }
                 }
             );
 
@@ -3208,9 +3208,9 @@ public class DecodeTest
                         new Dictionary<object, object?>
                         {
                             ["baz"] = new List<object?> { "15", "16" },
-                            ["bar"] = "2",
-                        },
-                    },
+                            ["bar"] = "2"
+                        }
+                    }
                 }
             );
 
@@ -3219,7 +3219,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" },
+                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" }
                 }
             );
 
@@ -3228,7 +3228,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" },
+                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", [0] = "bar" }
                 }
             );
 
@@ -3237,7 +3237,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { [0] = "bar", ["bad"] = "baz" },
+                    ["foo"] = new Dictionary<object, object?> { [0] = "bar", ["bad"] = "baz" }
                 }
             );
 
@@ -3250,8 +3250,8 @@ public class DecodeTest
                     {
                         ["bad"] = "baz",
                         [0] = "bar",
-                        [1] = "foo",
-                    },
+                        [1] = "foo"
+                    }
                 }
             );
 
@@ -3263,8 +3263,8 @@ public class DecodeTest
                     ["foo"] = new List<object?>
                     {
                         new Dictionary<object, object?> { ["a"] = "a", ["b"] = "b" },
-                        new Dictionary<object, object?> { ["a"] = "aa", ["b"] = "bb" },
-                    },
+                        new Dictionary<object, object?> { ["a"] = "aa", ["b"] = "bb" }
+                    }
                 }
             );
     }
@@ -3279,7 +3279,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [2] = "b", [99999999] = "c" },
+                    ["a"] = new Dictionary<object, object?> { [2] = "b", [99999999] = "c" }
                 }
             );
     }
@@ -3323,7 +3323,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { new Dictionary<object, object?> { ["b"] = "c" } },
+                    ["a"] = new List<object?> { new Dictionary<object, object?> { ["b"] = "c" } }
                 }
             );
 
@@ -3332,7 +3332,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { new Dictionary<object, object?> { ["b"] = "c" } },
+                    ["a"] = new List<object?> { new Dictionary<object, object?> { ["b"] = "c" } }
                 }
             );
     }
@@ -3344,12 +3344,12 @@ public class DecodeTest
         var optionsStrictNullHandling20 = new DecodeOptions
         {
             StrictNullHandling = true,
-            ListLimit = 20,
+            ListLimit = 20
         };
         var optionsStrictNullHandling0 = new DecodeOptions
         {
             StrictNullHandling = true,
-            ListLimit = 0,
+            ListLimit = 0
         };
 
         Qs.Decode("a[]=b&a[]=&a[]=c", options)
@@ -3357,7 +3357,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "", "c" },
+                    ["a"] = new List<object?> { "b", "", "c" }
                 }
             );
 
@@ -3366,7 +3366,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", null, "c", "" },
+                    ["a"] = new List<object?> { "b", null, "c", "" }
                 }
             );
 
@@ -3375,7 +3375,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", null, "c", "" },
+                    ["a"] = new List<object?> { "b", null, "c", "" }
                 }
             );
 
@@ -3384,7 +3384,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "", "c", null },
+                    ["a"] = new List<object?> { "b", "", "c", null }
                 }
             );
 
@@ -3393,7 +3393,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "", "c", null },
+                    ["a"] = new List<object?> { "b", "", "c", null }
                 }
             );
 
@@ -3402,7 +3402,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "", "b", "c" },
+                    ["a"] = new List<object?> { "", "b", "c" }
                 }
             );
     }
@@ -3417,7 +3417,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "2", "1" },
+                    ["a"] = new List<object?> { "2", "1" }
                 }
             );
 
@@ -3432,10 +3432,10 @@ public class DecodeTest
                         {
                             ["b"] = new List<object?>
                             {
-                                new Dictionary<object, object?> { ["c"] = "1" },
-                            },
-                        },
-                    },
+                                new Dictionary<object, object?> { ["c"] = "1" }
+                            }
+                        }
+                    }
                 }
             );
 
@@ -3448,9 +3448,9 @@ public class DecodeTest
                     {
                         new List<object?>
                         {
-                            new List<object?> { new Dictionary<object, object?> { ["c"] = "1" } },
-                        },
-                    },
+                            new List<object?> { new Dictionary<object, object?> { ["c"] = "1" } }
+                        }
+                    }
                 }
             );
 
@@ -3467,11 +3467,11 @@ public class DecodeTest
                             {
                                 new Dictionary<object, object?>
                                 {
-                                    ["c"] = new List<object?> { "1" },
-                                },
-                            },
-                        },
-                    },
+                                    ["c"] = new List<object?> { "1" }
+                                }
+                            }
+                        }
+                    }
                 }
             );
     }
@@ -3486,7 +3486,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { null, "2", null, null, "1" },
+                    ["a"] = new List<object?> { null, "2", null, null, "1" }
                 }
             );
 
@@ -3504,10 +3504,10 @@ public class DecodeTest
                             {
                                 null,
                                 null,
-                                new Dictionary<object, object?> { ["c"] = "1" },
-                            },
-                        },
-                    },
+                                new Dictionary<object, object?> { ["c"] = "1" }
+                            }
+                        }
+                    }
                 }
             );
 
@@ -3528,10 +3528,10 @@ public class DecodeTest
                                 null,
                                 null,
                                 null,
-                                new Dictionary<object, object?> { ["c"] = "1" },
-                            },
-                        },
-                    },
+                                new Dictionary<object, object?> { ["c"] = "1" }
+                            }
+                        }
+                    }
                 }
             );
 
@@ -3554,11 +3554,11 @@ public class DecodeTest
                                 null,
                                 new Dictionary<object, object?>
                                 {
-                                    ["c"] = new List<object?> { null, "1" },
-                                },
-                            },
-                        },
-                    },
+                                    ["c"] = new List<object?> { null, "1" }
+                                }
+                            }
+                        }
+                    }
                 }
             );
     }
@@ -3580,8 +3580,8 @@ public class DecodeTest
                     {
                         new List<object?> { "int1", "=", "77" },
                         "and",
-                        new List<object?> { "int2", "=", "8" },
-                    },
+                        new List<object?> { "int2", "=", "8" }
+                    }
                 }
             );
     }
@@ -3658,7 +3658,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [0] = "b" },
+                    ["a"] = new Dictionary<object, object?> { [0] = "b" }
                 }
             );
 
@@ -3667,7 +3667,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [-1] = "b" },
+                    ["a"] = new Dictionary<object, object?> { [-1] = "b" }
                 }
             );
 
@@ -3676,7 +3676,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [0] = "b", [1] = "c" },
+                    ["a"] = new Dictionary<object, object?> { [0] = "b", [1] = "c" }
                 }
             );
     }
@@ -3691,7 +3691,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [0] = "b", [1] = "c" },
+                    ["a"] = new Dictionary<object, object?> { [0] = "b", [1] = "c" }
                 }
             );
 
@@ -3700,7 +3700,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [0] = "b" },
+                    ["a"] = new Dictionary<object, object?> { [0] = "b" }
                 }
             );
     }
@@ -3736,7 +3736,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new List<object?> { "bar", "tee" },
+                    ["foo"] = new List<object?> { "bar", "tee" }
                 }
             );
 
@@ -3747,8 +3747,8 @@ public class DecodeTest
                 {
                     ["foo"] = new Dictionary<object, object?>
                     {
-                        ["bar"] = new List<object?> { "coffee", "tee" },
-                    },
+                        ["bar"] = new List<object?> { "coffee", "tee" }
+                    }
                 }
             );
 
@@ -3781,7 +3781,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "c", "d" },
+                    ["a"] = new List<object?> { "c", "d" }
                 }
             );
 
@@ -3790,7 +3790,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "c", "d" },
+                    ["a"] = new List<object?> { "c", "d" }
                 }
             );
 
@@ -3799,7 +3799,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "c", "d" },
+                    ["a"] = new List<object?> { "c", "d" }
                 }
             );
     }
@@ -3814,7 +3814,7 @@ public class DecodeTest
                 if (int.TryParse(value, out var intValue))
                     return $"[{intValue}]";
                 return value;
-            },
+            }
         };
 
         Qs.Decode("foo=1", options)
@@ -3844,7 +3844,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new List<object?> { "a, b", "d" },
+                    ["foo"] = new List<object?> { "a, b", "d" }
                 }
             );
 
@@ -3853,7 +3853,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new List<object?> { "a, b", "c, d" },
+                    ["foo"] = new List<object?> { "a, b", "c, d" }
                 }
             );
     }
@@ -3870,10 +3870,7 @@ public class DecodeTest
         str += "=bar";
 
         Dictionary<object, object?>? result = null;
-        var action = () =>
-        {
-            result = Qs.Decode(str, options);
-        };
+        var action = () => { result = Qs.Decode(str, options); };
         action.Should().NotThrow();
 
         var depth = 0;
@@ -3933,7 +3930,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c", ["d"] = true },
+                    ["a"] = new Dictionary<object, object?> { ["b"] = "c", ["d"] = true }
                 }
             );
     }
@@ -3957,7 +3954,7 @@ public class DecodeTest
                 {
                     return content;
                 }
-            },
+            }
         };
 
         // Note: This test may need adjustment based on actual Shift_JIS encoding behavior
@@ -4033,12 +4030,12 @@ public class DecodeTest
         var optionsIsoInterpret = new DecodeOptions
         {
             Charset = Encoding.Latin1,
-            InterpretNumericEntities = true,
+            InterpretNumericEntities = true
         };
         var optionsUtfInterpret = new DecodeOptions
         {
             Charset = Encoding.UTF8,
-            InterpretNumericEntities = true,
+            InterpretNumericEntities = true
         };
 
         Qs.Decode($"foo={urlEncodedNumSmiley}", optionsIsoInterpret)
@@ -4080,17 +4077,17 @@ public class DecodeTest
                         ["age"] = new Dictionary<object, object?>
                         {
                             [":ge"] = "18",
-                            [":le"] = "60",
-                        },
-                    },
+                            [":le"] = "60"
+                        }
+                    }
                 }
             );
     }
 
     /// <summary>
-    ///   Generic <c>Dictionary&lt;string,object?&gt;</c> with a self-reference.
-    ///   If the <c>IDictionary</c> arm is placed *before* the enumerable arm
-    ///   this call used to overflow the stack.
+    ///     Generic <c>Dictionary&lt;string,object?&gt;</c> with a self-reference.
+    ///     If the <c>IDictionary</c> arm is placed *before* the enumerable arm
+    ///     this call used to overflow the stack.
     /// </summary>
     [Fact]
     public void Decode_GenericDictionary_With_SelfReference_DoesNot_Overflow()
@@ -4108,7 +4105,7 @@ public class DecodeTest
     }
 
     /// <summary>
-    ///   Non-generic <c>Hashtable</c> must still be decoded and keys normalised.
+    ///     Non-generic <c>Hashtable</c> must still be decoded and keys normalised.
     /// </summary>
     [Fact]
     public void Decode_NonGeneric_Hashtable_Is_Normalised()

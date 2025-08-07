@@ -201,7 +201,7 @@ internal static partial class Utils
                     var list = new List<object?>
                 {
                     target,
-                    ToStringKeyedDictionary((IDictionary)source),
+                    ToStringKeyedDictionary((IDictionary)source)
                 };
                     return list;
                 }
@@ -327,7 +327,7 @@ internal static partial class Utils
         {
             bool b => b ? "true" : "false",
             byte[] bytes => encoding.GetString(bytes),
-            _ => value?.ToString(),
+            _ => value?.ToString()
         };
 
         if (string.IsNullOrEmpty(str))
@@ -643,7 +643,7 @@ internal static partial class Utils
         {
             IEnumerable<T> enumerable => enumerable.Select(fn).ToList(),
             T item => fn(item),
-            _ => value,
+            _ => value
         };
     }
 
@@ -662,7 +662,7 @@ internal static partial class Utils
             Uri uri => !skipNulls || !string.IsNullOrEmpty(uri.ToString()),
             IEnumerable or IDictionary or Undefined => false,
             null => false,
-            _ => true,
+            _ => true
         };
     }
 
@@ -679,7 +679,7 @@ internal static partial class Utils
             string str => string.IsNullOrEmpty(str),
             IDictionary dict => dict.Count == 0,
             IEnumerable enumerable => !enumerable.Cast<object>().Any(),
-            _ => false,
+            _ => false
         };
     }
 
@@ -843,7 +843,7 @@ internal static partial class Utils
                 return list;
 
             case IEnumerable seq
-            and not string:
+                and not string:
                 return seq.Cast<object?>().Select(v => ConvertNestedValues(v, visited)).ToList();
 
             default:

@@ -107,7 +107,7 @@ internal static partial class Decoder
                     {
                         var p when p == Sentinel.Charset.GetEncoded() => Encoding.UTF8,
                         var p when p == Sentinel.Iso.GetEncoded() => Encoding.Latin1,
-                        _ => charset,
+                        _ => charset
                     };
                     skipIndex = i;
                     break;
@@ -156,7 +156,7 @@ internal static partial class Decoder
                             ",",
                             enumerable.Cast<object?>().Select(x => x?.ToString())
                         ),
-                        _ => value.ToString() ?? string.Empty,
+                        _ => value.ToString() ?? string.Empty
                     }
                 );
 
@@ -168,7 +168,7 @@ internal static partial class Decoder
             {
                 (true, Duplicates.Combine) => Utils.Combine<object?>(obj[key], value),
                 (false, _) or (true, Duplicates.Last) => value,
-                _ => obj[key],
+                _ => obj[key]
             };
         }
 

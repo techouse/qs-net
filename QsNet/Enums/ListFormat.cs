@@ -33,7 +33,7 @@ public enum ListFormat
     /// <summary>
     ///     Use indices in brackets to represent list items, for example `foo[0]=123&amp;foo[1]=456&amp;foo[2]=789`
     /// </summary>
-    Indices,
+    Indices
 }
 
 /// <summary>
@@ -54,7 +54,7 @@ public static class ListFormatExtensions
             ListFormat.Comma => (prefix, _) => prefix,
             ListFormat.Repeat => (prefix, _) => prefix,
             ListFormat.Indices => (prefix, key) => $"{prefix}[{key}]",
-            _ => throw new ArgumentOutOfRangeException(nameof(format)),
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
     }
 }

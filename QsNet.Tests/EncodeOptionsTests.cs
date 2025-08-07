@@ -28,7 +28,7 @@ public class EncodeOptionsTests
             Format = Format.Rfc1738,
             SkipNulls = true,
             StrictNullHandling = true,
-            CommaRoundTrip = true,
+            CommaRoundTrip = true
         };
 
         // Act
@@ -72,7 +72,7 @@ public class EncodeOptionsTests
             Format = Format.Rfc1738,
             SkipNulls = true,
             StrictNullHandling = true,
-            CommaRoundTrip = true,
+            CommaRoundTrip = true
         };
 
         // Act

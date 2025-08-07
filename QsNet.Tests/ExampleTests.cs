@@ -33,7 +33,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bar"] = "baz" },
+                    ["foo"] = new Dictionary<object, object?> { ["bar"] = "baz" }
                 }
             );
     }
@@ -47,7 +47,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" },
+                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" }
                 }
             );
     }
@@ -63,8 +63,8 @@ public class ExampleTests
                 {
                     ["foo"] = new Dictionary<object, object?>
                     {
-                        ["bar"] = new Dictionary<object, object?> { ["baz"] = "foobarbaz" },
-                    },
+                        ["bar"] = new Dictionary<object, object?> { ["baz"] = "foobarbaz" }
+                    }
                 }
             );
     }
@@ -90,13 +90,13 @@ public class ExampleTests
                                     {
                                         ["f"] = new Dictionary<object, object?>
                                         {
-                                            ["[g][h][i]"] = "j",
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
+                                            ["[g][h][i]"] = "j"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             );
     }
@@ -112,8 +112,8 @@ public class ExampleTests
                 {
                     ["a"] = new Dictionary<object, object?>
                     {
-                        ["b"] = new Dictionary<object, object?> { ["[c][d][e][f][g][h][i]"] = "j" },
-                    },
+                        ["b"] = new Dictionary<object, object?> { ["[c][d][e][f][g][h][i]"] = "j" }
+                    }
                 }
             );
     }
@@ -163,7 +163,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" },
+                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" }
                 }
             );
     }
@@ -183,8 +183,8 @@ public class ExampleTests
                     ["name.obj"] = new Dictionary<object, object?>
                     {
                         ["first"] = "John",
-                        ["last"] = "Doe",
-                    },
+                        ["last"] = "Doe"
+                    }
                 }
             );
     }
@@ -209,7 +209,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new List<object?> { "bar", "baz" },
+                    ["foo"] = new List<object?> { "bar", "baz" }
                 }
             );
     }
@@ -223,7 +223,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["foo"] = new List<object?> { "bar", "baz" },
+                    ["foo"] = new List<object?> { "bar", "baz" }
                 }
             );
     }
@@ -300,7 +300,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
     }
@@ -314,7 +314,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
     }
@@ -328,7 +328,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
     }
@@ -342,7 +342,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "", "b" },
+                    ["a"] = new List<object?> { "", "b" }
                 }
             );
 
@@ -351,7 +351,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "", "c" },
+                    ["a"] = new List<object?> { "b", "", "c" }
                 }
             );
     }
@@ -365,7 +365,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [100] = "b" },
+                    ["a"] = new Dictionary<object, object?> { [100] = "b" }
                 }
             );
     }
@@ -379,7 +379,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [1] = "b" },
+                    ["a"] = new Dictionary<object, object?> { [1] = "b" }
                 }
             );
     }
@@ -393,7 +393,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [0] = "b" },
+                    ["a"] = new Dictionary<object, object?> { [0] = "b" }
                 }
             );
     }
@@ -407,7 +407,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [0] = "b", ["b"] = "c" },
+                    ["a"] = new Dictionary<object, object?> { [0] = "b", ["b"] = "c" }
                 }
             );
     }
@@ -421,7 +421,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { new Dictionary<object, object?> { ["b"] = "c" } },
+                    ["a"] = new List<object?> { new Dictionary<object, object?> { ["b"] = "c" } }
                 }
             );
     }
@@ -435,7 +435,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" },
+                    ["a"] = new List<object?> { "b", "c" }
                 }
             );
     }
@@ -451,7 +451,7 @@ public class ExampleTests
                 {
                     ["a"] = "15",
                     ["b"] = "true",
-                    ["c"] = "null",
+                    ["c"] = "null"
                 }
             );
     }
@@ -465,7 +465,7 @@ public class ExampleTests
         Qs.Encode(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" },
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
                 }
             )
             .Should()
@@ -479,7 +479,7 @@ public class ExampleTests
         Qs.Encode(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" },
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
                 },
                 new EncodeOptions { Encode = false }
             )
@@ -499,8 +499,8 @@ public class ExampleTests
                     ["f"] = new List<object?>
                     {
                         new List<object?> { "g" },
-                        new List<object?> { "h" },
-                    },
+                        new List<object?> { "h" }
+                    }
                 },
                 new EncodeOptions { EncodeValuesOnly = true }
             )
@@ -515,11 +515,11 @@ public class ExampleTests
         Qs.Encode(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["b"] = "č" },
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "č" }
                 },
                 new EncodeOptions
                 {
-                    Encoder = (str, _, _) => str?.ToString() == "č" ? "c" : str?.ToString() ?? "",
+                    Encoder = (str, _, _) => str?.ToString() == "č" ? "c" : str?.ToString() ?? ""
                 }
             )
             .Should()
@@ -533,7 +533,7 @@ public class ExampleTests
         Qs.Encode(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c", "d" },
+                    ["a"] = new List<object?> { "b", "c", "d" }
                 },
                 new EncodeOptions { Encode = false }
             )
@@ -549,7 +549,7 @@ public class ExampleTests
         Qs.Encode(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c", "d" },
+                    ["a"] = new List<object?> { "b", "c", "d" }
                 },
                 new EncodeOptions { Encode = false, Indices = false }
             )
@@ -564,7 +564,7 @@ public class ExampleTests
         // Arrange
         var data = new Dictionary<string, object?>
         {
-            ["a"] = new List<object?> { "b", "c" },
+            ["a"] = new List<object?> { "b", "c" }
         };
         var options = new EncodeOptions { Encode = false };
 
@@ -588,8 +588,8 @@ public class ExampleTests
                 {
                     ["a"] = new Dictionary<string, object?>
                     {
-                        ["b"] = new Dictionary<string, object?> { ["c"] = "d", ["e"] = "f" },
-                    },
+                        ["b"] = new Dictionary<string, object?> { ["c"] = "d", ["e"] = "f" }
+                    }
                 },
                 new EncodeOptions { Encode = false }
             )
@@ -606,8 +606,8 @@ public class ExampleTests
                 {
                     ["a"] = new Dictionary<string, object?>
                     {
-                        ["b"] = new Dictionary<string, object?> { ["c"] = "d", ["e"] = "f" },
-                    },
+                        ["b"] = new Dictionary<string, object?> { ["c"] = "d", ["e"] = "f" }
+                    }
                 },
                 new EncodeOptions { Encode = false, AllowDots = true }
             )
@@ -625,8 +625,8 @@ public class ExampleTests
                     ["name.obj"] = new Dictionary<string, object?>
                     {
                         ["first"] = "John",
-                        ["last"] = "Doe",
-                    },
+                        ["last"] = "Doe"
+                    }
                 },
                 new EncodeOptions { AllowDots = true, EncodeDotInKeys = true }
             )
@@ -664,7 +664,7 @@ public class ExampleTests
         Qs.Encode(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { new Dictionary<string, object?>() },
+                    ["a"] = new List<object?> { new Dictionary<string, object?>() }
                 }
             )
             .Should()
@@ -672,7 +672,7 @@ public class ExampleTests
         Qs.Encode(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["b"] = new List<object?>() },
+                    ["a"] = new Dictionary<string, object?> { ["b"] = new List<object?>() }
                 }
             )
             .Should()
@@ -682,8 +682,8 @@ public class ExampleTests
                 {
                     ["a"] = new Dictionary<string, object?>
                     {
-                        ["b"] = new Dictionary<string, object?>(),
-                    },
+                        ["b"] = new Dictionary<string, object?>()
+                    }
                 }
             )
             .Should()
@@ -742,7 +742,7 @@ public class ExampleTests
                 new EncodeOptions
                 {
                     Encode = false,
-                    DateSerializer = d => ((DateTimeOffset)d).ToUnixTimeMilliseconds().ToString(),
+                    DateSerializer = d => ((DateTimeOffset)d).ToUnixTimeMilliseconds().ToString()
                 }
             )
             .Should()
@@ -758,13 +758,13 @@ public class ExampleTests
                 {
                     ["a"] = "c",
                     ["z"] = "y",
-                    ["b"] = "f",
+                    ["b"] = "f"
                 },
                 new EncodeOptions
                 {
                     Encode = false,
                     Sort = (a, b) =>
-                        string.Compare(a?.ToString(), b?.ToString(), StringComparison.Ordinal),
+                        string.Compare(a?.ToString(), b?.ToString(), StringComparison.Ordinal)
                 }
             )
             .Should()
@@ -776,7 +776,8 @@ public class ExampleTests
     {
         // Arrange
         var epochStart = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-        var testDate = epochStart.AddMilliseconds(123); // This creates a DateTime that represents 123ms after Unix epoch
+        var testDate =
+            epochStart.AddMilliseconds(123); // This creates a DateTime that represents 123ms after Unix epoch
 
         // Act & Assert
         Qs.Encode(
@@ -787,22 +788,22 @@ public class ExampleTests
                     ["e"] = new Dictionary<string, object?>
                     {
                         ["f"] = testDate,
-                        ["g"] = new List<object?> { 2 },
-                    },
+                        ["g"] = new List<object?> { 2 }
+                    }
                 },
                 new EncodeOptions
                 {
                     Encode = false,
-                    Filter = new FunctionFilter(
-                        (prefix, value) =>
-                            prefix switch
-                            {
-                                "b" => Undefined.Create(),
-                                "e[f]" => (long)((DateTime)value! - epochStart).TotalMilliseconds, // Convert to milliseconds since epoch
-                                "e[g][0]" => Convert.ToInt32(value) * 2,
-                                _ => value,
-                            }
-                    ),
+                    Filter = new FunctionFilter((prefix, value) =>
+                        prefix switch
+                        {
+                            "b" => Undefined.Create(),
+                            "e[f]" => (long)((DateTime)value! - epochStart)
+                                .TotalMilliseconds, // Convert to milliseconds since epoch
+                            "e[g][0]" => Convert.ToInt32(value) * 2,
+                            _ => value
+                        }
+                    )
                 }
             )
             .Should()
@@ -818,12 +819,12 @@ public class ExampleTests
                 {
                     ["a"] = "b",
                     ["c"] = "d",
-                    ["e"] = "f",
+                    ["e"] = "f"
                 },
                 new EncodeOptions
                 {
                     Encode = false,
-                    Filter = new IterableFilter(new List<object> { "a", "e" }),
+                    Filter = new IterableFilter(new List<object> { "a", "e" })
                 }
             )
             .Should()
@@ -833,12 +834,12 @@ public class ExampleTests
                 new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c", "d" },
-                    ["e"] = "f",
+                    ["e"] = "f"
                 },
                 new EncodeOptions
                 {
                     Encode = false,
-                    Filter = new IterableFilter(new List<object> { "a", 0, 2 }),
+                    Filter = new IterableFilter(new List<object> { "a", 0, 2 })
                 }
             )
             .Should()
@@ -957,8 +958,8 @@ public class ExampleTests
                         {
                             "a" => "%61",
                             "hello" => "%68%65%6c%6c%6f",
-                            _ => str?.ToString() ?? "",
-                        },
+                            _ => str?.ToString() ?? ""
+                        }
                 }
             )
             .Should()
@@ -978,8 +979,8 @@ public class ExampleTests
                         {
                             "%61" => "a",
                             "%68%65%6c%6c%6f" => "hello",
-                            _ => str ?? "",
-                        },
+                            _ => str ?? ""
+                        }
                 }
             )
             .Should()

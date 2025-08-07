@@ -239,7 +239,7 @@ public sealed class DecodeOptions
             ParseLists = parseLists ?? ParseLists,
             StrictDepth = strictDepth ?? StrictDepth,
             StrictNullHandling = strictNullHandling ?? StrictNullHandling,
-            ThrowOnLimitExceeded = throwOnLimitExceeded ?? ThrowOnLimitExceeded,
+            ThrowOnLimitExceeded = throwOnLimitExceeded ?? ThrowOnLimitExceeded
         };
     }
 }
