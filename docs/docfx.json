@@ -10,7 +10,7 @@
           ],
           "exclude": [
             "**/QsNet.Tests/**"
-          ],
+          ]
         }
       ],
       "dest": "api"

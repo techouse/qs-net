@@ -31,7 +31,8 @@ jobs:
         if: steps.docfx-cache.outputs.cache-hit != 'true'
         run: dotnet tool install -g docfx
       - name: Build documentation site
-        run: docfx docs/docfx.json
+        working-directory: docs
+        run: docfx docfx.json
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
