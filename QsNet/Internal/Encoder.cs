@@ -151,7 +151,7 @@ internal static class Encoder
                 list = list.Select(el =>
                         el is null ? "" : encoder(el.ToString(), null, null) as object
                     )
-                    .ToList();
+                    .ToList<object?>();
 
             if (list.Count != 0)
             {
@@ -214,7 +214,7 @@ internal static class Encoder
                 switch (obj)
                 {
                     case IDictionary map:
-                        if (map.Contains(key))
+                        if (key is not null && map.Contains(key))
                         {
                             value = map[key];
                         }
@@ -223,70 +223,69 @@ internal static class Encoder
                             value = null;
                             valueUndefined = true;
                         }
-
                         break;
 
                     case Array arr:
+                    {
+                        var idx = key as int? ?? (key is IConvertible c ? c.ToInt32(null) : -1);
+                        if (idx >= 0 && idx < arr.Length)
                         {
-                            var idx = key as int? ?? (key is IConvertible c ? c.ToInt32(null) : -1);
-                            if (idx >= 0 && idx < arr.Length)
-                            {
-                                value = arr.GetValue(idx);
-                            }
-                            else
-                            {
-                                value = null;
-                                valueUndefined = true;
-                            }
-
-                            break;
+                            value = arr.GetValue(idx);
                         }
+                        else
+                        {
+                            value = null;
+                            valueUndefined = true;
+                        }
+
+                        break;
+                    }
 
                     case IList list:
+                    {
+                        var idx = key switch
                         {
-                            var idx = key switch
-                            {
-                                int j => j,
-                                IConvertible when int.TryParse(key.ToString(), out var parsed) =>
-                                    parsed,
-                                _ => -1,
-                            };
-                            if (idx >= 0 && idx < list.Count)
-                            {
-                                value = list[idx];
-                            }
-                            else
-                            {
-                                value = null;
-                                valueUndefined = true;
-                            }
-
-                            break;
+                            int j => j,
+                            IConvertible when int.TryParse(key.ToString(), out var parsed) =>
+                                parsed,
+                            _ => -1,
+                        };
+                        if (idx >= 0 && idx < list.Count)
+                        {
+                            value = list[idx];
                         }
+                        else
+                        {
+                            value = null;
+                            valueUndefined = true;
+                        }
+
+                        break;
+                    }
 
                     case IEnumerable ie
                     and not string:
+                    {
+                        var idx = key switch
                         {
-                            var idx = key switch
-                            {
-                                int j => j,
-                                IConvertible when int.TryParse(key.ToString(), out var parsed) =>
-                                    parsed,
-                                _ => -1,
-                            };
-                            var list2 = ie.Cast<object?>().ToList();
-                            if (idx >= 0 && idx < list2.Count)
-                            {
-                                value = list2[idx];
-                            }
-                            else
-                            {
-                                value = null;
-                                valueUndefined = true;
-                            }
-
-                            break;
+                            int j => j,
+                            IConvertible when int.TryParse(key.ToString(), out var parsed) =>
+                                parsed,
+                            _ => -1,
+                        };
+                        var list2 = ie.Cast<object?>().ToList();
+                        if (idx >= 0 && idx < list2.Count)
+                        {
+                            value = list2[idx];
                         }
+                        else
+                        {
+                            value = null;
+                            valueUndefined = true;
+                        }
+
+                        break;
+                    }
 
                     default:
                         value = null;
