@@ -1,8 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
+# 
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsNet", "QsNet\QsNet.csproj", "{0F3091A6-1EDA-4695-AE1F-C43A3CF59247}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsNet.Tests", "QsNet.Tests\QsNet.Tests.csproj", "{6497BC43-C7B6-4AF2-9E93-4A4BA3F37DCD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsNet.Comparison", "QsNet.Comparison\QsNet.Comparison.csproj", "{C16E57F3-2A36-4284-A4C8-C5B17E1B4A5D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -18,5 +21,9 @@ Global
 		{6497BC43-C7B6-4AF2-9E93-4A4BA3F37DCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6497BC43-C7B6-4AF2-9E93-4A4BA3F37DCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6497BC43-C7B6-4AF2-9E93-4A4BA3F37DCD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C16E57F3-2A36-4284-A4C8-C5B17E1B4A5D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C16E57F3-2A36-4284-A4C8-C5B17E1B4A5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C16E57F3-2A36-4284-A4C8-C5B17E1B4A5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C16E57F3-2A36-4284-A4C8-C5B17E1B4A5D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
