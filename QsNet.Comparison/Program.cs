@@ -85,20 +85,20 @@ internal abstract class Program
                 return e.GetBoolean();
 
             case STJ.JsonValueKind.Array:
-            {
-                var list = new List<object?>();
-                foreach (var item in e.EnumerateArray())
-                    list.Add(FromJsonElement(item));
-                return list;
-            }
+                {
+                    var list = new List<object?>();
+                    foreach (var item in e.EnumerateArray())
+                        list.Add(FromJsonElement(item));
+                    return list;
+                }
 
             case STJ.JsonValueKind.Object:
-            {
-                var dict = new Dictionary<string, object?>();
-                foreach (var prop in e.EnumerateObject())
-                    dict[prop.Name] = FromJsonElement(prop.Value);
-                return dict;
-            }
+                {
+                    var dict = new Dictionary<string, object?>();
+                    foreach (var prop in e.EnumerateObject())
+                        dict[prop.Name] = FromJsonElement(prop.Value);
+                    return dict;
+                }
 
             default:
                 return e.GetRawText();
