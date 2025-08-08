@@ -87,10 +87,55 @@ jobs:
           if-no-files-found: error
           overwrite: true
           retention-days: 7
+  ensure_compatibility:
+    name: Ensure compatibility with qs (JS vs C#)
+    needs: lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Install JS dependencies
+        run: npm install
+        working-directory: QsNet.Comparison/js
+      - name: Run C# comparison
+        run: dotnet run --project QsNet.Comparison -c Release > cs.out
+      - name: Run Node comparison
+        run: node QsNet.Comparison/js/qs.js > node.out
+      - name: Show first lines (debug)
+        if: ${{ always() }}
+        run: |
+          echo "=== C# (first 80 lines) ==="
+          head -n 80 cs.out || true
+          echo "=== Node (first 80 lines) ==="
+          head -n 80 node.out || true
+      - name: Diff outputs
+        run: |
+          set -eo pipefail
+          diff -u node.out cs.out > diff.out || (echo "::error::Differences found between Node and C# outputs. See artifact diff.out"; exit 1)
+      - name: Upload diff artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparison-diff
+          path: |
+            node.out
+            cs.out
+            diff.out
   coverage:
     name: Coverage (merged)
     runs-on: ubuntu-latest
-    needs: test
+    needs: 
+      - test
+      - ensure_compatibility
     steps:
       - uses: actions/checkout@v4
       - name: Setup .NET 8 SDK
