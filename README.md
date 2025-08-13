@@ -58,11 +58,11 @@ dotnet add package QsNet
 using QsNet;
 
 // Decode
-var obj = Qs.Decode("foo[bar]=baz&foo[list][]=a&foo[list][]=b");
+Dictionary<string, object?> obj = Qs.Decode("foo[bar]=baz&foo[list][]=a&foo[list][]=b");
 // -> { "foo": { "bar": "baz", "list": ["a", "b"] } }
 
 // Encode
-var qs = Qs.Encode(new Dictionary<string, object?> 
+string qs = Qs.Encode(new Dictionary<string, object?> 
 { 
     ["foo"] = new Dictionary<string, object?> { ["bar"] = "baz" } 
 });
@@ -77,11 +77,11 @@ var qs = Qs.Encode(new Dictionary<string, object?>
 
 ```csharp
 // Decode
-var decoded = Qs.Decode("a=c");
+Dictionary<string, object?> decoded = Qs.Decode("a=c");
 // => { "a": "c" }
 
 // Encode
-var encoded = Qs.Encode(new Dictionary<string, object?> { ["a"] = "c" });
+string encoded = Qs.Encode(new Dictionary<string, object?> { ["a"] = "c" });
 // => "a=c"
 ```
 
