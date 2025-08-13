@@ -365,7 +365,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [100] = "b" }
+                    ["a"] = new Dictionary<object, object?> { ["100"] = "b" }
                 }
             );
     }
@@ -379,7 +379,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [1] = "b" }
+                    ["a"] = new Dictionary<object, object?> { ["1"] = "b" }
                 }
             );
     }
@@ -393,7 +393,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [0] = "b" }
+                    ["a"] = new Dictionary<object, object?> { ["0"] = "b" }
                 }
             );
     }
@@ -407,7 +407,7 @@ public class ExampleTests
             .BeEquivalentTo(
                 new Dictionary<object, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [0] = "b", ["b"] = "c" }
+                    ["a"] = new Dictionary<object, object?> { ["0"] = "b", ["b"] = "c" }
                 }
             );
     }

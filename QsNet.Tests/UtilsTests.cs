@@ -512,9 +512,9 @@ public class UtilsTests
     [Fact]
     public void Merge_MapWithList()
     {
-        var target = new Dictionary<object, object?> { { 0, "a" } };
+        var target = new Dictionary<object, object?> { { "0", "a" } };
         var source = new List<object?> { Undefined.Create(), "b" };
-        var expected = new Dictionary<object, object?> { { 0, "a" }, { 1, "b" } };
+        var expected = new Dictionary<object, object?> { { "0", "a" }, { "1", "b" } };
 
         Utils.Merge(target, source).Should().BeEquivalentTo(expected);
     }
@@ -763,9 +763,9 @@ public class UtilsTests
                 "foo",
                 new Dictionary<object, object?>
                 {
-                    { 0, "bar" },
+                    { "0", "bar" },
                     {
-                        1,
+                        "1",
                         new Dictionary<string, object?> { { "first", "123" } }
                     },
                     { "second", "456" }
@@ -1020,7 +1020,7 @@ public class UtilsTests
         {
             {
                 "foo",
-                new Dictionary<object, object?> { { 0, "bar" }, { "baz", "xyzzy" } }
+                new Dictionary<object, object?> { { "0", "bar" }, { "baz", "xyzzy" } }
             }
         };
 
@@ -1054,7 +1054,7 @@ public class UtilsTests
         {
             {
                 "foo",
-                new Dictionary<object, object?> { { "bar", "baz" }, { 0, "xyzzy" } }
+                new Dictionary<object, object?> { { "bar", "baz" }, { "0", "xyzzy" } }
             }
         };
 
@@ -1518,9 +1518,9 @@ public class UtilsTests
                 "foo",
                 new Dictionary<object, object?>
                 {
-                    { 0, "bar" },
+                    { "0", "bar" },
                     {
-                        1,
+                        "1",
                         new Dictionary<string, object?> { { "first", "123" } }
                     },
                     { "second", "456" }

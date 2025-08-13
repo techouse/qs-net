@@ -134,9 +134,8 @@ internal static partial class Decoder
             {
                 key = options.GetDecoder(part[..pos], charset)?.ToString() ?? string.Empty;
                 var currentLength =
-                    obj.TryGetValue(key, out var val) && val is IList<object?> list
-                        ? list.Count
-                        : 0;
+                    obj.TryGetValue(key, out var val) && val is IList<object?> list ? list.Count : 0;
+
                 value = Utils.Apply<object?>(
                     ParseListValue(part[(pos + 1)..], options, currentLength),
                     v => options.GetDecoder(v?.ToString(), charset)
@@ -206,14 +205,13 @@ internal static partial class Decoder
 
         if (leaf is IDictionary id and not Dictionary<object, object?>)
         {
-            // Preserve identity for self-referencing maps (and avoid an
-            // unnecessary copy when the caller doesn’t care about key type).
+            // Preserve identity for self-referencing maps
             var selfRef =
                 id is Dictionary<string, object?> strDict
                 && strDict.Keys.Any(k => ReferenceEquals(strDict[k], strDict));
 
             if (!selfRef)
-                leaf = Utils.ToObjectKeyedDictionary(id); // only when safe
+                leaf = Utils.ToObjectKeyedDictionary(id);
         }
 
         for (var i = chain.Count - 1; i >= 0; i--)
@@ -239,21 +237,24 @@ internal static partial class Decoder
                     ? cleanRoot.Replace("%2E", ".")
                     : cleanRoot;
 
-                // Was this segment a *bracketed* numeric like "[1]"?
+                // Bracketed numeric like "[1]"?
                 var isPureNumeric =
                     int.TryParse(decodedRoot, out var idx) && !string.IsNullOrEmpty(decodedRoot);
                 var isBracketedNumeric =
                     isPureNumeric && root != decodedRoot && idx.ToString() == decodedRoot;
 
-                if (!options.ParseLists && decodedRoot == "")
-                    // "[]" when arrays are disabled → treat as object with key 0
-                    obj = new Dictionary<object, object?> { [0] = leaf };
+                if (!options.ParseLists || options.ListLimit < 0)
+                {
+                    var keyForMap = decodedRoot == "" ? "0" : decodedRoot;
+                    obj = new Dictionary<object, object?> { [keyForMap] = leaf };
+                }
                 else
+                {
                     switch (isBracketedNumeric)
                     {
-                        case true when options.ParseLists && idx >= 0 && idx <= options.ListLimit:
+                        case true when idx >= 0 && idx <= options.ListLimit:
                             {
-                                // Within list limit → build a list up to idx
+                                // Build a list up to idx (0 is allowed when ListLimit == 0)
                                 var list = new List<object?>();
                                 for (var j = 0; j <= idx; j++)
                                     list.Add(j == idx ? leaf : Undefined.Instance);
@@ -261,15 +262,15 @@ internal static partial class Decoder
                                 break;
                             }
                         case true:
-                            // Bracketed numeric but *not* a list (limit 0/too small or arrays disabled) → object-keyed map
-                            obj = new Dictionary<object, object?> { [idx] = leaf };
+                            // Not a list (e.g., idx > ListLimit) → map with the string key (e.g., "2", "99999999")
+                            obj = new Dictionary<object, object?> { [decodedRoot] = leaf };
                             break;
                         default:
-                            // Pure digits? use int key; otherwise keep string
-                            object dictKey = isPureNumeric ? idx : decodedRoot;
-                            obj = new Dictionary<object, object?> { [dictKey] = leaf };
+                            // Non-numeric or non-bracketed → map with string key
+                            obj = new Dictionary<object, object?> { [decodedRoot] = leaf };
                             break;
                     }
+                }
             }
 
             leaf = obj;
@@ -350,8 +351,7 @@ internal static partial class Decoder
             open = key.IndexOf('[', close + 1);
         }
 
-        if (open < 0)
-            return segments;
+        if (open < 0) return segments;
         // When depth > 0, strictDepth can apply to the remainder.
         if (strictDepth)
             throw new IndexOutOfRangeException(

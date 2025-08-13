@@ -142,7 +142,7 @@ internal static partial class Utils
                                     foreach (var item in srcIter)
                                     {
                                         if (item is not Undefined)
-                                            mutable[i] = item;
+                                            mutable[i.ToString()] = item;
                                         i++;
                                     }
 
@@ -185,7 +185,7 @@ internal static partial class Utils
                     foreach (var v in tenum)
                     {
                         if (v is not Undefined)
-                            dict[i] = v;
+                            dict[i.ToString()] = v;
                         i++;
                     }
 
@@ -201,7 +201,7 @@ internal static partial class Utils
                     var list = new List<object?>
                 {
                     target,
-                    ToStringKeyedDictionary((IDictionary)source)
+                    ToObjectKeyedDictionary((IDictionary)source)
                 };
                     return list;
                 }
