@@ -26,7 +26,7 @@ public static class Qs
     /// <returns>The decoded Dictionary</returns>
     /// <exception cref="ArgumentException">If the input is not a string or Dictionary</exception>
     /// <exception cref="IndexOutOfRangeException">If limits are exceeded and ThrowOnLimitExceeded is true</exception>
-    public static Dictionary<object, object?> Decode(object? input, DecodeOptions? options = null)
+    public static Dictionary<string, object?> Decode(object? input, DecodeOptions? options = null)
     {
         var opts = options ?? new DecodeOptions();
 
@@ -34,7 +34,7 @@ public static class Qs
             throw new ArgumentException("The input must be a String or a Map<String, Any?>");
 
         if (input is null or string { Length: 0 } or IDictionary { Count: 0 })
-            return new Dictionary<object, object?>();
+            return new Dictionary<string, object?>();
 
         // parse the raw pairs (string-keyed)
         var tempObj = input switch
@@ -55,10 +55,11 @@ public static class Qs
         if (opts is { ParseLists: true, ListLimit: > 0 } && (tempObj?.Count ?? 0) > opts.ListLimit)
             finalOptions = opts.CopyWith(parseLists: false);
 
+        // keep internal work in object-keyed maps
         var obj = new Dictionary<object, object?>();
 
         if (tempObj is not { Count: > 0 })
-            return Utils.Compact(obj, opts.AllowSparseLists); // overload below
+            return new Dictionary<string, object?>();
 
         foreach (var (key, value) in tempObj)
         {
@@ -82,7 +83,9 @@ public static class Qs
             };
         }
 
-        return Utils.Compact(obj, opts.AllowSparseLists);
+        // compact (still object-keyed), then convert the whole tree to string-keyed
+        var compacted = Utils.Compact(obj, opts.AllowSparseLists);
+        return Utils.ToStringKeyDeepNonRecursive(compacted);
     }
 
     /// <summary>

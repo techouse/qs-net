@@ -96,7 +96,7 @@ public class DecodeTest
     [Fact]
     public void Decode_ParsesSimpleString()
     {
-        Qs.Decode("0=foo").Should().BeEquivalentTo(new Dictionary<object, object?> { ["0"] = "foo" });
+        Qs.Decode("0=foo").Should().BeEquivalentTo(new Dictionary<string, object?> { ["0"] = "foo" });
 
         Qs.Decode("foo=c++")
             .Should()
@@ -818,7 +818,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["1"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["1"] = "c" }
                 }
             );
 
@@ -831,7 +831,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["0"] = "b", ["2"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b", ["2"] = "c" }
                 }
             );
 
@@ -849,7 +849,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["1"] = "b", ["15"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["1"] = "b", ["15"] = "c" }
                 }
             );
 
@@ -875,7 +875,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["21"] = "a" }
+                    ["a"] = new Dictionary<string, object?> { ["21"] = "a" }
                 }
             );
 
@@ -888,7 +888,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["21"] = "a" }
+                    ["a"] = new Dictionary<string, object?> { ["21"] = "a" }
                 }
             );
     }
@@ -964,7 +964,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["0"] = "bar", ["bad"] = "baz" }
+                    ["foo"] = new Dictionary<string, object?> { ["0"] = "bar", ["bad"] = "baz" }
                 }
             );
 
@@ -973,7 +973,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", ["0"] = "bar" }
+                    ["foo"] = new Dictionary<string, object?> { ["bad"] = "baz", ["0"] = "bar" }
                 }
             );
 
@@ -982,7 +982,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", ["0"] = "bar" }
+                    ["foo"] = new Dictionary<string, object?> { ["bad"] = "baz", ["0"] = "bar" }
                 }
             );
 
@@ -991,7 +991,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["0"] = "bar", ["bad"] = "baz" }
+                    ["foo"] = new Dictionary<string, object?> { ["0"] = "bar", ["bad"] = "baz" }
                 }
             );
 
@@ -1000,7 +1000,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?>
+                    ["foo"] = new Dictionary<string, object?>
                     {
                         ["bad"] = "baz",
                         ["0"] = "bar",
@@ -1108,7 +1108,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", ["0"] = "bar" }
+                    ["foo"] = new Dictionary<string, object?> { ["bad"] = "baz", ["0"] = "bar" }
                 }
             );
 
@@ -1117,7 +1117,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", ["0"] = "bar" }
+                    ["foo"] = new Dictionary<string, object?> { ["bad"] = "baz", ["0"] = "bar" }
                 }
             );
 
@@ -1126,7 +1126,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["0"] = "bar", ["bad"] = "baz" }
+                    ["foo"] = new Dictionary<string, object?> { ["0"] = "bar", ["bad"] = "baz" }
                 }
             );
 
@@ -1135,7 +1135,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?>
+                    ["foo"] = new Dictionary<string, object?>
                     {
                         ["bad"] = "baz",
                         ["0"] = "bar",
@@ -1169,7 +1169,7 @@ public class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["2"] = "b", ["99999999"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["2"] = "b", ["99999999"] = "c" }
                 }
             );
     }
@@ -1411,15 +1411,15 @@ public class DecodeTest
     {
         Qs.Decode("[]=&a=b")
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["0"] = "", ["a"] = "b" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["0"] = "", ["a"] = "b" });
 
         Qs.Decode("[]&a=b", new DecodeOptions { StrictNullHandling = true })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["0"] = null, ["a"] = "b" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["0"] = null, ["a"] = "b" });
 
         Qs.Decode("[foo]=bar")
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "bar" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "bar" });
     }
 
     [Fact]
@@ -1441,7 +1441,7 @@ public class DecodeTest
     {
         Qs.Decode("a=b;c=d", new DecodeOptions { Delimiter = new StringDelimiter(";") })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = "b", ["c"] = "d" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "b", ["c"] = "d" });
     }
 
     [Fact]
@@ -1449,7 +1449,7 @@ public class DecodeTest
     {
         Qs.Decode("a=b; c=d", new DecodeOptions { Delimiter = new RegexDelimiter(@"[;,] *") })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = "b", ["c"] = "d" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "b", ["c"] = "d" });
     }
 
     [Fact]
@@ -1457,7 +1457,7 @@ public class DecodeTest
     {
         Qs.Decode("a=b&c=d", new DecodeOptions { ParameterLimit = 1 })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = "b" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "b" });
     }
 
     [Fact]
@@ -1465,7 +1465,7 @@ public class DecodeTest
     {
         Qs.Decode("a=b&c=d", new DecodeOptions { ParameterLimit = int.MaxValue })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = "b", ["c"] = "d" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "b", ["c"] = "d" });
     }
 
     [Fact]
@@ -1474,49 +1474,49 @@ public class DecodeTest
         Qs.Decode("a[0]=b", new DecodeOptions { ListLimit = -1 })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["0"] = "b" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b" }
                 }
             );
 
         Qs.Decode("a[0]=b", new DecodeOptions { ListLimit = 0 })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = new List<object?> { "b" } });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "b" } });
 
         Qs.Decode("a[-1]=b", new DecodeOptions { ListLimit = -1 })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["-1"] = "b" }
+                    ["a"] = new Dictionary<string, object?> { ["-1"] = "b" }
                 }
             );
 
         Qs.Decode("a[-1]=b", new DecodeOptions { ListLimit = 0 })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["-1"] = "b" }
+                    ["a"] = new Dictionary<string, object?> { ["-1"] = "b" }
                 }
             );
 
         Qs.Decode("a[0]=b&a[1]=c", new DecodeOptions { ListLimit = -1 })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["0"] = "b", ["1"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b", ["1"] = "c" }
                 }
             );
 
         Qs.Decode("a[0]=b&a[1]=c", new DecodeOptions { ListLimit = 0 })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["0"] = "b", ["1"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b", ["1"] = "c" }
                 }
             );
     }
@@ -1527,18 +1527,18 @@ public class DecodeTest
         Qs.Decode("a[0]=b&a[1]=c", new DecodeOptions { ParseLists = false })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["0"] = "b", ["1"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b", ["1"] = "c" }
                 }
             );
 
         Qs.Decode("a[]=b", new DecodeOptions { ParseLists = false })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["0"] = "b" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b" }
                 }
             );
     }
@@ -1548,15 +1548,15 @@ public class DecodeTest
     {
         Qs.Decode("?foo=bar", new DecodeOptions { IgnoreQueryPrefix = true })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "bar" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "bar" });
 
         Qs.Decode("foo=bar", new DecodeOptions { IgnoreQueryPrefix = true })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "bar" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "bar" });
 
         Qs.Decode("?foo=bar", new DecodeOptions { IgnoreQueryPrefix = false })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["?foo"] = "bar" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["?foo"] = "bar" });
     }
 
     [Fact]
@@ -1568,11 +1568,11 @@ public class DecodeTest
             ["user[email]"] = null
         };
 
-        var expected = new Dictionary<object, object?>
+        var expected = new Dictionary<string, object?>
         {
-            ["user"] = new Dictionary<object, object?>
+            ["user"] = new Dictionary<string, object?>
             {
-                ["name"] = new Dictionary<object, object?> { ["pop[bob]"] = 3 },
+                ["name"] = new Dictionary<string, object?> { ["pop[bob]"] = 3 },
                 ["email"] = null
             }
         };
@@ -1586,7 +1586,7 @@ public class DecodeTest
         Qs.Decode("foo=bar,tee", new DecodeOptions { Comma = true })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?> { "bar", "tee" }
                 }
@@ -1595,9 +1595,9 @@ public class DecodeTest
         Qs.Decode("foo[bar]=coffee,tee", new DecodeOptions { Comma = true })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?>
+                    ["foo"] = new Dictionary<string, object?>
                     {
                         ["bar"] = new List<object?> { "coffee", "tee" }
                     }
@@ -1606,32 +1606,32 @@ public class DecodeTest
 
         Qs.Decode("foo=", new DecodeOptions { Comma = true })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "" });
 
         Qs.Decode("foo", new DecodeOptions { Comma = true })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "" });
 
         Qs.Decode("foo", new DecodeOptions { Comma = true, StrictNullHandling = true })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = null });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = null });
 
         Qs.Decode("a[0]=c")
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = new List<object?> { "c" } });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "c" } });
 
         Qs.Decode("a[]=c")
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = new List<object?> { "c" } });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "c" } });
 
         Qs.Decode("a[]=c", new DecodeOptions { Comma = true })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = new List<object?> { "c" } });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "c" } });
 
         Qs.Decode("a[0]=c&a[1]=d")
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "c", "d" }
                 }
@@ -1640,7 +1640,7 @@ public class DecodeTest
         Qs.Decode("a[]=c&a[]=d")
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "c", "d" }
                 }
@@ -1649,7 +1649,7 @@ public class DecodeTest
         Qs.Decode("a=c,d", new DecodeOptions { Comma = true })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "c", "d" }
                 }
@@ -1662,13 +1662,13 @@ public class DecodeTest
         var input1 = new Dictionary<string, object?> { ["foo"] = "bar,tee" };
         Qs.Decode(input1, new DecodeOptions { Comma = false })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "bar,tee" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "bar,tee" });
 
         var input2 = new Dictionary<string, object?> { ["foo"] = "bar,tee" };
         Qs.Decode(input2, new DecodeOptions { Comma = true })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?> { "bar", "tee" }
                 }
@@ -1690,11 +1690,11 @@ public class DecodeTest
         // For now, testing with default decoder
         Qs.Decode("foo=1", new DecodeOptions { Comma = true })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "1" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "1" });
 
         Qs.Decode("foo=0", new DecodeOptions { Comma = true })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "0" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "0" });
     }
 
     [Fact]
@@ -1703,7 +1703,7 @@ public class DecodeTest
         Qs.Decode("foo[]=1,2,3&foo[]=4,5,6", new DecodeOptions { Comma = true })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?>
                     {
@@ -1716,7 +1716,7 @@ public class DecodeTest
         Qs.Decode("foo[]=1,2,3&foo[]=", new DecodeOptions { Comma = true })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?>
                     {
@@ -1729,7 +1729,7 @@ public class DecodeTest
         Qs.Decode("foo[]=1,2,3&foo[]=,", new DecodeOptions { Comma = true })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?>
                     {
@@ -1742,7 +1742,7 @@ public class DecodeTest
         Qs.Decode("foo[]=1,2,3&foo[]=a", new DecodeOptions { Comma = true })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?>
                     {
@@ -1758,12 +1758,12 @@ public class DecodeTest
     {
         Qs.Decode("foo=a%2Cb", new DecodeOptions { Comma = true })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "a,b" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "a,b" });
 
         Qs.Decode("foo=a%2C%20b,d", new DecodeOptions { Comma = true })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?> { "a, b", "d" }
                 }
@@ -1772,7 +1772,7 @@ public class DecodeTest
         Qs.Decode("foo=a%2C%20b,c%2C%20d", new DecodeOptions { Comma = true })
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?> { "a, b", "c, d" }
                 }
@@ -1788,11 +1788,11 @@ public class DecodeTest
             ["user.email."] = null
         };
 
-        var expected = new Dictionary<object, object?>
+        var expected = new Dictionary<string, object?>
         {
-            ["user"] = new Dictionary<object, object?>
+            ["user"] = new Dictionary<string, object?>
             {
-                ["name"] = new Dictionary<object, object?> { ["pop[bob]"] = 3 },
+                ["name"] = new Dictionary<string, object?> { ["pop[bob]"] = 3 },
                 ["email"] = null
             }
         };
@@ -1812,13 +1812,13 @@ public class DecodeTest
             ["user[email]"] = null
         };
 
-        var expected = new Dictionary<object, object?>
+        var expected = new Dictionary<string, object?>
         {
-            ["user"] = new Dictionary<object, object?>
+            ["user"] = new Dictionary<string, object?>
             {
-                ["name"] = new Dictionary<object, object?>
+                ["name"] = new Dictionary<string, object?>
                 {
-                    ["pop[bob]"] = new Dictionary<object, object?> { ["test"] = 3 }
+                    ["pop[bob]"] = new Dictionary<string, object?> { ["test"] = 3 }
                 },
                 ["email"] = null
             }
@@ -1834,7 +1834,7 @@ public class DecodeTest
         var a = new Dictionary<string, object?>();
         a["b"] = a;
 
-        Dictionary<object, object?> parsed = null!;
+        Dictionary<string, object?> parsed = null!;
 
         var action = () =>
         {
@@ -1846,7 +1846,7 @@ public class DecodeTest
 
         parsed.Should().ContainKey("foo");
 
-        var fooValue = parsed["foo"].Should().BeOfType<Dictionary<object, object?>>().Subject;
+        var fooValue = parsed["foo"].Should().BeOfType<Dictionary<string, object?>>().Subject;
         fooValue.Should().ContainKey("bar");
         fooValue.Should().ContainKey("baz");
         fooValue["bar"].Should().Be("baz");
@@ -1864,7 +1864,7 @@ public class DecodeTest
 
         str.Append("=bar");
 
-        Dictionary<object, object?> parsed = null!;
+        Dictionary<string, object?> parsed = null!;
 
         var action = void () =>
             parsed = Qs.Decode(str.ToString(), new DecodeOptions { Depth = depth });
@@ -1875,7 +1875,7 @@ public class DecodeTest
 
         var actualDepth = 0;
         var reference = parsed["foo"];
-        while (reference is Dictionary<object, object?> dict && dict.ContainsKey("p"))
+        while (reference is Dictionary<string, object?> dict && dict.ContainsKey("p"))
         {
             reference = dict["p"];
             actualDepth++;
@@ -1888,10 +1888,10 @@ public class DecodeTest
     public void Decode_ParsesNullMapsCorrectly()
     {
         var a = new Dictionary<string, object?> { ["b"] = "c" };
-        Qs.Decode(a).Should().BeEquivalentTo(new Dictionary<object, object?> { ["b"] = "c" });
+        Qs.Decode(a).Should().BeEquivalentTo(new Dictionary<string, object?> { ["b"] = "c" });
         Qs.Decode(new Dictionary<string, object?> { ["a"] = a })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = a });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = a });
     }
 
     [Fact]
@@ -1900,7 +1900,7 @@ public class DecodeTest
         var now = DateTime.Now;
         Qs.Decode(new Dictionary<string, object?> { ["a"] = now })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = now });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = now });
     }
 
     [Fact]
@@ -1909,7 +1909,7 @@ public class DecodeTest
         var re = new Regex("^test$");
         Qs.Decode(new Dictionary<string, object?> { ["a"] = re })
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = re });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = re });
     }
 
     [Fact]
@@ -1917,13 +1917,13 @@ public class DecodeTest
     {
         Qs.Decode("]=toString")
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["]"] = "toString" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["]"] = "toString" });
         Qs.Decode("]]=toString")
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["]]"] = "toString" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["]]"] = "toString" });
         Qs.Decode("]hello]=toString")
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["]hello]"] = "toString" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["]hello]"] = "toString" });
     }
 
     [Fact]
@@ -1931,13 +1931,13 @@ public class DecodeTest
     {
         Qs.Decode("[=toString")
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["["] = "toString" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["["] = "toString" });
         Qs.Decode("[[=toString")
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["[["] = "toString" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["[["] = "toString" });
         Qs.Decode("[hello[=toString")
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["[hello["] = "toString" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["[hello["] = "toString" });
     }
 
     [Fact]
@@ -1946,9 +1946,9 @@ public class DecodeTest
         Qs.Decode("a[b]=c")
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
                 }
             );
     }
@@ -1956,23 +1956,23 @@ public class DecodeTest
     [Fact]
     public void Decode_CanReturnNullMaps()
     {
-        var expected = new Dictionary<object, object?>
+        var expected = new Dictionary<string, object?>
         {
-            ["a"] = new Dictionary<object, object?>()
+            ["a"] = new Dictionary<string, object?>()
         };
-        ((Dictionary<object, object?>)expected["a"]!)["b"] = "c";
-        ((Dictionary<object, object?>)expected["a"]!)["hasOwnProperty"] = "d";
+        ((Dictionary<string, object?>)expected["a"]!)["b"] = "c";
+        ((Dictionary<string, object?>)expected["a"]!)["hasOwnProperty"] = "d";
 
         Qs.Decode("a[b]=c&a[hasOwnProperty]=d").Should().BeEquivalentTo(expected);
 
-        Qs.Decode(null).Should().BeEquivalentTo(new Dictionary<object, object?>());
+        Qs.Decode(null).Should().BeEquivalentTo(new Dictionary<string, object?>());
 
-        var expectedList = new Dictionary<object, object?>
+        var expectedList = new Dictionary<string, object?>
         {
-            ["a"] = new Dictionary<object, object?>()
+            ["a"] = new Dictionary<string, object?>()
         };
-        ((Dictionary<object, object?>)expectedList["a"]!)["0"] = "b";
-        ((Dictionary<object, object?>)expectedList["a"]!)["c"] = "d";
+        ((Dictionary<string, object?>)expectedList["a"]!)["0"] = "b";
+        ((Dictionary<string, object?>)expectedList["a"]!)["c"] = "d";
 
         Qs.Decode("a[]=b&a[c]=d").Should().BeEquivalentTo(expectedList);
     }
@@ -1980,7 +1980,7 @@ public class DecodeTest
     [Fact]
     public void Decode_CanParseWithCustomEncoding()
     {
-        var expected = new Dictionary<object, object?> { ["県"] = "大阪府" };
+        var expected = new Dictionary<string, object?> { ["県"] = "大阪府" };
 
         string? CustomDecoder(string? str, Encoding? charset)
         {
@@ -1994,7 +1994,7 @@ public class DecodeTest
     [Fact]
     public void Decode_ParsesIso88591StringIfAsked()
     {
-        var expected = new Dictionary<object, object?> { ["¢"] = "½" };
+        var expected = new Dictionary<string, object?> { ["¢"] = "½" };
         var options = new DecodeOptions { Charset = Encoding.Latin1 };
 
         Qs.Decode("%A2=%BD", options).Should().BeEquivalentTo(expected);
@@ -2025,7 +2025,7 @@ public class DecodeTest
                 options
             )
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["ø"] = "ø" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["ø"] = "ø" });
     }
 
     [Fact]
@@ -2041,7 +2041,7 @@ public class DecodeTest
                 options
             )
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["Ã¸"] = "Ã¸" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["Ã¸"] = "Ã¸" });
     }
 
     [Fact]
@@ -2054,7 +2054,7 @@ public class DecodeTest
 
         Qs.Decode($"a={urlEncodedOSlashInUtf8}&utf8={urlEncodedNumCheckmark}", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = "Ã¸" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "Ã¸" });
     }
 
     [Fact]
@@ -2066,7 +2066,7 @@ public class DecodeTest
 
         Qs.Decode($"utf8=foo&{urlEncodedOSlashInUtf8}={urlEncodedOSlashInUtf8}", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["ø"] = "ø" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["ø"] = "ø" });
     }
 
     [Fact]
@@ -2082,7 +2082,7 @@ public class DecodeTest
                 options
             )
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["ø"] = "ø" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["ø"] = "ø" });
     }
 
     [Fact]
@@ -2098,7 +2098,7 @@ public class DecodeTest
                 options
             )
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["Ã¸"] = "Ã¸" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["Ã¸"] = "Ã¸" });
     }
 
     [Fact]
@@ -2114,7 +2114,7 @@ public class DecodeTest
 
         Qs.Decode($"foo={urlEncodedNumSmiley}", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "☺" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "☺" });
     }
 
     [Fact]
@@ -2136,7 +2136,7 @@ public class DecodeTest
 
         Qs.Decode($"foo=&bar={urlEncodedNumSmiley}", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = null, ["bar"] = "☺" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = null, ["bar"] = "☺" });
     }
 
     [Fact]
@@ -2148,7 +2148,7 @@ public class DecodeTest
 
         Qs.Decode($"foo={urlEncodedNumSmiley}", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "&#9786;" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "&#9786;" });
     }
 
     [Fact]
@@ -2166,7 +2166,7 @@ public class DecodeTest
         Qs.Decode($"b&a[]=1,{urlEncodedNumSmiley}", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["b"] = "",
                     ["a"] = new List<object?> { "1,☺" }
@@ -2187,7 +2187,7 @@ public class DecodeTest
 
         Qs.Decode($"foo={urlEncodedNumSmiley}", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "&#9786;" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "&#9786;" });
     }
 
     [Fact]
@@ -2197,14 +2197,14 @@ public class DecodeTest
 
         Qs.Decode("%u263A=%u263A", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["%u263A"] = "%u263A" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["%u263A"] = "%u263A" });
     }
 
     [Theory]
     [MemberData(nameof(EmptyTestCases))]
     public void Decode_ParsesEmptyKeys_SkipsEmptyStringKey(
         string input,
-        Dictionary<object, object?> noEmptyKeys
+        Dictionary<string, object?> noEmptyKeys
     )
     {
         Qs.Decode(input).Should().BeEquivalentTo(noEmptyKeys);
@@ -2214,11 +2214,11 @@ public class DecodeTest
     {
         // You'll need to define the actual test cases here based on your EmptyTestCases data
         // This is just an example structure
-        yield return new object[] { "=value", new Dictionary<object, object?>() };
+        yield return new object[] { "=value", new Dictionary<string, object?>() };
         yield return new object[]
         {
             "key=",
-            new Dictionary<object, object?> { ["key"] = "" }
+            new Dictionary<string, object?> { ["key"] = "" }
         };
         // Add more test cases as needed
     }
@@ -2229,7 +2229,7 @@ public class DecodeTest
         Qs.Decode("foo=bar&foo=baz")
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?> { "bar", "baz" }
                 }
@@ -2243,7 +2243,7 @@ public class DecodeTest
         Qs.Decode("foo=bar&foo=baz", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?> { "bar", "baz" }
                 }
@@ -2256,7 +2256,7 @@ public class DecodeTest
         var options = new DecodeOptions { Duplicates = Duplicates.First };
         Qs.Decode("foo=bar&foo=baz", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "bar" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "bar" });
     }
 
     [Fact]
@@ -2265,7 +2265,7 @@ public class DecodeTest
         var options = new DecodeOptions { Duplicates = Duplicates.Last };
         Qs.Decode("foo=bar&foo=baz", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "baz" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "baz" });
     }
 
     [Fact]
@@ -2321,9 +2321,9 @@ public class DecodeTest
         Qs.Decode("a[b]=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
                 }
             );
     }
@@ -2336,11 +2336,11 @@ public class DecodeTest
         Qs.Decode("a[b][c][d][e][f][g][h][i]=j", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?>
+                    ["a"] = new Dictionary<string, object?>
                     {
-                        ["b"] = new Dictionary<object, object?> { ["[c][d][e][f][g][h][i]"] = "j" }
+                        ["b"] = new Dictionary<string, object?> { ["[c][d][e][f][g][h][i]"] = "j" }
                     }
                 }
             );
@@ -2354,9 +2354,9 @@ public class DecodeTest
         Qs.Decode("a[b]=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
                 }
             );
     }
@@ -2369,11 +2369,11 @@ public class DecodeTest
         Qs.Decode("a[b][c]=d", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?>
+                    ["a"] = new Dictionary<string, object?>
                     {
-                        ["b"] = new Dictionary<object, object?> { ["c"] = "d" }
+                        ["b"] = new Dictionary<string, object?> { ["c"] = "d" }
                     }
                 }
             );
@@ -2387,7 +2387,7 @@ public class DecodeTest
         Qs.Decode("a=1&b=2&c=3", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = "1",
                     ["b"] = "2",
@@ -2413,7 +2413,7 @@ public class DecodeTest
         Qs.Decode("a=1&b=2&c=3&d=4&e=5", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = "1",
                     ["b"] = "2",
@@ -2430,7 +2430,7 @@ public class DecodeTest
         Qs.Decode("a=1&b=2&c=3&d=4&e=5", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = "1",
                     ["b"] = "2",
@@ -2447,7 +2447,7 @@ public class DecodeTest
         Qs.Decode("a=1&b=2&c=3&d=4&e=5&f=6", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = "1",
                     ["b"] = "2",
@@ -2467,7 +2467,7 @@ public class DecodeTest
         Qs.Decode("a[]=1&a[]=2&a[]=3", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "1", "2", "3" }
                 }
@@ -2491,9 +2491,9 @@ public class DecodeTest
         Qs.Decode("a[1]=1&a[2]=2&a[3]=3&a[4]=4&a[5]=5&a[6]=6", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?>
+                    ["a"] = new Dictionary<string, object?>
                     {
                         ["1"] = "1",
                         ["2"] = "2",
@@ -2514,7 +2514,7 @@ public class DecodeTest
         Qs.Decode("a[]=1&a[]=2", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "1", "2" }
                 }
@@ -2547,83 +2547,83 @@ public class DecodeTest
 
         Qs.Decode("0=foo", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["0"] = "foo" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["0"] = "foo" });
 
         Qs.Decode("foo=c++", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "c  " });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "c  " });
 
         Qs.Decode("a[>=]=23", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [">="] = "23" }
+                    ["a"] = new Dictionary<string, object?> { [">="] = "23" }
                 }
             );
 
         Qs.Decode("a[<=>]==23", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["<=>"] = "=23" }
+                    ["a"] = new Dictionary<string, object?> { ["<=>"] = "=23" }
                 }
             );
 
         Qs.Decode("a[==]=23", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["=="] = "23" }
+                    ["a"] = new Dictionary<string, object?> { ["=="] = "23" }
                 }
             );
 
         Qs.Decode("foo", optionsStrictNullHandling)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = null });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = null });
 
         Qs.Decode("foo", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "" });
 
         Qs.Decode("foo=", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "" });
 
         Qs.Decode("foo=bar", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "bar" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "bar" });
 
         Qs.Decode(" foo = bar = baz ", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { [" foo "] = " bar = baz " });
+            .BeEquivalentTo(new Dictionary<string, object?> { [" foo "] = " bar = baz " });
 
         Qs.Decode("foo=bar=baz", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "bar=baz" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "bar=baz" });
 
         Qs.Decode("foo=bar&bar=baz", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "bar", ["bar"] = "baz" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "bar", ["bar"] = "baz" });
 
         Qs.Decode("foo2=bar2&baz2=", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo2"] = "bar2", ["baz2"] = "" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo2"] = "bar2", ["baz2"] = "" });
 
         Qs.Decode("foo=bar&baz", optionsStrictNullHandling)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "bar", ["baz"] = null });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "bar", ["baz"] = null });
 
         Qs.Decode("foo=bar&baz", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "bar", ["baz"] = "" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "bar", ["baz"] = "" });
 
         Qs.Decode("cht=p3&chd=t:60,40&chs=250x100&chl=Hello|World", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["cht"] = "p3",
                     ["chd"] = "t:60,40",
@@ -2641,7 +2641,7 @@ public class DecodeTest
         Qs.Decode("a[]=b&a[]=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c" }
                 }
@@ -2650,7 +2650,7 @@ public class DecodeTest
         Qs.Decode("a[0]=b&a[1]=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c" }
                 }
@@ -2658,12 +2658,12 @@ public class DecodeTest
 
         Qs.Decode("a=b,c", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = "b,c" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "b,c" });
 
         Qs.Decode("a=b&a=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c" }
                 }
@@ -2678,14 +2678,14 @@ public class DecodeTest
 
         Qs.Decode("a.b=c", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a.b"] = "c" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a.b"] = "c" });
 
         Qs.Decode("a.b=c", optionsAllowDots)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
                 }
             );
     }
@@ -2700,20 +2700,20 @@ public class DecodeTest
         Qs.Decode("a[b]=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
                 }
             );
 
         Qs.Decode("a[b][c]=d", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?>
+                    ["a"] = new Dictionary<string, object?>
                     {
-                        ["b"] = new Dictionary<object, object?> { ["c"] = "d" }
+                        ["b"] = new Dictionary<string, object?> { ["c"] = "d" }
                     }
                 }
             );
@@ -2721,19 +2721,19 @@ public class DecodeTest
         Qs.Decode("a[b][c][d][e][f][g][h]=i", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?>
+                    ["a"] = new Dictionary<string, object?>
                     {
-                        ["b"] = new Dictionary<object, object?>
+                        ["b"] = new Dictionary<string, object?>
                         {
-                            ["c"] = new Dictionary<object, object?>
+                            ["c"] = new Dictionary<string, object?>
                             {
-                                ["d"] = new Dictionary<object, object?>
+                                ["d"] = new Dictionary<string, object?>
                                 {
-                                    ["e"] = new Dictionary<object, object?>
+                                    ["e"] = new Dictionary<string, object?>
                                     {
-                                        ["f"] = new Dictionary<object, object?>
+                                        ["f"] = new Dictionary<string, object?>
                                         {
                                             ["[g][h]"] = "i"
                                         }
@@ -2748,11 +2748,11 @@ public class DecodeTest
         Qs.Decode("a[b][c]=d", optionsDepth1)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?>
+                    ["a"] = new Dictionary<string, object?>
                     {
-                        ["b"] = new Dictionary<object, object?> { ["[c]"] = "d" }
+                        ["b"] = new Dictionary<string, object?> { ["[c]"] = "d" }
                     }
                 }
             );
@@ -2760,23 +2760,23 @@ public class DecodeTest
         Qs.Decode("a[b][c][d]=e", optionsDepth1)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?>
+                    ["a"] = new Dictionary<string, object?>
                     {
-                        ["b"] = new Dictionary<object, object?> { ["[c][d]"] = "e" }
+                        ["b"] = new Dictionary<string, object?> { ["[c][d]"] = "e" }
                     }
                 }
             );
 
         Qs.Decode("a[0]=b&a[1]=c", optionsDepth0)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a[0]"] = "b", ["a[1]"] = "c" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a[0]"] = "b", ["a[1]"] = "c" });
 
         Qs.Decode("a[0][0]=b&a[0][1]=c&a[1]=d&e=2", optionsDepth0)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a[0][0]"] = "b",
                     ["a[0][1]"] = "c",
@@ -2793,12 +2793,12 @@ public class DecodeTest
 
         Qs.Decode("a[]=b", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = new List<object?> { "b" } });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "b" } });
 
         Qs.Decode("a[]=b&a[]=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c" }
                 }
@@ -2807,7 +2807,7 @@ public class DecodeTest
         Qs.Decode("a[]=b&a[]=c&a[]=d", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c", "d" }
                 }
@@ -2824,7 +2824,7 @@ public class DecodeTest
         Qs.Decode("a=b&a[]=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c" }
                 }
@@ -2833,7 +2833,7 @@ public class DecodeTest
         Qs.Decode("a[]=b&a=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c" }
                 }
@@ -2842,7 +2842,7 @@ public class DecodeTest
         Qs.Decode("a[0]=b&a=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c" }
                 }
@@ -2851,7 +2851,7 @@ public class DecodeTest
         Qs.Decode("a=b&a[0]=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c" }
                 }
@@ -2860,7 +2860,7 @@ public class DecodeTest
         Qs.Decode("a[1]=b&a=c", options20)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c" }
                 }
@@ -2869,7 +2869,7 @@ public class DecodeTest
         Qs.Decode("a[]=b&a=c", options0)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c" }
                 }
@@ -2878,7 +2878,7 @@ public class DecodeTest
         Qs.Decode("a=b&a[1]=c", options20)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c" }
                 }
@@ -2887,7 +2887,7 @@ public class DecodeTest
         Qs.Decode("a=b&a[]=c", options0)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c" }
                 }
@@ -2902,9 +2902,9 @@ public class DecodeTest
         Qs.Decode("a[b][]=c&a[b][]=d", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?>
+                    ["a"] = new Dictionary<string, object?>
                     {
                         ["b"] = new List<object?> { "c", "d" }
                     }
@@ -2914,9 +2914,9 @@ public class DecodeTest
         Qs.Decode("a[>=]=25", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { [">="] = "25" }
+                    ["a"] = new Dictionary<string, object?> { [">="] = "25" }
                 }
             );
     }
@@ -2931,7 +2931,7 @@ public class DecodeTest
         Qs.Decode("a[1]=c&a[0]=b&a[2]=d", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c", "d" }
                 }
@@ -2940,7 +2940,7 @@ public class DecodeTest
         Qs.Decode("a[1]=c&a[0]=b", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "c" }
                 }
@@ -2948,20 +2948,20 @@ public class DecodeTest
 
         Qs.Decode("a[1]=c", options20)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = new List<object?> { "c" } });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "c" } });
 
         Qs.Decode("a[1]=c", options0)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["1"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["1"] = "c" }
                 }
             );
 
         Qs.Decode("a[1]=c", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = new List<object?> { "c" } });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "c" } });
     }
 
     [Fact]
@@ -2972,27 +2972,27 @@ public class DecodeTest
 
         Qs.Decode("a[20]=a", options20)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = new List<object?> { "a" } });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "a" } });
 
         Qs.Decode("a[21]=a", options20)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["21"] = "a" }
+                    ["a"] = new Dictionary<string, object?> { ["21"] = "a" }
                 }
             );
 
         Qs.Decode("a[20]=a", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = new List<object?> { "a" } });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "a" } });
 
         Qs.Decode("a[21]=a", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["21"] = "a" }
+                    ["a"] = new Dictionary<string, object?> { ["21"] = "a" }
                 }
             );
     }
@@ -3005,9 +3005,9 @@ public class DecodeTest
         Qs.Decode("a[12b]=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["12b"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["12b"] = "c" }
                 }
             );
     }
@@ -3019,7 +3019,7 @@ public class DecodeTest
 
         Qs.Decode("he%3Dllo=th%3Dere", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["he=llo"] = "th=ere" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["he=llo"] = "th=ere" });
     }
 
     [Fact]
@@ -3030,18 +3030,18 @@ public class DecodeTest
         Qs.Decode("a[b%20c]=d", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b c"] = "d" }
+                    ["a"] = new Dictionary<string, object?> { ["b c"] = "d" }
                 }
             );
 
         Qs.Decode("a[b]=c%20d", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c d" }
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c d" }
                 }
             );
     }
@@ -3053,11 +3053,11 @@ public class DecodeTest
 
         Qs.Decode("pets=[\"tobi\"]", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["pets"] = "[\"tobi\"]" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["pets"] = "[\"tobi\"]" });
 
         Qs.Decode("operators=[\">=\", \"<=\"]", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["operators"] = "[\">=\", \"<=\"]" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["operators"] = "[\">=\", \"<=\"]" });
     }
 
     [Fact]
@@ -3065,9 +3065,9 @@ public class DecodeTest
     {
         var options = new DecodeOptions();
 
-        Qs.Decode("", options).Should().BeEquivalentTo(new Dictionary<object, object?>());
+        Qs.Decode("", options).Should().BeEquivalentTo(new Dictionary<string, object?>());
 
-        Qs.Decode(null, options).Should().BeEquivalentTo(new Dictionary<object, object?>());
+        Qs.Decode(null, options).Should().BeEquivalentTo(new Dictionary<string, object?>());
     }
 
     [Fact]
@@ -3078,45 +3078,45 @@ public class DecodeTest
         Qs.Decode("foo[0]=bar&foo[bad]=baz", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["0"] = "bar", ["bad"] = "baz" }
+                    ["foo"] = new Dictionary<string, object?> { ["0"] = "bar", ["bad"] = "baz" }
                 }
             );
 
         Qs.Decode("foo[bad]=baz&foo[0]=bar", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", ["0"] = "bar" }
+                    ["foo"] = new Dictionary<string, object?> { ["bad"] = "baz", ["0"] = "bar" }
                 }
             );
 
         Qs.Decode("foo[bad]=baz&foo[]=bar", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", ["0"] = "bar" }
+                    ["foo"] = new Dictionary<string, object?> { ["bad"] = "baz", ["0"] = "bar" }
                 }
             );
 
         Qs.Decode("foo[]=bar&foo[bad]=baz", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["0"] = "bar", ["bad"] = "baz" }
+                    ["foo"] = new Dictionary<string, object?> { ["0"] = "bar", ["bad"] = "baz" }
                 }
             );
 
         Qs.Decode("foo[bad]=baz&foo[]=bar&foo[]=foo", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?>
+                    ["foo"] = new Dictionary<string, object?>
                     {
                         ["bad"] = "baz",
                         ["0"] = "bar",
@@ -3128,12 +3128,12 @@ public class DecodeTest
         Qs.Decode("foo[0][a]=a&foo[0][b]=b&foo[1][a]=aa&foo[1][b]=bb", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?>
                     {
-                        new Dictionary<object, object?> { ["a"] = "a", ["b"] = "b" },
-                        new Dictionary<object, object?> { ["a"] = "aa", ["b"] = "bb" }
+                        new Dictionary<string, object?> { ["a"] = "a", ["b"] = "b" },
+                        new Dictionary<string, object?> { ["a"] = "aa", ["b"] = "bb" }
                     }
                 }
             );
@@ -3147,28 +3147,28 @@ public class DecodeTest
         Qs.Decode("foo[0].baz=bar&fool.bad=baz", optionsAllowDots)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?>
                     {
-                        new Dictionary<object, object?> { ["baz"] = "bar" }
+                        new Dictionary<string, object?> { ["baz"] = "bar" }
                     },
-                    ["fool"] = new Dictionary<object, object?> { ["bad"] = "baz" }
+                    ["fool"] = new Dictionary<string, object?> { ["bad"] = "baz" }
                 }
             );
 
         Qs.Decode("foo[0].baz=bar&fool.bad.boo=baz", optionsAllowDots)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?>
                     {
-                        new Dictionary<object, object?> { ["baz"] = "bar" }
+                        new Dictionary<string, object?> { ["baz"] = "bar" }
                     },
-                    ["fool"] = new Dictionary<object, object?>
+                    ["fool"] = new Dictionary<string, object?>
                     {
-                        ["bad"] = new Dictionary<object, object?> { ["boo"] = "baz" }
+                        ["bad"] = new Dictionary<string, object?> { ["boo"] = "baz" }
                     }
                 }
             );
@@ -3176,24 +3176,24 @@ public class DecodeTest
         Qs.Decode("foo[0][0].baz=bar&fool.bad=baz", optionsAllowDots)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?>
                     {
-                        new List<object?> { new Dictionary<object, object?> { ["baz"] = "bar" } }
+                        new List<object?> { new Dictionary<string, object?> { ["baz"] = "bar" } }
                     },
-                    ["fool"] = new Dictionary<object, object?> { ["bad"] = "baz" }
+                    ["fool"] = new Dictionary<string, object?> { ["bad"] = "baz" }
                 }
             );
 
         Qs.Decode("foo[0].baz[0]=15&foo[0].bar=2", optionsAllowDots)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?>
                     {
-                        new Dictionary<object, object?>
+                        new Dictionary<string, object?>
                         {
                             ["baz"] = new List<object?> { "15" },
                             ["bar"] = "2"
@@ -3205,11 +3205,11 @@ public class DecodeTest
         Qs.Decode("foo[0].baz[0]=15&foo[0].baz[1]=16&foo[0].bar=2", optionsAllowDots)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?>
                     {
-                        new Dictionary<object, object?>
+                        new Dictionary<string, object?>
                         {
                             ["baz"] = new List<object?> { "15", "16" },
                             ["bar"] = "2"
@@ -3221,36 +3221,36 @@ public class DecodeTest
         Qs.Decode("foo.bad=baz&foo[0]=bar", optionsAllowDots)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", ["0"] = "bar" }
+                    ["foo"] = new Dictionary<string, object?> { ["bad"] = "baz", ["0"] = "bar" }
                 }
             );
 
         Qs.Decode("foo.bad=baz&foo[]=bar", optionsAllowDots)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["bad"] = "baz", ["0"] = "bar" }
+                    ["foo"] = new Dictionary<string, object?> { ["bad"] = "baz", ["0"] = "bar" }
                 }
             );
 
         Qs.Decode("foo[]=bar&foo.bad=baz", optionsAllowDots)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?> { ["0"] = "bar", ["bad"] = "baz" }
+                    ["foo"] = new Dictionary<string, object?> { ["0"] = "bar", ["bad"] = "baz" }
                 }
             );
 
         Qs.Decode("foo.bad=baz&foo[]=bar&foo[]=foo", optionsAllowDots)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?>
+                    ["foo"] = new Dictionary<string, object?>
                     {
                         ["bad"] = "baz",
                         ["0"] = "bar",
@@ -3262,12 +3262,12 @@ public class DecodeTest
         Qs.Decode("foo[0].a=a&foo[0].b=b&foo[1].a=aa&foo[1].b=bb", optionsAllowDots)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?>
                     {
-                        new Dictionary<object, object?> { ["a"] = "a", ["b"] = "b" },
-                        new Dictionary<object, object?> { ["a"] = "aa", ["b"] = "bb" }
+                        new Dictionary<string, object?> { ["a"] = "a", ["b"] = "b" },
+                        new Dictionary<string, object?> { ["a"] = "aa", ["b"] = "bb" }
                     }
                 }
             );
@@ -3281,9 +3281,9 @@ public class DecodeTest
         Qs.Decode("a[2]=b&a[99999999]=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["2"] = "b", ["99999999"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["2"] = "b", ["99999999"] = "c" }
                 }
             );
     }
@@ -3296,15 +3296,15 @@ public class DecodeTest
 
         Qs.Decode("{%:%}", optionsStrictNullHandling)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["{%:%}"] = null });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["{%:%}"] = null });
 
         Qs.Decode("{%:%}=", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["{%:%}"] = "" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["{%:%}"] = "" });
 
         Qs.Decode("foo=%:%}", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "%:%}" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "%:%}" });
     }
 
     [Fact]
@@ -3314,7 +3314,7 @@ public class DecodeTest
 
         Qs.Decode("_r=1&", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["_r"] = "1" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["_r"] = "1" });
     }
 
     [Fact]
@@ -3325,18 +3325,18 @@ public class DecodeTest
         Qs.Decode("a[][b]=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { new Dictionary<object, object?> { ["b"] = "c" } }
+                    ["a"] = new List<object?> { new Dictionary<string, object?> { ["b"] = "c" } }
                 }
             );
 
         Qs.Decode("a[0][b]=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { new Dictionary<object, object?> { ["b"] = "c" } }
+                    ["a"] = new List<object?> { new Dictionary<string, object?> { ["b"] = "c" } }
                 }
             );
     }
@@ -3359,7 +3359,7 @@ public class DecodeTest
         Qs.Decode("a[]=b&a[]=&a[]=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "", "c" }
                 }
@@ -3368,7 +3368,7 @@ public class DecodeTest
         Qs.Decode("a[0]=b&a[1]&a[2]=c&a[19]=", optionsStrictNullHandling20)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", null, "c", "" }
                 }
@@ -3377,7 +3377,7 @@ public class DecodeTest
         Qs.Decode("a[]=b&a[]&a[]=c&a[]=", optionsStrictNullHandling0)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", null, "c", "" }
                 }
@@ -3386,7 +3386,7 @@ public class DecodeTest
         Qs.Decode("a[0]=b&a[1]=&a[2]=c&a[19]", optionsStrictNullHandling20)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "", "c", null }
                 }
@@ -3395,7 +3395,7 @@ public class DecodeTest
         Qs.Decode("a[]=b&a[]=&a[]=c&a[]", optionsStrictNullHandling0)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "b", "", "c", null }
                 }
@@ -3404,7 +3404,7 @@ public class DecodeTest
         Qs.Decode("a[]=&a[]=b&a[]=c", optionsStrictNullHandling0)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "", "b", "c" }
                 }
@@ -3419,7 +3419,7 @@ public class DecodeTest
         Qs.Decode("a[10]=1&a[2]=2", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "2", "1" }
                 }
@@ -3428,15 +3428,15 @@ public class DecodeTest
         Qs.Decode("a[1][b][2][c]=1", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?>
                     {
-                        new Dictionary<object, object?>
+                        new Dictionary<string, object?>
                         {
                             ["b"] = new List<object?>
                             {
-                                new Dictionary<object, object?> { ["c"] = "1" }
+                                new Dictionary<string, object?> { ["c"] = "1" }
                             }
                         }
                     }
@@ -3446,13 +3446,13 @@ public class DecodeTest
         Qs.Decode("a[1][2][3][c]=1", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?>
                     {
                         new List<object?>
                         {
-                            new List<object?> { new Dictionary<object, object?> { ["c"] = "1" } }
+                            new List<object?> { new Dictionary<string, object?> { ["c"] = "1" } }
                         }
                     }
                 }
@@ -3461,7 +3461,7 @@ public class DecodeTest
         Qs.Decode("a[1][2][3][c][1]=1", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?>
                     {
@@ -3469,7 +3469,7 @@ public class DecodeTest
                         {
                             new List<object?>
                             {
-                                new Dictionary<object, object?>
+                                new Dictionary<string, object?>
                                 {
                                     ["c"] = new List<object?> { "1" }
                                 }
@@ -3488,7 +3488,7 @@ public class DecodeTest
         Qs.Decode("a[4]=1&a[1]=2", optionsAllowSparse)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { null, "2", null, null, "1" }
                 }
@@ -3497,18 +3497,18 @@ public class DecodeTest
         Qs.Decode("a[1][b][2][c]=1", optionsAllowSparse)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?>
                     {
                         null,
-                        new Dictionary<object, object?>
+                        new Dictionary<string, object?>
                         {
                             ["b"] = new List<object?>
                             {
                                 null,
                                 null,
-                                new Dictionary<object, object?> { ["c"] = "1" }
+                                new Dictionary<string, object?> { ["c"] = "1" }
                             }
                         }
                     }
@@ -3518,7 +3518,7 @@ public class DecodeTest
         Qs.Decode("a[1][2][3][c]=1", optionsAllowSparse)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?>
                     {
@@ -3532,7 +3532,7 @@ public class DecodeTest
                                 null,
                                 null,
                                 null,
-                                new Dictionary<object, object?> { ["c"] = "1" }
+                                new Dictionary<string, object?> { ["c"] = "1" }
                             }
                         }
                     }
@@ -3542,7 +3542,7 @@ public class DecodeTest
         Qs.Decode("a[1][2][3][c][1]=1", optionsAllowSparse)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?>
                     {
@@ -3556,7 +3556,7 @@ public class DecodeTest
                                 null,
                                 null,
                                 null,
-                                new Dictionary<object, object?>
+                                new Dictionary<string, object?>
                                 {
                                     ["c"] = new List<object?> { null, "1" }
                                 }
@@ -3578,7 +3578,7 @@ public class DecodeTest
             )
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["filter"] = new List<object?>
                     {
@@ -3598,15 +3598,15 @@ public class DecodeTest
 
         Qs.Decode("[]=&a=b", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["0"] = "", ["a"] = "b" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["0"] = "", ["a"] = "b" });
 
         Qs.Decode("[]&a=b", optionsStrictNullHandling)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["0"] = null, ["a"] = "b" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["0"] = null, ["a"] = "b" });
 
         Qs.Decode("[foo]=bar", optionsStrictNullHandling)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "bar" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "bar" });
     }
 
     [Fact]
@@ -3630,11 +3630,11 @@ public class DecodeTest
 
         Qs.Decode("a=b;c=d", optionsSemicolon)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = "b", ["c"] = "d" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "b", ["c"] = "d" });
 
         Qs.Decode("a=b; c=d", optionsRegex)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = "b", ["c"] = "d" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "b", ["c"] = "d" });
     }
 
     [Fact]
@@ -3645,11 +3645,11 @@ public class DecodeTest
 
         Qs.Decode("a=b&c=d", options1)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = "b" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "b" });
 
         Qs.Decode("a=b&c=d", optionsMax)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = "b", ["c"] = "d" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "b", ["c"] = "d" });
     }
 
     [Fact]
@@ -3660,27 +3660,27 @@ public class DecodeTest
         Qs.Decode("a[0]=b", optionsNegative)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["0"] = "b" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b" }
                 }
             );
 
         Qs.Decode("a[-1]=b", optionsNegative)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["-1"] = "b" }
+                    ["a"] = new Dictionary<string, object?> { ["-1"] = "b" }
                 }
             );
 
         Qs.Decode("a[0]=b&a[1]=c", optionsNegative)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["0"] = "b", ["1"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b", ["1"] = "c" }
                 }
             );
     }
@@ -3693,18 +3693,18 @@ public class DecodeTest
         Qs.Decode("a[0]=b&a[1]=c", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["0"] = "b", ["1"] = "c" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b", ["1"] = "c" }
                 }
             );
 
         Qs.Decode("a[]=b", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["0"] = "b" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b" }
                 }
             );
     }
@@ -3717,15 +3717,15 @@ public class DecodeTest
 
         Qs.Decode("?foo=bar", optionsIgnorePrefix)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "bar" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "bar" });
 
         Qs.Decode("foo=bar", optionsIgnorePrefix)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "bar" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "bar" });
 
         Qs.Decode("?foo=bar", optionsKeepPrefix)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["?foo"] = "bar" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["?foo"] = "bar" });
     }
 
     [Fact]
@@ -3738,7 +3738,7 @@ public class DecodeTest
         Qs.Decode("foo=bar,tee", commaOptions)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?> { "bar", "tee" }
                 }
@@ -3747,9 +3747,9 @@ public class DecodeTest
         Qs.Decode("foo[bar]=coffee,tee", commaOptions)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["foo"] = new Dictionary<object, object?>
+                    ["foo"] = new Dictionary<string, object?>
                     {
                         ["bar"] = new List<object?> { "coffee", "tee" }
                     }
@@ -3758,32 +3758,32 @@ public class DecodeTest
 
         Qs.Decode("foo=", commaOptions)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "" });
 
         Qs.Decode("foo", commaOptions)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "" });
 
         Qs.Decode("foo", commaStrictNullOptions)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = null });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = null });
 
         Qs.Decode("a[0]=c", simpleOptions)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = new List<object?> { "c" } });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "c" } });
 
         Qs.Decode("a[]=c", simpleOptions)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = new List<object?> { "c" } });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "c" } });
 
         Qs.Decode("a[]=c", commaOptions)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = new List<object?> { "c" } });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "c" } });
 
         Qs.Decode("a[0]=c&a[1]=d", simpleOptions)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "c", "d" }
                 }
@@ -3792,7 +3792,7 @@ public class DecodeTest
         Qs.Decode("a[]=c&a[]=d", simpleOptions)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "c", "d" }
                 }
@@ -3801,7 +3801,7 @@ public class DecodeTest
         Qs.Decode("a[]=c&a[]=d", commaOptions)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["a"] = new List<object?> { "c", "d" }
                 }
@@ -3823,15 +3823,15 @@ public class DecodeTest
 
         Qs.Decode("foo=1", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "[1]" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "[1]" });
 
         Qs.Decode("foo=1.0", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "1.0" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "1.0" });
 
         Qs.Decode("foo=0", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "[0]" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "[0]" });
     }
 
     [Fact]
@@ -3841,12 +3841,12 @@ public class DecodeTest
 
         Qs.Decode("foo=a%2Cb", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "a,b" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "a,b" });
 
         Qs.Decode("foo=a%2C%20b,d", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?> { "a, b", "d" }
                 }
@@ -3855,7 +3855,7 @@ public class DecodeTest
         Qs.Decode("foo=a%2C%20b,c%2C%20d", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     ["foo"] = new List<object?> { "a, b", "c, d" }
                 }
@@ -3873,13 +3873,13 @@ public class DecodeTest
 
         str += "=bar";
 
-        Dictionary<object, object?>? result = null;
+        Dictionary<string, object?>? result = null;
         var action = () => { result = Qs.Decode(str, options); };
         action.Should().NotThrow();
 
         var depth = 0;
         var current = result?["foo"];
-        while (current is Dictionary<object, object?> dict && dict.ContainsKey("p"))
+        while (current is Dictionary<string, object?> dict && dict.ContainsKey("p"))
         {
             current = dict["p"];
             depth++;
@@ -3895,15 +3895,15 @@ public class DecodeTest
 
         Qs.Decode("]=toString", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["]"] = "toString" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["]"] = "toString" });
 
         Qs.Decode("]]=toString", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["]]"] = "toString" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["]]"] = "toString" });
 
         Qs.Decode("]hello]=toString", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["]hello]"] = "toString" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["]hello]"] = "toString" });
     }
 
     [Fact]
@@ -3913,15 +3913,15 @@ public class DecodeTest
 
         Qs.Decode("[=toString", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["["] = "toString" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["["] = "toString" });
 
         Qs.Decode("[[=toString", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["[["] = "toString" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["[["] = "toString" });
 
         Qs.Decode("[hello[=toString", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["[hello["] = "toString" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["[hello["] = "toString" });
     }
 
     [Fact]
@@ -3932,9 +3932,9 @@ public class DecodeTest
         Qs.Decode("a[b]=c&a=d", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<object, object?> { ["b"] = "c", ["d"] = true }
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c", ["d"] = true }
                 }
             );
     }
@@ -3964,7 +3964,7 @@ public class DecodeTest
         // Note: This test may need adjustment based on actual Shift_JIS encoding behavior
         Qs.Decode("%8c%a7=%91%e5%8d%e3%95%7b", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["県"] = "大阪府" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["県"] = "大阪府" });
     }
 
     [Fact]
@@ -3974,7 +3974,7 @@ public class DecodeTest
 
         Qs.Decode("%A2=%BD", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["¢"] = "½" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["¢"] = "½" });
     }
 
     [Fact]
@@ -3993,36 +3993,36 @@ public class DecodeTest
                 optionsIso
             )
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["ø"] = "ø" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["ø"] = "ø" });
 
         Qs.Decode(
                 $"utf8={urlEncodedNumCheckmark}&{urlEncodedOSlashInUtf8}={urlEncodedOSlashInUtf8}",
                 optionsUtf8
             )
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["Ã¸"] = "Ã¸" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["Ã¸"] = "Ã¸" });
 
         Qs.Decode($"a={urlEncodedOSlashInUtf8}&utf8={urlEncodedNumCheckmark}", optionsUtf8)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["a"] = "Ã¸" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "Ã¸" });
 
         Qs.Decode($"utf8=foo&{urlEncodedOSlashInUtf8}={urlEncodedOSlashInUtf8}", optionsUtf8)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["ø"] = "ø" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["ø"] = "ø" });
 
         Qs.Decode(
                 $"utf8={urlEncodedCheckmarkInUtf8}&{urlEncodedOSlashInUtf8}={urlEncodedOSlashInUtf8}",
                 optionsDefault
             )
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["ø"] = "ø" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["ø"] = "ø" });
 
         Qs.Decode(
                 $"utf8={urlEncodedNumCheckmark}&{urlEncodedOSlashInUtf8}={urlEncodedOSlashInUtf8}",
                 optionsDefault
             )
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["Ã¸"] = "Ã¸" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["Ã¸"] = "Ã¸" });
     }
 
     [Fact]
@@ -4044,15 +4044,15 @@ public class DecodeTest
 
         Qs.Decode($"foo={urlEncodedNumSmiley}", optionsIsoInterpret)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "☺" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "☺" });
 
         Qs.Decode($"foo={urlEncodedNumSmiley}", optionsIso)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "&#9786;" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "&#9786;" });
 
         Qs.Decode($"foo={urlEncodedNumSmiley}", optionsUtfInterpret)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["foo"] = "&#9786;" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "&#9786;" });
     }
 
     [Fact]
@@ -4062,7 +4062,7 @@ public class DecodeTest
 
         Qs.Decode("KeY=vAlUe", options)
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { ["key"] = "value" });
+            .BeEquivalentTo(new Dictionary<string, object?> { ["key"] = "value" });
     }
 
     [Fact]
@@ -4073,12 +4073,12 @@ public class DecodeTest
         Qs.Decode("filters[name][:eq]=John&filters[age][:ge]=18&filters[age][:le]=60", options)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    ["filters"] = new Dictionary<object, object?>
+                    ["filters"] = new Dictionary<string, object?>
                     {
-                        ["name"] = new Dictionary<object, object?> { [":eq"] = "John" },
-                        ["age"] = new Dictionary<object, object?>
+                        ["name"] = new Dictionary<string, object?> { [":eq"] = "John" },
+                        ["age"] = new Dictionary<string, object?>
                         {
                             [":ge"] = "18",
                             [":le"] = "60"
@@ -4121,6 +4121,6 @@ public class DecodeTest
         var decoded = Qs.Decode(raw);
 
         // Assert – keys are strings and values preserved
-        decoded.Should().Equal(new Dictionary<object, object?> { ["x"] = 1, ["2"] = "y" });
+        decoded.Should().Equal(new Dictionary<string, object?> { ["x"] = 1, ["2"] = "y" });
     }
 }
