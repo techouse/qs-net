@@ -512,9 +512,9 @@ public class UtilsTests
     [Fact]
     public void Merge_MapWithList()
     {
-        var target = new Dictionary<object, object?> { { 0, "a" } };
+        var target = new Dictionary<string, object?> { { "0", "a" } };
         var source = new List<object?> { Undefined.Create(), "b" };
-        var expected = new Dictionary<object, object?> { { 0, "a" }, { 1, "b" } };
+        var expected = new Dictionary<string, object?> { { "0", "a" }, { "1", "b" } };
 
         Utils.Merge(target, source).Should().BeEquivalentTo(expected);
     }
@@ -691,7 +691,7 @@ public class UtilsTests
             new Dictionary<string, object?> { { "a", "b" } },
             new Dictionary<string, object?> { { "a", "c" } }
         );
-        var expected = new Dictionary<object, object?>
+        var expected = new Dictionary<string, object?>
         {
             {
                 "a",
@@ -719,7 +719,7 @@ public class UtilsTests
                 }
             }
         );
-        var expected = new Dictionary<object, object?>
+        var expected = new Dictionary<string, object?>
         {
             {
                 "foo",
@@ -757,15 +757,15 @@ public class UtilsTests
                 }
             }
         );
-        var expected = new Dictionary<object, object?>
+        var expected = new Dictionary<string, object?>
         {
             {
                 "foo",
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    { 0, "bar" },
+                    { "0", "bar" },
                     {
-                        1,
+                        "1",
                         new Dictionary<string, object?> { { "first", "123" } }
                     },
                     { "second", "456" }
@@ -793,7 +793,7 @@ public class UtilsTests
             },
             new Dictionary<string, object?> { { "foo", "baz" } }
         );
-        var expected = new Dictionary<object, object?>
+        var expected = new Dictionary<string, object?>
         {
             {
                 "foo",
@@ -837,7 +837,7 @@ public class UtilsTests
                 }
             }
         );
-        var expected2 = new Dictionary<object, object?>
+        var expected2 = new Dictionary<string, object?>
         {
             {
                 "foo",
@@ -880,7 +880,7 @@ public class UtilsTests
                 }
             }
         );
-        var expected2 = new Dictionary<object, object?>
+        var expected2 = new Dictionary<string, object?>
         {
             {
                 "foo",
@@ -914,7 +914,7 @@ public class UtilsTests
                 }
             }
         );
-        var expected = new Dictionary<object, object?>
+        var expected = new Dictionary<string, object?>
         {
             {
                 "foo",
@@ -948,7 +948,7 @@ public class UtilsTests
                 }
             }
         );
-        var expected = new Dictionary<object, object?>
+        var expected = new Dictionary<string, object?>
         {
             {
                 "foo",
@@ -982,7 +982,7 @@ public class UtilsTests
                 }
             }
         );
-        var expected = new Dictionary<object, object?>
+        var expected = new Dictionary<string, object?>
         {
             {
                 "foo",
@@ -1016,11 +1016,11 @@ public class UtilsTests
                 }
             }
         );
-        var expected = new Dictionary<object, object?>
+        var expected = new Dictionary<string, object?>
         {
             {
                 "foo",
-                new Dictionary<object, object?> { { 0, "bar" }, { "baz", "xyzzy" } }
+                new Dictionary<string, object?> { { "0", "bar" }, { "baz", "xyzzy" } }
             }
         };
 
@@ -1050,11 +1050,11 @@ public class UtilsTests
                 }
             }
         );
-        var expected = new Dictionary<object, object?>
+        var expected = new Dictionary<string, object?>
         {
             {
                 "foo",
-                new Dictionary<object, object?> { { "bar", "baz" }, { 0, "xyzzy" } }
+                new Dictionary<string, object?> { { "bar", "baz" }, { "0", "xyzzy" } }
             }
         };
 
@@ -1086,7 +1086,7 @@ public class UtilsTests
                 }
             }
         );
-        var expected1 = new Dictionary<object, object?>
+        var expected1 = new Dictionary<string, object?>
         {
             {
                 "foo",
@@ -1116,7 +1116,7 @@ public class UtilsTests
                 }
             }
         );
-        var expected2 = new Dictionary<object, object?>
+        var expected2 = new Dictionary<string, object?>
         {
             {
                 "foo",
@@ -1162,7 +1162,7 @@ public class UtilsTests
                 }
             }
         );
-        var expected2 = new Dictionary<object, object?>
+        var expected2 = new Dictionary<string, object?>
         {
             {
                 "foo",
@@ -1330,13 +1330,13 @@ public class UtilsTests
     public void ToObjectKeyedDictionary_Converts_NonGeneric_IDictionary()
     {
         // arrange
-        IDictionary src = new Hashtable { ["a"] = 1, [2] = "b" };
+        IDictionary src = new Hashtable { ["a"] = 1, ["2"] = "b" };
 
         // act
         var result = Utils.ToObjectKeyedDictionary(src);
 
         // assert – same contents, but a different instance
-        result.Should().Equal(new Dictionary<object, object?> { ["a"] = 1, [2] = "b" });
+        result.Should().Equal(new Dictionary<object, object?> { ["a"] = 1, ["2"] = "b" });
 
         // cast to object so the types match the generic constraint
         Assert.NotSame(src, result);
@@ -1400,7 +1400,7 @@ public class UtilsTests
         var inner = new Dictionary<string, object?>();
         inner["self"] = inner; // cycle
 
-        var root = new Dictionary<object, object?> { ["k"] = inner };
+        var root = new Dictionary<string, object?> { ["k"] = inner };
 
         Utils.ConvertNestedValues(root);
 
@@ -1468,7 +1468,7 @@ public class UtilsTests
             .Merge(dict1, dict2)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     {
                         "a",
@@ -1480,7 +1480,7 @@ public class UtilsTests
             .Merge(dict1, dict3)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     {
                         "a",
@@ -1512,15 +1512,15 @@ public class UtilsTests
             }
         };
 
-        var expected1 = new Dictionary<object, object?>
+        var expected1 = new Dictionary<string, object?>
         {
             {
                 "foo",
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
-                    { 0, "bar" },
+                    { "0", "bar" },
                     {
-                        1,
+                        "1",
                         new Dictionary<string, object?> { { "first", "123" } }
                     },
                     { "second", "456" }
@@ -1547,7 +1547,7 @@ public class UtilsTests
             .Merge(a, b)
             .Should()
             .BeEquivalentTo(
-                new Dictionary<object, object?>
+                new Dictionary<string, object?>
                 {
                     {
                         "foo",
@@ -1560,6 +1560,6 @@ public class UtilsTests
         Utils
             .Merge(x, "bar")
             .Should()
-            .BeEquivalentTo(new Dictionary<object, object?> { { "foo", "baz" }, { "bar", true } });
+            .BeEquivalentTo(new Dictionary<string, object?> { { "foo", "baz" }, { "bar", true } });
     }
 }

@@ -330,10 +330,10 @@ internal static class EmptyTestCases
                 ["indices"] = "[0]=a&[1]=b& [0]=1",
                 ["repeat"] = "=a&=b& =1"
             },
-            ["noEmptyKeys"] = new Dictionary<object, object?>
+            ["noEmptyKeys"] = new Dictionary<string, object?>
             {
-                [0] = "a",
-                [1] = "b",
+                ["0"] = "a",
+                ["1"] = "b",
                 [" "] = new List<object?> { "1" }
             }
         },
@@ -345,10 +345,10 @@ internal static class EmptyTestCases
                 [""] = new List<object?> { "a", "b" },
                 ["a"] = new List<object?> { "1", "2" }
             },
-            ["noEmptyKeys"] = new Dictionary<object, object?>
+            ["noEmptyKeys"] = new Dictionary<string, object?>
             {
-                [0] = "a",
-                [1] = "b",
+                ["0"] = "a",
+                ["1"] = "b",
                 ["a"] = new List<object?> { "1", "2" }
             },
             ["stringifyOutput"] = new Dictionary<string, object?>
@@ -392,7 +392,7 @@ internal static class EmptyTestCases
                 ["indices"] = "[0]=a&[1]=b",
                 ["repeat"] = "=a&=b"
             },
-            ["noEmptyKeys"] = new Dictionary<object, object?> { [0] = "a", [1] = "b" }
+            ["noEmptyKeys"] = new Dictionary<string, object?> { ["0"] = "a", ["1"] = "b" }
         }
     ];
 }

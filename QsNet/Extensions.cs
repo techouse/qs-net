@@ -18,7 +18,7 @@ public static class Extensions
     /// <param name="queryString">The query string to decode</param>
     /// <param name="options">Optional decoder settings</param>
     /// <returns>A Dictionary containing the decoded key-value pairs</returns>
-    public static Dictionary<object, object?> ToQueryMap(
+    public static Dictionary<string, object?> ToQueryMap(
         this string queryString,
         DecodeOptions? options = null
     )

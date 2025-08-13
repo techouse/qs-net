@@ -142,7 +142,7 @@ internal static partial class Utils
                                     foreach (var item in srcIter)
                                     {
                                         if (item is not Undefined)
-                                            mutable[i] = item;
+                                            mutable[i.ToString()] = item;
                                         i++;
                                     }
 
@@ -185,7 +185,7 @@ internal static partial class Utils
                     foreach (var v in tenum)
                     {
                         if (v is not Undefined)
-                            dict[i] = v;
+                            dict[i.ToString()] = v;
                         i++;
                     }
 
@@ -201,7 +201,7 @@ internal static partial class Utils
                     var list = new List<object?>
                 {
                     target,
-                    ToStringKeyedDictionary((IDictionary)source)
+                    ToObjectKeyedDictionary((IDictionary)source)
                 };
                     return list;
                 }
@@ -858,7 +858,27 @@ internal static partial class Utils
     /// <returns></returns>
     internal static Dictionary<string, object?> ConvertNestedDictionary(IDictionary dict)
     {
-        ConvertNestedValues(dict);
+        return ConvertNestedDictionary(dict, new HashSet<object>(ReferenceEqualityComparer.Instance));
+    }
+
+    private static Dictionary<string, object?> ConvertNestedDictionary(
+        IDictionary dict,
+        ISet<object> visited
+    )
+    {
+        // If we've already seen this dictionary, don't descend again.
+        // If it's already string-keyed, just return it to preserve identity.
+        if (!visited.Add(dict))
+        {
+            if (dict is Dictionary<string, object?> sk)
+                return sk;
+
+            // Fallback: make a shallow string-keyed view without descending
+            var shallow = new Dictionary<string, object?>(dict.Count);
+            foreach (DictionaryEntry de in dict)
+                shallow[de.Key?.ToString() ?? string.Empty] = de.Value;
+            return shallow;
+        }
 
         var result = new Dictionary<string, object?>(dict.Count);
 
@@ -869,14 +889,37 @@ internal static partial class Utils
 
             switch (item)
             {
+                case IDictionary child when ReferenceEquals(child, dict):
+                    // Direct self-reference: keep the same instance to preserve identity
+                    item = child;
+                    break;
+
+                case IDictionary child and Dictionary<string, object?>:
+                    // User-supplied string-keyed map: preserve identity, do not recurse
+                    item = child;
+                    break;
+
                 case IDictionary child:
-                    item = ConvertNestedDictionary(child);
+                    // Non-string-keyed (e.g., object-keyed) map: convert recursively
+                    item = ConvertNestedDictionary(child, visited);
                     break;
 
                 case IList list:
+                    // Convert IDictionary children inside lists, but preserve string-keyed identity
                     for (var i = 0; i < list.Count; i++)
-                        if (list[i] is IDictionary inner)
-                            list[i] = ConvertNestedDictionary(inner);
+                    {
+                        if (list[i] is not IDictionary inner) continue;
+                        if (inner is Dictionary<string, object?>)
+                        {
+                            // keep as-is
+                        }
+                        else
+                        {
+                            list[i] = ConvertNestedDictionary(inner, visited);
+                        }
+                    }
+
+                    item = list;
                     break;
             }
 
@@ -903,5 +946,111 @@ internal static partial class Utils
         foreach (var k in map.Keys)
             copy[k] = map[k];
         return copy;
+    }
+
+    /// <summary>
+    ///     Converts a nested structure with object keys to a Dictionary with string keys.
+    ///     This method performs a deep conversion, handling circular references and preserving identity.
+    /// </summary>
+    /// <param name="root"></param>
+    /// <returns></returns>
+    /// <exception cref="ArgumentException"></exception>
+    internal static Dictionary<string, object?> ToStringKeyDeepNonRecursive(object root)
+    {
+        if (root is not IDictionary srcRoot)
+            throw new ArgumentException("Root must be an IDictionary", nameof(root));
+
+        var visited = new Dictionary<object, object>(ReferenceEqualityComparer.Instance);
+        var stack = new Stack<(object src, object dst)>();
+
+        var top = new Dictionary<string, object?>(srcRoot.Count);
+        visited[srcRoot] = top;
+        stack.Push((srcRoot, top));
+
+        while (stack.Count > 0)
+        {
+            var (src, dst) = stack.Pop();
+
+            if (src is IDictionary sd && dst is Dictionary<string, object?> dd)
+                foreach (DictionaryEntry de in sd)
+                {
+                    var key = de.Key?.ToString() ?? string.Empty;
+                    var val = de.Value;
+
+                    switch (val)
+                    {
+                        case IDictionary child:
+                            // Preserve identity for already string-keyed child maps
+                            if (child is Dictionary<string, object?> sk)
+                            {
+                                dd[key] = sk;
+                                // register so future references reuse this instance
+                                if (!visited.ContainsKey(child)) visited[child] = sk;
+                                break;
+                            }
+
+                            if (visited.TryGetValue(child, out var existing))
+                            {
+                                dd[key] = existing;
+                            }
+                            else
+                            {
+                                var newChild = new Dictionary<string, object?>(child.Count);
+                                dd[key] = newChild;
+                                visited[child] = newChild;
+                                stack.Push((child, newChild));
+                            }
+
+                            break;
+
+                        case IList list:
+                            if (visited.TryGetValue(list, out var existingList))
+                            {
+                                dd[key] = existingList;
+                                break;
+                            }
+
+                            var newList = new List<object?>(list.Count);
+                            dd[key] = newList;
+                            visited[list] = newList;
+
+                            for (var i = 0; i < list.Count; i++)
+                            {
+                                var item = list[i];
+                                if (item is IDictionary inner)
+                                {
+                                    if (inner is Dictionary<string, object?> innerSk)
+                                    {
+                                        newList.Add(innerSk);
+                                        if (!visited.ContainsKey(inner)) visited[inner] = innerSk;
+                                    }
+                                    else if (visited.TryGetValue(inner, out var ex))
+                                    {
+                                        newList.Add(ex);
+                                    }
+                                    else
+                                    {
+                                        var newInner = new Dictionary<string, object?>(inner.Count);
+                                        newList.Add(newInner);
+                                        visited[inner] = newInner;
+                                        stack.Push((inner, newInner));
+                                    }
+                                }
+                                else
+                                {
+                                    newList.Add(item);
+                                }
+                            }
+
+                            break;
+
+                        default:
+                            dd[key] = val;
+                            break;
+                    }
+                }
+        }
+
+        return top;
     }
 }
