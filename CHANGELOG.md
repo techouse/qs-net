@@ -1,3 +1,8 @@
+## 1.0.2
+
+* [FIX] change `Qs.Decode` return from `Dictionary<object, object?>` to `Dictionary<string, object?>` 
+    - This change ensures that the query string decoding returns a dictionary with string keys, improving type safety and consistency in handling query parameters.
+
 ## 1.0.1
 
 * [CHORE] Fixed CI pipeline issues in GitHub workflows
