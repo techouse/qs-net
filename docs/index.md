@@ -34,11 +34,11 @@ Ported from [qs](https://www.npmjs.com/package/qs) for JavaScript.
 using QsNet;
 
 // Decode
-var obj = Qs.Decode("foo[bar]=baz&foo[list][]=a&foo[list][]=b");
+Dictionary<string, object?> obj = Qs.Decode("foo[bar]=baz&foo[list][]=a&foo[list][]=b");
 // -> { "foo": { "bar": "baz", "list": ["a", "b"] } }
 
 // Encode
-var qs = Qs.Encode(new Dictionary<string, object?> 
+string qs = Qs.Encode(new Dictionary<string, object?> 
 { 
     ["foo"] = new Dictionary<string, object?> { ["bar"] = "baz" } 
 });
