@@ -132,8 +132,8 @@ internal static partial class Utils
                                 var j = 0;
                                 foreach (var item in srcList)
                                 {
-                                    if (mutable.ContainsKey(j))
-                                        mutable[j] = Merge(mutable[j], item, options);
+                                    if (mutable.TryGetValue(j, out var existing))
+                                        mutable[j] = Merge(existing, item, options);
                                     else
                                         mutable.Add(j, item);
 
@@ -146,16 +146,32 @@ internal static partial class Utils
                             }
 
                             // Fallback: concat, filtering out Undefined from source
-                            var filtered = srcList.Where(v => v is not Undefined);
                             if (target is ISet<object?>)
-                                return new HashSet<object?>(targetList.Concat(filtered));
-                            return targetList.Concat(filtered).ToList();
+                            {
+                                var set = new HashSet<object?>(targetList);
+                                foreach (var v in srcList)
+                                    if (v is not Undefined) set.Add(v);
+                                return set;
+                            }
+
+                            var res = new List<object?>(targetList.Count + srcList.Count);
+                            res.AddRange(targetList);
+                            foreach (var v in srcList)
+                                if (v is not Undefined)
+                                    res.Add(v);
+                            return res;
                         }
 
                         // source is primitive -> append/merge
                         if (target is ISet<object?>)
-                            return new HashSet<object?>(targetList.Append(source));
-                        return targetList.Append(source).ToList();
+                        {
+                            var set = new HashSet<object?>(targetList) { source };
+                            return set;
+                        }
+                        var res2 = new List<object?>(targetList.Count + 1);
+                        res2.AddRange(targetList);
+                        res2.Add(source);
+                        return res2;
                     }
 
                 case IDictionary targetMap:
@@ -189,11 +205,12 @@ internal static partial class Utils
 
                 default:
                     // target is primitive/null
-                    if (source is IEnumerable<object?> src2)
-                        return new[] { target }
-                            .Concat(src2.Where(v => v is not Undefined))
-                            .ToList();
-                    return new List<object?> { target, source };
+                    if (source is not IEnumerable<object?> src2) return new List<object?> { target, source };
+                    var list = new List<object?> { target };
+                    foreach (var v in src2)
+                        if (v is not Undefined)
+                            list.Add(v);
+                    return list;
             }
 
         // Source IS a map
@@ -689,12 +706,20 @@ internal static partial class Utils
     /// <returns>The result of applying the function, or null if the input is null.</returns>
     public static object? Apply<T>(object? value, Func<T, T> fn)
     {
-        return value switch
+        switch (value)
         {
-            IEnumerable<T> enumerable => enumerable.Select(fn).ToList(),
-            T item => fn(item),
-            _ => value
-        };
+            case IEnumerable<T> enumerable:
+            {
+                var list = new List<T>();
+                foreach (var it in enumerable)
+                    list.Add(fn(it));
+                return list;
+            }
+            case T item:
+                return fn(item);
+            default:
+                return value;
+        }
     }
 
     /// <summary>
@@ -728,9 +753,21 @@ internal static partial class Utils
             null or Undefined => true,
             string str => string.IsNullOrEmpty(str),
             IDictionary dict => dict.Count == 0,
-            IEnumerable enumerable => !enumerable.Cast<object>().Any(),
+            IEnumerable enumerable => !HasAny(enumerable),
             _ => false
         };
+    }
+    
+    /// <summary>
+    ///     Checks if an IEnumerable has any elements.
+    /// </summary>
+    /// <param name="enumerable"></param>
+    /// <returns></returns>
+    private static bool HasAny(IEnumerable enumerable)
+    {
+        var e = enumerable.GetEnumerator();
+        try { return e.MoveNext(); }
+        finally { (e as IDisposable)?.Dispose(); }
     }
 
     /// <summary>
@@ -802,7 +839,7 @@ internal static partial class Utils
     /// <returns></returns>
     internal static Dictionary<object, object?> ToObjectKeyedDictionary(IDictionary src)
     {
-        var dict = new Dictionary<object, object?>();
+        var dict = new Dictionary<object, object?>(src.Count);
         foreach (DictionaryEntry de in src)
             dict[de.Key] = de.Value;
         return dict;
@@ -867,8 +904,13 @@ internal static partial class Utils
         switch (value)
         {
             case IDictionary dict:
-                foreach (var key in dict.Keys.Cast<object>().ToArray())
+                var keysCol = dict.Keys;
+                var keysArr = new object[dict.Count];
+                keysCol.CopyTo(keysArr, 0);
+                foreach (var key in keysArr)
+                {
                     dict[key] = ConvertNestedValues(dict[key], visited);
+                }
                 return NormalizeForTarget(dict);
 
             case IList list:
@@ -878,7 +920,9 @@ internal static partial class Utils
 
             case IEnumerable seq
                 and not string:
-                return seq.Cast<object?>().Select(v => ConvertNestedValues(v, visited)).ToList();
+                var seqList = new List<object?>();
+                foreach (var v in seq) seqList.Add(ConvertNestedValues(v, visited));
+                return seqList;
 
             default:
                 return value;
@@ -973,12 +1017,13 @@ internal static partial class Utils
         if (map is Dictionary<object, object?> ok)
             return ok;
 
-        if (map.Keys.Cast<object>().Any(k => ReferenceEquals(map[k], map)))
-            return map;
+        foreach (DictionaryEntry de in map)
+            if (ReferenceEquals(de.Value, map))
+                return map;
 
         var copy = new Dictionary<object, object?>(map.Count);
-        foreach (var k in map.Keys)
-            copy[k] = map[k];
+        foreach (DictionaryEntry de in map)
+            copy[de.Key] = de.Value;
         return copy;
     }
 
