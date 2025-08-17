@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -15,7 +16,11 @@ namespace QsNet.Internal;
 /// <summary>
 ///     A collection of utility methods used by the library.
 /// </summary>
+#if NETSTANDARD2_0
+internal static class Utils
+#else
 internal static partial class Utils
+#endif
 {
     /// <summary>
     ///     The maximum length of a segment to encode in a single pass.
@@ -25,14 +30,32 @@ internal static partial class Utils
     /// <summary>
     ///     A regex to match percent-encoded characters in the format %XX.
     /// </summary>
+#if NETSTANDARD2_0
+    private static readonly Regex MyRegexInstance = new("%[0-9a-f]{2}", RegexOptions.IgnoreCase);
+
+    private static Regex MyRegex()
+    {
+        return MyRegexInstance;
+    }
+#else
     [GeneratedRegex("%[0-9a-f]{2}", RegexOptions.IgnoreCase, "en-GB")]
     private static partial Regex MyRegex();
+#endif
 
     /// <summary>
     ///     A regex to match Unicode percent-encoded characters in the format %uXXXX.
     /// </summary>
+#if NETSTANDARD2_0
+    private static readonly Regex MyRegex1Instance = new("%u[0-9a-f]{4}", RegexOptions.IgnoreCase);
+
+    private static Regex MyRegex1()
+    {
+        return MyRegex1Instance;
+    }
+#else
     [GeneratedRegex("%u[0-9a-f]{4}", RegexOptions.IgnoreCase, "en-GB")]
     private static partial Regex MyRegex1();
+#endif
 
     /// <summary>
     ///     Merges two objects, where the source object overrides the target object. If the source is a
@@ -93,9 +116,12 @@ internal static partial class Utils
                         // Otherwise: both sides are iterables / primitives
                         if (source is IEnumerable<object?> srcIt)
                         {
+                            // Materialize once to avoid multiple enumeration of a potentially lazy sequence
+                            var srcList = srcIt as IList<object?> ?? srcIt.ToList();
+
                             // If both sequences are maps-or-Undefined only, fold by index merging
                             var targetAllMaps = targetList.All(v => v is IDictionary or Undefined);
-                            var srcAllMaps = srcIt.All(v => v is IDictionary or Undefined);
+                            var srcAllMaps = srcList.All(v => v is IDictionary or Undefined);
 
                             if (targetAllMaps && srcAllMaps)
                             {
@@ -104,10 +130,12 @@ internal static partial class Utils
                                     mutable[i] = targetList[i];
 
                                 var j = 0;
-                                foreach (var item in srcIt)
+                                foreach (var item in srcList)
                                 {
-                                    if (!mutable.TryAdd(j, item))
+                                    if (mutable.ContainsKey(j))
                                         mutable[j] = Merge(mutable[j], item, options);
+                                    else
+                                        mutable.Add(j, item);
 
                                     j++;
                                 }
@@ -118,7 +146,7 @@ internal static partial class Utils
                             }
 
                             // Fallback: concat, filtering out Undefined from source
-                            var filtered = srcIt.Where(v => v is not Undefined);
+                            var filtered = srcList.Where(v => v is not Undefined);
                             if (target is ISet<object?>)
                                 return new HashSet<object?>(targetList.Concat(filtered));
                             return targetList.Concat(filtered).ToList();
@@ -274,15 +302,27 @@ internal static partial class Utils
             {
                 if (i + 1 < str.Length && str[i + 1] == 'u')
                 {
+#if NETSTANDARD2_0
                     if (
-                        i + 6 <= str.Length
-                        && int.TryParse(
+                        i + 6 <= str.Length &&
+                        int.TryParse(
+                            str.Substring(i + 2, 4),
+                            NumberStyles.HexNumber,
+                            null,
+                            out var code
+                        )
+                    )
+#else
+                    if (
+                        i + 6 <= str.Length &&
+                        int.TryParse(
                             str.AsSpan(i + 2, 4),
                             NumberStyles.HexNumber,
                             null,
                             out var code
                         )
                     )
+#endif
                     {
                         sb.Append((char)code);
                         i += 6;
@@ -291,7 +331,11 @@ internal static partial class Utils
                 }
                 else if (
                     i + 3 <= str.Length
+#if NETSTANDARD2_0
+                    && int.TryParse(str.Substring(i + 1, 2), NumberStyles.HexNumber, null, out var b)
+#else
                     && int.TryParse(str.AsSpan(i + 1, 2), NumberStyles.HexNumber, null, out var b)
+#endif
                 )
                 {
                     sb.Append((char)b);
@@ -318,6 +362,7 @@ internal static partial class Utils
     {
         encoding ??= Encoding.UTF8;
         format ??= Format.Rfc3986;
+        var fmt = format.GetValueOrDefault();
 
         // These cannot be encoded
         if (value is IEnumerable and not string and not byte[] or IDictionary or Undefined)
@@ -332,16 +377,21 @@ internal static partial class Utils
 
         if (string.IsNullOrEmpty(str))
             return string.Empty;
+        var nonNullStr = str!;
 
         if (Equals(encoding, Encoding.GetEncoding("ISO-8859-1")))
         {
 #pragma warning disable CS0618 // Type or member is obsolete
             return MyRegex1()
                 .Replace(
-                    Escape(str, format.Value),
+                    Escape(str!, fmt),
                     match =>
                     {
+#if NETSTANDARD2_0
+                        var code = int.Parse(match.Value.Substring(2), NumberStyles.HexNumber);
+#else
                         var code = int.Parse(match.Value[2..], NumberStyles.HexNumber);
+#endif
                         return $"%26%23{code}%3B";
                     }
                 );
@@ -351,12 +401,12 @@ internal static partial class Utils
         var buffer = new StringBuilder();
         var j = 0;
 
-        while (j < str.Length)
+        while (j < nonNullStr.Length)
         {
             var segment =
-                str.Length >= SegmentLimit
-                    ? str.Substring(j, Math.Min(SegmentLimit, str.Length - j))
-                    : str;
+                nonNullStr.Length >= SegmentLimit
+                    ? nonNullStr.Substring(j, Math.Min(SegmentLimit, nonNullStr.Length - j))
+                    : nonNullStr;
 
             var i = 0;
             while (i < segment.Length)
@@ -369,7 +419,7 @@ internal static partial class Utils
                     case >= 0x30 and <= 0x39:
                     case >= 0x41 and <= 0x5A:
                     case >= 0x61 and <= 0x7A:
-                    case 0x28 or 0x29 when format == Format.Rfc1738:
+                    case 0x28 or 0x29 when fmt == Format.Rfc1738:
                         buffer.Append(segment[i]);
                         i++;
                         continue;
@@ -775,22 +825,6 @@ internal static partial class Utils
     }
 
     /// <summary>
-    ///     string-keyed view
-    /// </summary>
-    /// <param name="src"></param>
-    /// <returns></returns>
-    private static Dictionary<string, object?> ToStringKeyedDictionary(IDictionary src)
-    {
-        if (src is Dictionary<string, object?> strDict)
-            return strDict;
-
-        var dict = new Dictionary<string, object?>(src.Count);
-        foreach (DictionaryEntry de in src)
-            dict[de.Key.ToString() ?? string.Empty] = de.Value;
-        return dict;
-    }
-
-    /// <summary>
     ///     Helper to convert an IDictionary to Dictionary&lt;string, object?&gt;.
     /// </summary>
     /// <param name="dictionary">The dictionary to convert</param>
@@ -876,7 +910,7 @@ internal static partial class Utils
             // Fallback: make a shallow string-keyed view without descending
             var shallow = new Dictionary<string, object?>(dict.Count);
             foreach (DictionaryEntry de in dict)
-                shallow[de.Key?.ToString() ?? string.Empty] = de.Value;
+                shallow[de.Key.ToString() ?? string.Empty] = de.Value;
             return shallow;
         }
 
@@ -884,7 +918,7 @@ internal static partial class Utils
 
         foreach (DictionaryEntry entry in dict)
         {
-            var key = entry.Key?.ToString() ?? string.Empty;
+            var key = entry.Key.ToString() ?? string.Empty;
             var item = entry.Value;
 
             switch (item)
@@ -974,7 +1008,7 @@ internal static partial class Utils
             if (src is IDictionary sd && dst is Dictionary<string, object?> dd)
                 foreach (DictionaryEntry de in sd)
                 {
-                    var key = de.Key?.ToString() ?? string.Empty;
+                    var key = de.Key.ToString() ?? string.Empty;
                     var val = de.Value;
 
                     switch (val)
@@ -1014,9 +1048,7 @@ internal static partial class Utils
                             dd[key] = newList;
                             visited[list] = newList;
 
-                            for (var i = 0; i < list.Count; i++)
-                            {
-                                var item = list[i];
+                            foreach (var item in list)
                                 if (item is IDictionary inner)
                                 {
                                     if (inner is Dictionary<string, object?> innerSk)
@@ -1040,7 +1072,6 @@ internal static partial class Utils
                                 {
                                     newList.Add(item);
                                 }
-                            }
 
                             break;
 
@@ -1052,5 +1083,25 @@ internal static partial class Utils
         }
 
         return top;
+    }
+}
+
+// Reference-equality comparer used to track visited nodes without relying on value equality
+internal sealed class ReferenceEqualityComparer : IEqualityComparer<object>
+{
+    public static readonly ReferenceEqualityComparer Instance = new();
+
+    private ReferenceEqualityComparer()
+    {
+    }
+
+    public new bool Equals(object? x, object? y)
+    {
+        return ReferenceEquals(x, y);
+    }
+
+    public int GetHashCode(object obj)
+    {
+        return RuntimeHelpers.GetHashCode(obj);
     }
 }

@@ -12,7 +12,11 @@ namespace QsNet.Internal;
 /// <summary>
 ///     A helper class for decoding query strings into structured data.
 /// </summary>
+#if NETSTANDARD2_0
+internal static class Decoder
+#else
 internal static partial class Decoder
+#endif
 {
     /// <summary>
     ///     Regular expression to match dots followed by non-dot and non-bracket characters.
@@ -20,8 +24,30 @@ internal static partial class Decoder
     /// </summary>
     private static readonly Regex DotToBracket = MyRegex();
 
+#if NETSTANDARD2_0
+    private static readonly Regex MyRegexInstance = new(@"\.([^.\[]+)", RegexOptions.Compiled);
+    private static Regex MyRegex()
+    {
+        return MyRegexInstance;
+    }
+#else
     [GeneratedRegex(@"\.([^.\[]+)", RegexOptions.Compiled)]
     private static partial Regex MyRegex();
+#endif
+
+    private static Encoding Latin1Encoding =>
+#if NETSTANDARD2_0
+        Encoding.GetEncoding(28591);
+#else
+        Encoding.Latin1;
+#endif
+
+    private static bool IsLatin1(Encoding e) =>
+#if NETSTANDARD2_0
+        e is { CodePage: 28591 };
+#else
+        Equals(e, Encoding.Latin1);
+#endif
 
     /// <summary>
     ///     Parses a list value from a string or any other type, applying the options provided.
@@ -70,9 +96,15 @@ internal static partial class Decoder
         options ??= new DecodeOptions();
         var obj = new Dictionary<string, object?>();
 
+#if NETSTANDARD2_0
+        var cleanStr = options.IgnoreQueryPrefix ? str.TrimStart('?') : str;
+        cleanStr = ReplaceOrdinalIgnoreCase(cleanStr, "%5B", "[");
+        cleanStr = ReplaceOrdinalIgnoreCase(cleanStr, "%5D", "]");
+#else
         var cleanStr = (options.IgnoreQueryPrefix ? str.TrimStart('?') : str)
             .Replace("%5B", "[", StringComparison.OrdinalIgnoreCase)
             .Replace("%5D", "]", StringComparison.OrdinalIgnoreCase);
+#endif
 
         var limit = options.ParameterLimit == int.MaxValue ? (int?)null : options.ParameterLimit;
 
@@ -106,7 +138,7 @@ internal static partial class Decoder
                     charset = parts[i] switch
                     {
                         var p when p == Sentinel.Charset.GetEncoded() => Encoding.UTF8,
-                        var p when p == Sentinel.Iso.GetEncoded() => Encoding.Latin1,
+                        var p when p == Sentinel.Iso.GetEncoded() => Latin1Encoding,
                         _ => charset
                     };
                     skipIndex = i;
@@ -132,21 +164,32 @@ internal static partial class Decoder
             }
             else
             {
+#if NETSTANDARD2_0
+                key = options.GetDecoder(part.Substring(0, pos), charset)?.ToString() ?? string.Empty;
+#else
                 key = options.GetDecoder(part[..pos], charset)?.ToString() ?? string.Empty;
+#endif
                 var currentLength =
                     obj.TryGetValue(key, out var val) && val is IList<object?> list ? list.Count : 0;
 
+#if NETSTANDARD2_0
+                value = Utils.Apply<object?>(
+                    ParseListValue(part.Substring(pos + 1), options, currentLength),
+                    v => options.GetDecoder(v?.ToString(), charset)
+                );
+#else
                 value = Utils.Apply<object?>(
                     ParseListValue(part[(pos + 1)..], options, currentLength),
                     v => options.GetDecoder(v?.ToString(), charset)
                 );
+#endif
             }
 
             if (
                 value != null
                 && !Utils.IsEmpty(value)
                 && options.InterpretNumericEntities
-                && Equals(charset, Encoding.Latin1)
+                && IsLatin1(charset)
             )
                 value = Utils.InterpretNumericEntities(
                     value switch
@@ -190,7 +233,13 @@ internal static partial class Decoder
     )
     {
         var currentListLength = 0;
-        if (chain.Count > 0 && chain[^1] == "[]")
+        if (chain.Count > 0 &&
+#if NETSTANDARD2_0
+            chain[chain.Count - 1] == "[]"
+#else
+            chain[^1] == "[]"
+#endif
+           )
         {
             var parentKeyStr = string.Join("", chain.Take(chain.Count - 1));
             if (
@@ -232,7 +281,13 @@ internal static partial class Decoder
             else
             {
                 // Unwrap [ ... ] and (optionally) decode %2E -> .
+#if NETSTANDARD2_0
+                var cleanRoot = root.StartsWith("[") && root.EndsWith("]")
+                    ? root.Substring(1, root.Length - 2)
+                    : root;
+#else
                 var cleanRoot = root.StartsWith('[') && root.EndsWith(']') ? root[1..^1] : root;
+#endif
                 var decodedRoot = options.DecodeDotInKeys
                     ? cleanRoot.Replace("%2E", ".")
                     : cleanRoot;
@@ -298,7 +353,7 @@ internal static partial class Decoder
             return null;
 
         var segments = SplitKeyIntoSegments(
-            givenKey,
+            givenKey!,
             options.AllowDots,
             options.Depth,
             options.StrictDepth
@@ -335,7 +390,11 @@ internal static partial class Decoder
         var segments = new List<string>();
 
         var first = key.IndexOf('[');
+#if NETSTANDARD2_0
+        var parent = first >= 0 ? key.Substring(0, first) : key;
+#else
         var parent = first >= 0 ? key[..first] : key;
+#endif
         if (!string.IsNullOrEmpty(parent))
             segments.Add(parent);
 
@@ -346,7 +405,11 @@ internal static partial class Decoder
             var close = key.IndexOf(']', open + 1);
             if (close < 0)
                 break;
+#if NETSTANDARD2_0
+            segments.Add(key.Substring(open, close + 1 - open)); // e.g. "[p]" or "[]"
+#else
             segments.Add(key[open..(close + 1)]); // e.g. "[p]" or "[]"
+#endif
             depth++;
             open = key.IndexOf('[', close + 1);
         }
@@ -357,9 +420,39 @@ internal static partial class Decoder
             throw new IndexOutOfRangeException(
                 $"Input depth exceeded depth option of {maxDepth} and strictDepth is true"
             );
-        // Stash the remainder as a single segment.
+#if NETSTANDARD2_0
+        segments.Add("[" + key.Substring(open) + "]");
+#else
         segments.Add("[" + key[open..] + "]");
+#endif
 
         return segments;
     }
+
+#if NETSTANDARD2_0
+    // Efficient case-insensitive ordinal string replace for NETSTANDARD2_0 (no regex, no allocations beyond matches)
+    private static string ReplaceOrdinalIgnoreCase(string input, string oldValue, string newValue)
+    {
+        if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(oldValue))
+            return input;
+
+        var startIndex = 0;
+        StringBuilder? sb = null;
+        while (true)
+        {
+            var idx = input.IndexOf(oldValue, startIndex, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0)
+            {
+                if (sb == null) return input;
+                sb.Append(input, startIndex, input.Length - startIndex);
+                return sb.ToString();
+            }
+
+            sb ??= new StringBuilder(input.Length);
+            sb.Append(input, startIndex, idx - startIndex);
+            sb.Append(newValue);
+            startIndex = idx + oldValue.Length;
+        }
+    }
+#endif
 }

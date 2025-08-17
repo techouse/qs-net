@@ -61,6 +61,32 @@ public static class Qs
         if (tempObj is not { Count: > 0 })
             return new Dictionary<string, object?>();
 
+#if NETSTANDARD2_0
+        foreach (var kv in tempObj)
+        {
+            var key = kv.Key;
+            var value = kv.Value;
+
+            var parsed = Decoder.ParseKeys(key, value, finalOptions, input is string);
+            if (parsed is null)
+                continue;
+
+            if (obj.Count == 0 && parsed is IDictionary first)
+            {
+                obj = Utils.ToObjectKeyedDictionary(first);
+                continue;
+            }
+
+            var merged = Utils.Merge(obj, parsed, finalOptions) ?? obj;
+
+            obj = merged switch
+            {
+                Dictionary<object, object?> d => d,
+                IDictionary id => Utils.ToObjectKeyedDictionary(id),
+                _ => obj
+            };
+        }
+#else
         foreach (var (key, value) in tempObj)
         {
             var parsed = Decoder.ParseKeys(key, value, finalOptions, input is string);
@@ -82,6 +108,7 @@ public static class Qs
                 _ => obj
             };
         }
+#endif
 
         // compact (still object-keyed), then convert the whole tree to string-keyed
         var compacted = Utils.Compact(obj, opts.AllowSparseLists);

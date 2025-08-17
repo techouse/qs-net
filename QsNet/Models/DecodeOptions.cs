@@ -28,8 +28,14 @@ public sealed class DecodeOptions
     /// </summary>
     public DecodeOptions()
     {
-        // Validation
-        if (!Equals(Charset, Encoding.UTF8) && !Equals(Charset, Encoding.Latin1))
+        if (
+            !Equals(Charset, Encoding.UTF8) &&
+#if NETSTANDARD2_0
+            Charset.CodePage != 28591
+#else
+            !Equals(Charset, Encoding.Latin1)
+#endif
+        )
             throw new ArgumentException("Invalid charset");
 
         if (ParameterLimit <= 0)
