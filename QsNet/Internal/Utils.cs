@@ -150,7 +150,8 @@ internal static partial class Utils
                             {
                                 var set = new HashSet<object?>(targetList);
                                 foreach (var v in srcList)
-                                    if (v is not Undefined) set.Add(v);
+                                    if (v is not Undefined)
+                                        set.Add(v);
                                 return set;
                             }
 
@@ -168,6 +169,7 @@ internal static partial class Utils
                             var set = new HashSet<object?>(targetList) { source };
                             return set;
                         }
+
                         var res2 = new List<object?>(targetList.Count + 1);
                         res2.AddRange(targetList);
                         res2.Add(source);
@@ -766,8 +768,14 @@ internal static partial class Utils
     private static bool HasAny(IEnumerable enumerable)
     {
         var e = enumerable.GetEnumerator();
-        try { return e.MoveNext(); }
-        finally { (e as IDisposable)?.Dispose(); }
+        try
+        {
+            return e.MoveNext();
+        }
+        finally
+        {
+            (e as IDisposable)?.Dispose();
+        }
     }
 
     /// <summary>
@@ -907,10 +915,7 @@ internal static partial class Utils
                 var keysCol = dict.Keys;
                 var keysArr = new object[dict.Count];
                 keysCol.CopyTo(keysArr, 0);
-                foreach (var key in keysArr)
-                {
-                    dict[key] = ConvertNestedValues(dict[key], visited);
-                }
+                foreach (var key in keysArr) dict[key] = ConvertNestedValues(dict[key], visited);
                 return NormalizeForTarget(dict);
 
             case IList list:
