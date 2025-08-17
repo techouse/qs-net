@@ -158,10 +158,11 @@ internal static class Encoder
         {
             List<string> strings = [];
             if (encodeValuesOnly && encoder != null)
-                strings.AddRange(from object? el in enumerable
-                                 select el is null ? "" : encoder(el.ToString(), null, null));
+                foreach (var el in enumerable)
+                    strings.Add(el is null ? "" : encoder(el.ToString(), null, null));
             else
-                strings.AddRange(from object? el in enumerable select el?.ToString() ?? "");
+                foreach (var el in enumerable)
+                    strings.Add(el?.ToString() ?? "");
 
             if (strings.Count != 0)
             {
@@ -213,7 +214,7 @@ internal static class Encoder
                         {
                             objKeys = [];
                             var i = 0;
-                            objKeys.AddRange((from object? _ in ie select i++).Cast<object?>());
+                            foreach (var _ in ie) objKeys.Add(i++);
                         }
                         else
                         {
@@ -413,7 +414,8 @@ internal static class Encoder
             );
 
             if (encoded is IEnumerable en and not string)
-                values.AddRange(en.Cast<object?>());
+                foreach (var item in en)
+                    values.Add(item);
             else
                 values.Add(encoded);
         }
