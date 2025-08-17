@@ -1005,81 +1005,81 @@ internal static partial class Utils
         {
             var (src, dst) = stack.Pop();
 
-            if (src is IDictionary sd && dst is Dictionary<string, object?> dd)
-                foreach (DictionaryEntry de in sd)
+            if (src is not IDictionary sd || dst is not Dictionary<string, object?> dd) continue;
+            foreach (DictionaryEntry de in sd)
+            {
+                var key = de.Key.ToString() ?? string.Empty;
+                var val = de.Value;
+
+                switch (val)
                 {
-                    var key = de.Key.ToString() ?? string.Empty;
-                    var val = de.Value;
-
-                    switch (val)
-                    {
-                        case IDictionary child:
-                            // Preserve identity for already string-keyed child maps
-                            if (child is Dictionary<string, object?> sk)
-                            {
-                                dd[key] = sk;
-                                // register so future references reuse this instance
-                                if (!visited.ContainsKey(child)) visited[child] = sk;
-                                break;
-                            }
-
-                            if (visited.TryGetValue(child, out var existing))
-                            {
-                                dd[key] = existing;
-                            }
-                            else
-                            {
-                                var newChild = new Dictionary<string, object?>(child.Count);
-                                dd[key] = newChild;
-                                visited[child] = newChild;
-                                stack.Push((child, newChild));
-                            }
-
+                    case IDictionary child:
+                        // Preserve identity for already string-keyed child maps
+                        if (child is Dictionary<string, object?> sk)
+                        {
+                            dd[key] = sk;
+                            // register so future references reuse this instance
+                            if (!visited.ContainsKey(child)) visited[child] = sk;
                             break;
+                        }
 
-                        case IList list:
-                            if (visited.TryGetValue(list, out var existingList))
+                        if (visited.TryGetValue(child, out var existing))
+                        {
+                            dd[key] = existing;
+                        }
+                        else
+                        {
+                            var newChild = new Dictionary<string, object?>(child.Count);
+                            dd[key] = newChild;
+                            visited[child] = newChild;
+                            stack.Push((child, newChild));
+                        }
+
+                        break;
+
+                    case IList list:
+                        if (visited.TryGetValue(list, out var existingList))
+                        {
+                            dd[key] = existingList;
+                            break;
+                        }
+
+                        var newList = new List<object?>(list.Count);
+                        dd[key] = newList;
+                        visited[list] = newList;
+
+                        foreach (var item in list)
+                            if (item is IDictionary inner)
                             {
-                                dd[key] = existingList;
-                                break;
-                            }
-
-                            var newList = new List<object?>(list.Count);
-                            dd[key] = newList;
-                            visited[list] = newList;
-
-                            foreach (var item in list)
-                                if (item is IDictionary inner)
+                                if (inner is Dictionary<string, object?> innerSk)
                                 {
-                                    if (inner is Dictionary<string, object?> innerSk)
-                                    {
-                                        newList.Add(innerSk);
-                                        if (!visited.ContainsKey(inner)) visited[inner] = innerSk;
-                                    }
-                                    else if (visited.TryGetValue(inner, out var ex))
-                                    {
-                                        newList.Add(ex);
-                                    }
-                                    else
-                                    {
-                                        var newInner = new Dictionary<string, object?>(inner.Count);
-                                        newList.Add(newInner);
-                                        visited[inner] = newInner;
-                                        stack.Push((inner, newInner));
-                                    }
+                                    newList.Add(innerSk);
+                                    if (!visited.ContainsKey(inner)) visited[inner] = innerSk;
+                                }
+                                else if (visited.TryGetValue(inner, out var ex))
+                                {
+                                    newList.Add(ex);
                                 }
                                 else
                                 {
-                                    newList.Add(item);
+                                    var newInner = new Dictionary<string, object?>(inner.Count);
+                                    newList.Add(newInner);
+                                    visited[inner] = newInner;
+                                    stack.Push((inner, newInner));
                                 }
+                            }
+                            else
+                            {
+                                newList.Add(item);
+                            }
 
-                            break;
+                        break;
 
-                        default:
-                            dd[key] = val;
-                            break;
-                    }
+                    default:
+                        dd[key] = val;
+                        break;
                 }
+            }
         }
 
         return top;
