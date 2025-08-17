@@ -41,6 +41,11 @@ public enum ListFormat
 /// </summary>
 public static class ListFormatExtensions
 {
+    private static readonly ListFormatGenerator BracketsGen = (p, _) => $"{p}[]";
+    private static readonly ListFormatGenerator CommaGen = (p, _) => p;
+    private static readonly ListFormatGenerator RepeatGen = (p, _) => p;
+    private static readonly ListFormatGenerator IndicesGen = (p, k) => $"{p}[{k}]";
+
     /// <summary>
     ///     Gets the generator function for the specified list format.
     /// </summary>
@@ -50,10 +55,10 @@ public static class ListFormatExtensions
     {
         return format switch
         {
-            ListFormat.Brackets => (prefix, _) => $"{prefix}[]",
-            ListFormat.Comma => (prefix, _) => prefix,
-            ListFormat.Repeat => (prefix, _) => prefix,
-            ListFormat.Indices => (prefix, key) => $"{prefix}[{key}]",
+            ListFormat.Brackets => BracketsGen,
+            ListFormat.Comma => CommaGen,
+            ListFormat.Repeat => RepeatGen,
+            ListFormat.Indices => IndicesGen,
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
     }

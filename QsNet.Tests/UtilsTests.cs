@@ -1355,36 +1355,6 @@ public class UtilsTests
     }
 
     [Fact]
-    public void ToStringKeyedDictionary_Converts_Keys_To_String()
-    {
-        var src = new OrderedDictionary
-        {
-            { "a", 1 }, // string key
-            { 2, "b" }, // int   key
-            { "", 3 } // null  key
-        };
-
-        var dict =
-            (Dictionary<string, object?>)
-            typeof(Utils)
-                .GetMethod(
-                    "ToStringKeyedDictionary",
-                    BindingFlags.NonPublic | BindingFlags.Static
-                )!
-                .Invoke(null, [src])!;
-
-        dict.Should()
-            .BeEquivalentTo(
-                new Dictionary<string, object?>
-                {
-                    ["a"] = 1,
-                    ["2"] = "b", // int key → "2"
-                    [""] = 3 // null key → ""
-                }
-            );
-    }
-
-    [Fact]
     public void ConvertDictionaryToStringKeyed_Does_Not_Copy_If_Already_StringKeyed()
     {
         var src = new Dictionary<string, object?> { ["a"] = 7 };

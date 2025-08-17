@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -30,7 +31,11 @@ public sealed record StringDelimiter(string Value) : IDelimiter
     /// <returns>A list of split strings</returns>
     public IEnumerable<string> Split(string input)
     {
+#if NETSTANDARD2_0
+        return Value.Length == 1 ? input.Split(Value[0]) : input.Split([Value], StringSplitOptions.None);
+#else
         return input.Split(Value);
+#endif
     }
 }
 
