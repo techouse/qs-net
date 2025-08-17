@@ -709,12 +709,12 @@ internal static partial class Utils
         switch (value)
         {
             case IEnumerable<T> enumerable:
-            {
-                var list = new List<T>();
-                foreach (var it in enumerable)
-                    list.Add(fn(it));
-                return list;
-            }
+                {
+                    var list = new List<T>();
+                    foreach (var it in enumerable)
+                        list.Add(fn(it));
+                    return list;
+                }
             case T item:
                 return fn(item);
             default:
@@ -757,7 +757,7 @@ internal static partial class Utils
             _ => false
         };
     }
-    
+
     /// <summary>
     ///     Checks if an IEnumerable has any elements.
     /// </summary>
