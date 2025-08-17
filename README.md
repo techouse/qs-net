@@ -44,14 +44,15 @@ dotnet add package QsNet
 ### Package Reference
 
 ```xml
-<PackageReference Include="QsNet" Version="<version>" />
+
+<PackageReference Include="QsNet" Version="<version>"/>
 ```
 
 ---
 
 ## Requirements
 
-- .NET **8.0+**
+- **Targets:** `net8.0`, `netstandard2.0`
 
 ---
 
@@ -587,6 +588,16 @@ Qs.Encode(
 ```
 
 ### Charset handling
+
+> **Note (Latin-1 on older TFMs):** Some frameworks (e.g., netstandard2.0) don’t expose `Encoding.Latin1` directly. Use
+`Encoding.GetEncoding("iso-8859-1")`. On .NET Core / netstandard you may also need to register the code pages provider:
+>
+> ```csharp
+> using System.Text;
+>
+> Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+> var latin1 = Encoding.GetEncoding("iso-8859-1");
+> ```
 
 ```csharp
 // Encode using Latin1 charset
