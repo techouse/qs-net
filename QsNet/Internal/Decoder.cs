@@ -137,7 +137,7 @@ internal static partial class Decoder
 
         if (options.CharsetSentinel)
             for (var i = 0; i < parts.Count; i++)
-                if (parts[i].StartsWith("utf8="))
+                if (parts[i].StartsWith("utf8=", StringComparison.Ordinal))
                 {
                     charset = parts[i] switch
                     {
@@ -195,18 +195,14 @@ internal static partial class Decoder
                 && options.InterpretNumericEntities
                 && IsLatin1(charset)
             )
-                value = Utils.InterpretNumericEntities(
-                    value switch
-                    {
-                        IEnumerable enumerable and not string => string.Join(
-                            ",",
-                            enumerable.Cast<object?>().Select(x => x?.ToString())
-                        ),
-                        _ => value.ToString() ?? string.Empty
-                    }
-                );
+            {
+                var tmpStr = value is IEnumerable enumerable and not string
+                    ? JoinAsCommaSeparatedStrings(enumerable)
+                    : value.ToString() ?? string.Empty;
+                value = Utils.InterpretNumericEntities(tmpStr);
+            }
 
-            if (part.Contains("[]="))
+            if (part.IndexOf("[]=", StringComparison.Ordinal) >= 0)
                 value = value is IEnumerable and not string ? new List<object?> { value } : value;
 
             if (obj.TryGetValue(key, out var existingVal))
@@ -254,7 +250,18 @@ internal static partial class Decoder
 #endif
            )
         {
-            var parentKeyStr = string.Join("", chain.Take(chain.Count - 1));
+            string parentKeyStr;
+            if (chain.Count > 1)
+            {
+                var sbTmp = new StringBuilder();
+                for (var t = 0; t < chain.Count - 1; t++) sbTmp.Append(chain[t]);
+                parentKeyStr = sbTmp.ToString();
+            }
+            else
+            {
+                parentKeyStr = string.Empty;
+            }
+
             if (
                 int.TryParse(parentKeyStr, out var parentKey)
                 && value is IList<object?> list
@@ -268,9 +275,14 @@ internal static partial class Decoder
         if (leaf is IDictionary id and not Dictionary<object, object?>)
         {
             // Preserve identity for self-referencing maps
-            var selfRef =
-                id is Dictionary<string, object?> strDict
-                && strDict.Keys.Any(k => ReferenceEquals(strDict[k], strDict));
+            var selfRef = false;
+            if (id is Dictionary<string, object?> strDict)
+                foreach (var k in strDict.Keys)
+                    if (ReferenceEquals(strDict[k], strDict))
+                    {
+                        selfRef = true;
+                        break;
+                    }
 
             if (!selfRef)
                 leaf = Utils.ToObjectKeyedDictionary(id);
@@ -301,9 +313,16 @@ internal static partial class Decoder
 #else
                 var cleanRoot = root.StartsWith('[') && root.EndsWith(']') ? root[1..^1] : root;
 #endif
+
+#if NETSTANDARD2_0
                 var decodedRoot = options.DecodeDotInKeys
-                    ? cleanRoot.Replace("%2E", ".")
+                    ? ReplaceOrdinalIgnoreCase(cleanRoot, "%2E", ".")
                     : cleanRoot;
+#else
+                var decodedRoot = options.DecodeDotInKeys
+                    ? cleanRoot.Replace("%2E", ".", StringComparison.OrdinalIgnoreCase)
+                    : cleanRoot;
+#endif
 
                 // Bracketed numeric like "[1]"?
                 var isPureNumeric =
@@ -323,7 +342,7 @@ internal static partial class Decoder
                         case true when idx >= 0 && idx <= options.ListLimit:
                             {
                                 // Build a list up to idx (0 is allowed when ListLimit == 0)
-                                var list = new List<object?>();
+                                var list = new List<object?>(idx + 1);
                                 for (var j = 0; j <= idx; j++)
                                     list.Add(j == idx ? leaf : Undefined.Instance);
                                 obj = list;
@@ -468,4 +487,28 @@ internal static partial class Decoder
         }
     }
 #endif
+
+    // Helper for joining IEnumerable as comma-separated strings (avoiding LINQ)
+    private static string JoinAsCommaSeparatedStrings(IEnumerable enumerable)
+    {
+        var e = enumerable.GetEnumerator();
+        var sb = new StringBuilder();
+        var first = true;
+        try
+        {
+            while (e.MoveNext())
+            {
+                if (!first) sb.Append(',');
+                var s = e.Current?.ToString() ?? string.Empty;
+                sb.Append(s);
+                first = false;
+            }
+        }
+        finally
+        {
+            (e as IDisposable)?.Dispose();
+        }
+
+        return sb.ToString();
+    }
 }
