@@ -492,16 +492,24 @@ internal static partial class Decoder
     private static string JoinAsCommaSeparatedStrings(IEnumerable enumerable)
     {
         var e = enumerable.GetEnumerator();
-        var sb = new StringBuilder();
+        StringBuilder? sb = null;
         var first = true;
         try
         {
             while (e.MoveNext())
             {
-                if (!first) sb.Append(',');
+                if (first)
+                {
+                    sb = new StringBuilder();
+                    first = false;
+                }
+                else
+                {
+                    sb!.Append(',');
+                }
+
                 var s = e.Current?.ToString() ?? string.Empty;
-                sb.Append(s);
-                first = false;
+                sb!.Append(s);
             }
         }
         finally
@@ -509,6 +517,6 @@ internal static partial class Decoder
             (e as IDisposable)?.Dispose();
         }
 
-        return sb.ToString();
+        return sb?.ToString() ?? string.Empty;
     }
 }
