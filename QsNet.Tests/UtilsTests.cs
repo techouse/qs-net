@@ -1532,4 +1532,40 @@ public class UtilsTests
             .Should()
             .BeEquivalentTo(new Dictionary<string, object?> { { "foo", "baz" }, { "bar", true } });
     }
+
+    [Fact]
+    public void ToStringKeyDeepNonRecursive_Converts_Nested_Lists_And_Dicts()
+    {
+        // root: { "x": [ {"a":1}, [ {"b":2}, {"c":3} ], 4 ] }
+        var dict1 = new Dictionary<object, object?> { ["a"] = 1 };
+        var dict2 = new Dictionary<object, object?> { ["b"] = 2 };
+        var dict3 = new Dictionary<object, object?> { ["c"] = 3 };
+
+        var innerList = new List<object?> { dict2, dict3 };
+        var topList = new List<object?> { dict1, innerList, 4 };
+
+        var root = new Dictionary<object, object?> { ["x"] = topList };
+
+        var result = Utils.ToStringKeyDeepNonRecursive(root);
+
+        result.Should().ContainKey("x");
+        var outTopList = result["x"] as List<object?>;
+        outTopList.Should().NotBeNull();
+
+        var outDict1 = outTopList![0] as Dictionary<string, object?>;
+        outDict1.Should().NotBeNull();
+        outDict1!["a"].Should().Be(1);
+
+        var outInnerList = outTopList[1] as List<object?>;
+        outInnerList.Should().NotBeNull();
+
+        var outDict2 = outInnerList![0] as Dictionary<string, object?>;
+        var outDict3 = outInnerList[1] as Dictionary<string, object?>;
+        outDict2.Should().NotBeNull();
+        outDict3.Should().NotBeNull();
+        outDict2!["b"].Should().Be(2);
+        outDict3!["c"].Should().Be(3);
+
+        outTopList[2].Should().Be(4);
+    }
 }
