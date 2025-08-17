@@ -15,17 +15,27 @@ public static class HexTable
         var arr = new string[256];
         for (var i = 0; i < 256; i++)
         {
+#if NETSTANDARD2_0
             var chars = new char[3];
             chars[0] = '%';
             chars[1] = GetHexChar((i >> 4) & 0xF);
             chars[2] = GetHexChar(i & 0xF);
             arr[i] = new string(chars);
+#else
+            arr[i] = string.Create(3, i, static (span, val) =>
+            {
+                span[0] = '%';
+                span[1] = GetHexChar((val >> 4) & 0xF);
+                span[2] = GetHexChar(val & 0xF);
+            });
+#endif
         }
+
         return arr;
     }
 
     private static char GetHexChar(int n)
     {
-        return (char)(n < 10 ? ('0' + n) : ('A' + (n - 10)));
+        return (char)(n < 10 ? '0' + n : 'A' + (n - 10));
     }
 }
