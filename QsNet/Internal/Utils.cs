@@ -1061,80 +1061,109 @@ internal static partial class Utils
         {
             var (src, dst) = stack.Pop();
 
-            if (src is not IDictionary sd || dst is not Dictionary<string, object?> dd) continue;
-            foreach (DictionaryEntry de in sd)
+            switch (src)
             {
-                var key = de.Key.ToString() ?? string.Empty;
-                var val = de.Value;
+                // Dictionary node ➜ Dictionary<string, object?>
+                case IDictionary sd when dst is Dictionary<string, object?> dd:
+                    foreach (DictionaryEntry de in sd)
+                    {
+                        var key = de.Key?.ToString() ?? string.Empty;
+                        var val = de.Value;
 
-                switch (val)
-                {
-                    case IDictionary child:
-                        // Preserve identity for already string-keyed child maps
-                        if (child is Dictionary<string, object?> sk)
+                        switch (val)
                         {
-                            dd[key] = sk;
-                            // register so future references reuse this instance
-                            if (!visited.ContainsKey(child)) visited[child] = sk;
-                            break;
-                        }
-
-                        if (visited.TryGetValue(child, out var existing))
-                        {
-                            dd[key] = existing;
-                        }
-                        else
-                        {
-                            var newChild = new Dictionary<string, object?>(child.Count);
-                            dd[key] = newChild;
-                            visited[child] = newChild;
-                            stack.Push((child, newChild));
-                        }
-
-                        break;
-
-                    case IList list:
-                        if (visited.TryGetValue(list, out var existingList))
-                        {
-                            dd[key] = existingList;
-                            break;
-                        }
-
-                        var newList = new List<object?>(list.Count);
-                        dd[key] = newList;
-                        visited[list] = newList;
-
-                        foreach (var item in list)
-                            if (item is IDictionary inner)
-                            {
-                                if (inner is Dictionary<string, object?> innerSk)
+                            case IDictionary child:
+                                // Preserve identity for already string-keyed child maps
+                                if (child is Dictionary<string, object?> sk)
                                 {
-                                    newList.Add(innerSk);
-                                    if (!visited.ContainsKey(inner)) visited[inner] = innerSk;
+                                    dd[key] = sk;
+                                    if (!visited.ContainsKey(child)) visited[child] = sk;
                                 }
-                                else if (visited.TryGetValue(inner, out var ex))
+                                else if (visited.TryGetValue(child, out var existing))
                                 {
-                                    newList.Add(ex);
+                                    dd[key] = existing;
                                 }
                                 else
                                 {
-                                    var newInner = new Dictionary<string, object?>(inner.Count);
-                                    newList.Add(newInner);
-                                    visited[inner] = newInner;
-                                    stack.Push((inner, newInner));
+                                    var newChild = new Dictionary<string, object?>(child.Count);
+                                    dd[key] = newChild;
+                                    visited[child] = newChild;
+                                    stack.Push((child, newChild));
                                 }
-                            }
-                            else
-                            {
-                                newList.Add(item);
-                            }
 
-                        break;
+                                break;
 
-                    default:
-                        dd[key] = val;
-                        break;
-                }
+                            case IList list:
+                                if (visited.TryGetValue(list, out var existingList))
+                                {
+                                    dd[key] = existingList;
+                                }
+                                else
+                                {
+                                    var newList = new List<object?>(list.Count);
+                                    dd[key] = newList;
+                                    visited[list] = newList;
+                                    stack.Push((list, newList));
+                                }
+
+                                break;
+
+                            default:
+                                dd[key] = val;
+                                break;
+                        }
+                    }
+
+                    break;
+
+                // List node ➜ List<object?>
+                case IList srcList when dst is List<object?> dstList:
+                    foreach (var item in srcList)
+                    {
+                        switch (item)
+                        {
+                            case IDictionary innerDict:
+                                if (innerDict is Dictionary<string, object?> sk)
+                                {
+                                    dstList.Add(sk);
+                                    if (!visited.ContainsKey(innerDict)) visited[innerDict] = sk;
+                                }
+                                else if (visited.TryGetValue(innerDict, out var existing))
+                                {
+                                    dstList.Add(existing);
+                                }
+                                else
+                                {
+                                    var newDict = new Dictionary<string, object?>(innerDict.Count);
+                                    dstList.Add(newDict);
+                                    visited[innerDict] = newDict;
+                                    stack.Push((innerDict, newDict));
+                                }
+
+                                break;
+
+                            case IList innerList:
+                                if (visited.TryGetValue(innerList, out var existingList))
+                                {
+                                    dstList.Add(existingList);
+                                }
+                                else
+                                {
+                                    var newList = new List<object?>(innerList.Count);
+                                    dstList.Add(newList);
+                                    visited[innerList] = newList;
+                                    stack.Push((innerList, newList));
+                                }
+
+                                break;
+
+                            default:
+                                dstList.Add(item);
+                                break;
+                        }
+                    }
+
+                    break;
             }
         }
 
