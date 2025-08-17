@@ -1049,7 +1049,6 @@ internal static partial class Utils
                             visited[list] = newList;
 
                             foreach (var item in list)
-                            {
                                 if (item is IDictionary inner)
                                 {
                                     if (inner is Dictionary<string, object?> innerSk)
@@ -1073,7 +1072,6 @@ internal static partial class Utils
                                 {
                                     newList.Add(item);
                                 }
-                            }
 
                             break;
 
