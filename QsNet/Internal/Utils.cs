@@ -944,6 +944,12 @@ internal static partial class Utils
         return ConvertNestedDictionary(dict, new HashSet<object>(ReferenceEqualityComparer.Instance));
     }
 
+    /// <summary>
+    ///     Converts a nested IDictionary structure to a Dictionary with string keys.
+    /// </summary>
+    /// <param name="dict"></param>
+    /// <param name="visited"></param>
+    /// <returns></returns>
     private static Dictionary<string, object?> ConvertNestedDictionary(
         IDictionary dict,
         ISet<object> visited
@@ -1136,7 +1142,9 @@ internal static partial class Utils
     }
 }
 
-// Reference-equality comparer used to track visited nodes without relying on value equality
+/// <summary>
+///     Reference-equality comparer used to track visited nodes without relying on value equality
+/// </summary>
 internal sealed class ReferenceEqualityComparer : IEqualityComparer<object>
 {
     public static readonly ReferenceEqualityComparer Instance = new();
