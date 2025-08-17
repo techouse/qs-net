@@ -13,6 +13,8 @@ namespace QsNet.Internal;
 /// </summary>
 internal static class Encoder
 {
+    private static readonly Formatter IdentityFormatter = s => s;
+
     /// <summary>
     ///     Encodes the given data into a query string format.
     /// </summary>
@@ -60,7 +62,7 @@ internal static class Encoder
         bool addQueryPrefix = false
     )
     {
-        var fmt = formatter ?? (s => s); // your Format formatter should be passed in
+        var fmt = formatter ?? IdentityFormatter; // avoid per-call lambda alloc
         var cs = charset ?? Encoding.UTF8;
         var gen = generateArrayPrefix ?? ListFormat.Indices.GetGenerator();
 
@@ -142,16 +144,28 @@ internal static class Encoder
         if (undefined)
             return values;
 
+        // Detect sequence once and cache materialization for index access / counts
+        var isSeq = false;
+        List<object?>? seqList = null;
+        if (obj is IEnumerable seq0 and not string and not IDictionary)
+        {
+            isSeq = true;
+            seqList = seq0.Cast<object?>().ToList();
+        }
+
         List<object?> objKeys;
         if (isCommaGen && obj is IEnumerable enumerable and not string and not IDictionary)
         {
-            var list = enumerable.Cast<object?>().ToList();
-
+            List<object?> list;
             if (encodeValuesOnly && encoder != null)
-                list = list.Select(el =>
-                        el is null ? "" : encoder(el.ToString(), null, null) as object
-                    )
-                    .ToList<object?>();
+            {
+                list = [];
+                list.AddRange(from object? el in enumerable select el is null ? "" : encoder(el.ToString(), null, null));
+            }
+            else
+            {
+                list = enumerable.Cast<object?>().ToList();
+            }
 
             if (list.Count != 0)
             {
@@ -189,17 +203,15 @@ internal static class Encoder
                 objKeys.Sort(Comparer<object?>.Create(sort));
         }
 
+        values.Capacity = Math.Max(values.Capacity, objKeys.Count);
+
         var encodedPrefix = encodeDotInKeys ? keyPrefixStr.Replace(".", "%2E") : keyPrefixStr;
         var adjustedPrefix =
-            crt && obj is IEnumerable iter and not string && iter.Cast<object?>().Count() == 1
+            crt && isSeq && seqList is { Count: 1 }
                 ? $"{encodedPrefix}[]"
                 : encodedPrefix;
 
-        if (
-            allowEmptyLists
-            && obj is IEnumerable iter0 and not string
-            && !iter0.Cast<object?>().Any()
-        )
+        if (allowEmptyLists && isSeq && seqList is { Count: 0 })
             return $"{adjustedPrefix}[]";
 
         for (var i = 0; i < objKeys.Count; i++)
@@ -270,12 +282,11 @@ internal static class Encoder
                             var idx = key switch
                             {
                                 int j => j,
-                                IConvertible when int.TryParse(key.ToString(), out var parsed) =>
-                                    parsed,
+                                IConvertible when int.TryParse(key.ToString(), out var parsed) => parsed,
                                 _ => -1
                             };
-                            var list2 = ie.Cast<object?>().ToList();
-                            if (idx >= 0 && idx < list2.Count)
+                            var list2 = seqList ?? ie.Cast<object?>().ToList();
+                            if ((uint)idx < (uint)list2.Count)
                             {
                                 value = list2[idx];
                             }
@@ -298,7 +309,9 @@ internal static class Encoder
                 continue;
 
             var keyStr = key?.ToString() ?? "";
-            var encodedKey = allowDots && encodeDotInKeys ? keyStr.Replace(".", "%2E") : keyStr;
+            var encodedKey = keyStr;
+            if (allowDots && encodeDotInKeys && keyStr.IndexOf('.') >= 0)
+                encodedKey = keyStr.Replace(".", "%2E");
 
             var keyPrefix =
                 obj is IEnumerable and not string and not IDictionary
