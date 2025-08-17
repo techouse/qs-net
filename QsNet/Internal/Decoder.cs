@@ -94,7 +94,6 @@ internal static partial class Decoder
     )
     {
         options ??= new DecodeOptions();
-        var obj = new Dictionary<string, object?>();
 
 #if NETSTANDARD2_0
         var cleanStr = options.IgnoreQueryPrefix ? str.TrimStart('?') : str;
@@ -111,23 +110,28 @@ internal static partial class Decoder
         if (limit is <= 0)
             throw new ArgumentException("Parameter limit must be a positive integer.");
 
+        var allPartsSeq = options.Delimiter.Split(cleanStr);
+        var allParts = allPartsSeq as string[] ?? allPartsSeq.ToArray();
         List<string> parts;
         if (limit != null)
         {
-            var allParts = options.Delimiter.Split(cleanStr).ToList();
             var takeCount = options.ThrowOnLimitExceeded ? limit.Value + 1 : limit.Value;
-            parts = allParts.Take(takeCount).ToList();
+            var count = allParts.Length < takeCount ? allParts.Length : takeCount;
+            parts = new List<string>(count);
+            for (var i = 0; i < count; i++) parts.Add(allParts[i]);
+
+            if (options.ThrowOnLimitExceeded && allParts.Length > limit.Value)
+                throw new IndexOutOfRangeException(
+                    $"Parameter limit exceeded. Only {limit} parameter{(limit == 1 ? "" : "s")} allowed."
+                );
         }
         else
         {
-            parts = options.Delimiter.Split(cleanStr).ToList();
+            parts = new List<string>(allParts.Length);
+            parts.AddRange(allParts);
         }
 
-        if (options.ThrowOnLimitExceeded && limit != null && parts.Count > limit)
-            throw new IndexOutOfRangeException(
-                $"Parameter limit exceeded. Only {limit} parameter{(limit == 1 ? "" : "s")} allowed."
-            );
-
+        var obj = new Dictionary<string, object?>(parts.Count);
         var skipIndex = -1; // Keep track of where the utf8 sentinel was found
         var charset = options.Charset;
 
@@ -205,13 +209,22 @@ internal static partial class Decoder
             if (part.Contains("[]="))
                 value = value is IEnumerable and not string ? new List<object?> { value } : value;
 
-            var existing = obj.ContainsKey(key);
-            obj[key] = (existing, options.Duplicates) switch
-            {
-                (true, Duplicates.Combine) => Utils.Combine<object?>(obj[key], value),
-                (false, _) or (true, Duplicates.Last) => value,
-                _ => obj[key]
-            };
+            if (obj.TryGetValue(key, out var existingVal))
+                switch (options.Duplicates)
+                {
+                    case Duplicates.Combine:
+                        obj[key] = Utils.Combine<object?>(existingVal, value);
+                        break;
+                    case Duplicates.Last:
+                        obj[key] = value;
+                        break;
+                    case Duplicates.First:
+                    default:
+                        // keep the first value; do nothing
+                        break;
+                }
+            else
+                obj[key] = value;
         }
 
         return obj;
