@@ -1,3 +1,7 @@
+## 1.0.3
+
+* [CHORE] make package .NET Standard 2.0 compatible
+
 ## 1.0.2
 
 * [FIX] change `Qs.Decode` return from `Dictionary<object, object?>` to `Dictionary<string, object?>` 
