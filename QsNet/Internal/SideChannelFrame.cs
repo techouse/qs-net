@@ -13,6 +13,7 @@ internal sealed class SideChannelFrame(SideChannelFrame? parent = null)
     private readonly ConditionalWeakTable<object, Box<int>> _map = new();
     public SideChannelFrame? Parent { get; } = parent;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGet(object key, out int step)
     {
         if (_map.TryGetValue(key, out var box))
@@ -25,10 +26,13 @@ internal sealed class SideChannelFrame(SideChannelFrame? parent = null)
         return false;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Set(object key, int step)
     {
-        _map.Remove(key);
-        _map.Add(key, new Box<int>(step));
+        if (_map.TryGetValue(key, out var box))
+            box.Value = step;
+        else
+            _map.Add(key, new Box<int>(step));
     }
 }
 
@@ -40,5 +44,5 @@ internal sealed class SideChannelFrame(SideChannelFrame? parent = null)
 /// <typeparam name="T"></typeparam>
 internal sealed class Box<T>(T v)
 {
-    public readonly T Value = v;
+    public T Value = v;
 }
