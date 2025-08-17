@@ -156,20 +156,16 @@ internal static class Encoder
         List<object?> objKeys;
         if (isCommaGen && obj is IEnumerable enumerable and not string and not IDictionary)
         {
-            List<object?> list;
+            List<string> strings = [];
             if (encodeValuesOnly && encoder != null)
-            {
-                list = [];
-                list.AddRange(from object? el in enumerable select el is null ? "" : encoder(el.ToString(), null, null));
-            }
+                strings.AddRange(from object? el in enumerable
+                                 select el is null ? "" : encoder(el.ToString(), null, null));
             else
-            {
-                list = enumerable.Cast<object?>().ToList();
-            }
+                strings.AddRange(from object? el in enumerable select el?.ToString() ?? "");
 
-            if (list.Count != 0)
+            if (strings.Count != 0)
             {
-                var joined = string.Join(",", list.Select(el => el?.ToString() ?? ""));
+                var joined = string.Join(",", strings);
                 objKeys =
                 [
                     new Dictionary<string, object?>
@@ -189,16 +185,45 @@ internal static class Encoder
         }
         else
         {
-            var keys = obj switch
+            switch (obj)
             {
-                IDictionary map => map.Keys.Cast<object?>(),
-                Array arr => Enumerable.Range(0, arr.Length).Cast<object?>(),
-                IList list => Enumerable.Range(0, list.Count).Cast<object?>(),
-                IEnumerable ie and not string => ie.Cast<object?>().Select((_, i) => (object?)i),
-                _ => []
-            };
+                case IDictionary map:
+                    objKeys = map.Keys.Cast<object?>().ToList();
+                    break;
+                case Array arr:
+                    {
+                        objKeys = new List<object?>(arr.Length);
+                        for (var i = 0; i < arr.Length; i++) objKeys.Add(i);
+                        break;
+                    }
+                case IList list:
+                    {
+                        objKeys = new List<object?>(list.Count);
+                        for (var i = 0; i < list.Count; i++) objKeys.Add(i);
+                        break;
+                    }
+                default:
+                    {
+                        if (isSeq && seqList != null)
+                        {
+                            objKeys = new List<object?>(seqList.Count);
+                            for (var i = 0; i < seqList.Count; i++) objKeys.Add(i);
+                        }
+                        else if (obj is IEnumerable ie and not string)
+                        {
+                            objKeys = [];
+                            var i = 0;
+                            objKeys.AddRange((from object? _ in ie select i++).Cast<object?>());
+                        }
+                        else
+                        {
+                            objKeys = [];
+                        }
 
-            objKeys = keys.ToList();
+                        break;
+                    }
+            }
+
             if (sort != null)
                 objKeys.Sort(Comparer<object?>.Create(sort));
         }
@@ -226,17 +251,51 @@ internal static class Encoder
                 switch (obj)
                 {
                     case IDictionary map:
-                        if (key is not null && map.Contains(key))
                         {
-                            value = map[key];
-                        }
-                        else
-                        {
-                            value = null;
-                            valueUndefined = true;
-                        }
+                            switch (obj)
+                            {
+                                // Fast paths for common generic dictionaries
+                                case IDictionary<object, object?> dObj
+                                    when key is not null && dObj.TryGetValue(key, out var got):
+                                    value = got;
+                                    break;
+                                case IDictionary<object, object?>:
+                                    value = null;
+                                    valueUndefined = true;
+                                    break;
+                                case IDictionary<string, object?> dStr:
+                                    {
+                                        var ks = key as string ?? key?.ToString() ?? string.Empty;
+                                        if (dStr.TryGetValue(ks, out var got))
+                                        {
+                                            value = got;
+                                        }
+                                        else
+                                        {
+                                            value = null;
+                                            valueUndefined = true;
+                                        }
 
-                        break;
+                                        break;
+                                    }
+                                default:
+                                    {
+                                        if (key is not null && map.Contains(key))
+                                        {
+                                            value = map[key];
+                                        }
+                                        else
+                                        {
+                                            value = null;
+                                            valueUndefined = true;
+                                        }
+
+                                        break;
+                                    }
+                            }
+
+                            break;
+                        }
 
                     case Array arr:
                         {
