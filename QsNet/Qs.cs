@@ -56,10 +56,10 @@ public static class Qs
             finalOptions = opts.CopyWith(parseLists: false);
 
         // keep internal work in object-keyed maps
-        var obj = new Dictionary<object, object?>();
-
         if (tempObj is not { Count: > 0 })
             return new Dictionary<string, object?>();
+
+        var obj = new Dictionary<object, object?>(tempObj.Count);
 
 #if NETSTANDARD2_0
         foreach (var kv in tempObj)
@@ -137,9 +137,7 @@ public static class Qs
                 genericDict
             ),
             IDictionary map => Utils.ConvertDictionaryToStringKeyed(map),
-            IEnumerable en and not string => en.Cast<object?>()
-                .Select((v, i) => (Key: i.ToString(), Val: v))
-                .ToDictionary(t => t.Key, t => t.Val),
+            IEnumerable en and not string => CreateIndexDictionary(en),
             _ => new Dictionary<string, object?>()
         };
 
@@ -177,7 +175,12 @@ public static class Qs
         }
 
         // Default keys if filter didn't provide
-        objKeys ??= obj.Keys.Cast<object?>().ToList();
+        if (objKeys is null)
+        {
+            objKeys = new List<object?>(obj.Count);
+            foreach (var k in obj.Keys)
+                objKeys.Add(k);
+        }
 
         // Optional sort
         if (opts.Sort != null)
@@ -187,7 +190,7 @@ public static class Qs
         var sideChannel = new SideChannelFrame();
 
         // Collect "key=value" parts
-        var parts = new List<string>();
+        var parts = new List<string>(objKeys.Count);
 
         for (var i = 0; i < objKeys.Count; i++)
         {
@@ -196,8 +199,7 @@ public static class Qs
             if (keyObj is not string key)
                 continue;
 
-            var hasKey = obj.ContainsKey(key);
-            obj.TryGetValue(key, out var value);
+            var hasKey = obj.TryGetValue(key, out var value);
 
             if (!hasKey && opts.SkipNulls)
                 continue;
@@ -230,10 +232,12 @@ public static class Qs
             switch (encoded)
             {
                 case IEnumerable en and not string:
-                    parts.AddRange(
-                        en.Cast<object?>().Where(p => p is not null).Select(p => p!.ToString()!)
-                    );
-                    break;
+                    {
+                        foreach (var p in en)
+                            if (p is not null)
+                                parts.Add(p.ToString()!);
+                        break;
+                    }
                 case string { Length: > 0 } s:
                     parts.Add(s);
                     break;
@@ -243,7 +247,7 @@ public static class Qs
         var joined = string.Join(opts.Delimiter, parts);
 
         // Build final output
-        var sb = new StringBuilder();
+        var sb = new StringBuilder(joined.Length + 16);
 
         if (opts.AddQueryPrefix)
             sb.Append('?');
@@ -261,5 +265,15 @@ public static class Qs
             sb.Append(joined);
 
         return sb.ToString();
+
+        static Dictionary<string, object?> CreateIndexDictionary(IEnumerable en)
+        {
+            var initial = en is ICollection col ? col.Count : 0;
+            var dict = new Dictionary<string, object?>(initial);
+            var i = 0;
+            foreach (var v in en)
+                dict.Add(i++.ToString(), v);
+            return dict;
+        }
     }
 }
