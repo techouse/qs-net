@@ -94,7 +94,6 @@ internal static partial class Decoder
     )
     {
         options ??= new DecodeOptions();
-        var obj = new Dictionary<string, object?>();
 
 #if NETSTANDARD2_0
         var cleanStr = options.IgnoreQueryPrefix ? str.TrimStart('?') : str;
@@ -111,29 +110,34 @@ internal static partial class Decoder
         if (limit is <= 0)
             throw new ArgumentException("Parameter limit must be a positive integer.");
 
+        var allPartsSeq = options.Delimiter.Split(cleanStr);
+        var allParts = allPartsSeq as string[] ?? allPartsSeq.ToArray();
         List<string> parts;
         if (limit != null)
         {
-            var allParts = options.Delimiter.Split(cleanStr).ToList();
             var takeCount = options.ThrowOnLimitExceeded ? limit.Value + 1 : limit.Value;
-            parts = allParts.Take(takeCount).ToList();
+            var count = allParts.Length < takeCount ? allParts.Length : takeCount;
+            parts = new List<string>(count);
+            for (var i = 0; i < count; i++) parts.Add(allParts[i]);
+
+            if (options.ThrowOnLimitExceeded && allParts.Length > limit.Value)
+                throw new IndexOutOfRangeException(
+                    $"Parameter limit exceeded. Only {limit} parameter{(limit == 1 ? "" : "s")} allowed."
+                );
         }
         else
         {
-            parts = options.Delimiter.Split(cleanStr).ToList();
+            parts = new List<string>(allParts.Length);
+            parts.AddRange(allParts);
         }
 
-        if (options.ThrowOnLimitExceeded && limit != null && parts.Count > limit)
-            throw new IndexOutOfRangeException(
-                $"Parameter limit exceeded. Only {limit} parameter{(limit == 1 ? "" : "s")} allowed."
-            );
-
+        var obj = new Dictionary<string, object?>(parts.Count);
         var skipIndex = -1; // Keep track of where the utf8 sentinel was found
         var charset = options.Charset;
 
         if (options.CharsetSentinel)
             for (var i = 0; i < parts.Count; i++)
-                if (parts[i].StartsWith("utf8="))
+                if (parts[i].StartsWith("utf8=", StringComparison.Ordinal))
                 {
                     charset = parts[i] switch
                     {
@@ -191,27 +195,32 @@ internal static partial class Decoder
                 && options.InterpretNumericEntities
                 && IsLatin1(charset)
             )
-                value = Utils.InterpretNumericEntities(
-                    value switch
-                    {
-                        IEnumerable enumerable and not string => string.Join(
-                            ",",
-                            enumerable.Cast<object?>().Select(x => x?.ToString())
-                        ),
-                        _ => value.ToString() ?? string.Empty
-                    }
-                );
+            {
+                var tmpStr = value is IEnumerable enumerable and not string
+                    ? JoinAsCommaSeparatedStrings(enumerable)
+                    : value.ToString() ?? string.Empty;
+                value = Utils.InterpretNumericEntities(tmpStr);
+            }
 
-            if (part.Contains("[]="))
+            if (part.IndexOf("[]=", StringComparison.Ordinal) >= 0)
                 value = value is IEnumerable and not string ? new List<object?> { value } : value;
 
-            var existing = obj.ContainsKey(key);
-            obj[key] = (existing, options.Duplicates) switch
-            {
-                (true, Duplicates.Combine) => Utils.Combine<object?>(obj[key], value),
-                (false, _) or (true, Duplicates.Last) => value,
-                _ => obj[key]
-            };
+            if (obj.TryGetValue(key, out var existingVal))
+                switch (options.Duplicates)
+                {
+                    case Duplicates.Combine:
+                        obj[key] = Utils.Combine<object?>(existingVal, value);
+                        break;
+                    case Duplicates.Last:
+                        obj[key] = value;
+                        break;
+                    case Duplicates.First:
+                    default:
+                        // keep the first value; do nothing
+                        break;
+                }
+            else
+                obj[key] = value;
         }
 
         return obj;
@@ -241,7 +250,18 @@ internal static partial class Decoder
 #endif
            )
         {
-            var parentKeyStr = string.Join("", chain.Take(chain.Count - 1));
+            string parentKeyStr;
+            if (chain.Count > 1)
+            {
+                var sbTmp = new StringBuilder();
+                for (var t = 0; t < chain.Count - 1; t++) sbTmp.Append(chain[t]);
+                parentKeyStr = sbTmp.ToString();
+            }
+            else
+            {
+                parentKeyStr = string.Empty;
+            }
+
             if (
                 int.TryParse(parentKeyStr, out var parentKey)
                 && value is IList<object?> list
@@ -255,9 +275,14 @@ internal static partial class Decoder
         if (leaf is IDictionary id and not Dictionary<object, object?>)
         {
             // Preserve identity for self-referencing maps
-            var selfRef =
-                id is Dictionary<string, object?> strDict
-                && strDict.Keys.Any(k => ReferenceEquals(strDict[k], strDict));
+            var selfRef = false;
+            if (id is Dictionary<string, object?> strDict)
+                foreach (var k in strDict.Keys)
+                    if (ReferenceEquals(strDict[k], strDict))
+                    {
+                        selfRef = true;
+                        break;
+                    }
 
             if (!selfRef)
                 leaf = Utils.ToObjectKeyedDictionary(id);
@@ -288,9 +313,16 @@ internal static partial class Decoder
 #else
                 var cleanRoot = root.StartsWith('[') && root.EndsWith(']') ? root[1..^1] : root;
 #endif
+
+#if NETSTANDARD2_0
                 var decodedRoot = options.DecodeDotInKeys
-                    ? cleanRoot.Replace("%2E", ".")
+                    ? ReplaceOrdinalIgnoreCase(cleanRoot, "%2E", ".")
                     : cleanRoot;
+#else
+                var decodedRoot = options.DecodeDotInKeys
+                    ? cleanRoot.Replace("%2E", ".", StringComparison.OrdinalIgnoreCase)
+                    : cleanRoot;
+#endif
 
                 // Bracketed numeric like "[1]"?
                 var isPureNumeric =
@@ -310,7 +342,7 @@ internal static partial class Decoder
                         case true when idx >= 0 && idx <= options.ListLimit:
                             {
                                 // Build a list up to idx (0 is allowed when ListLimit == 0)
-                                var list = new List<object?>();
+                                var list = new List<object?>(idx + 1);
                                 for (var j = 0; j <= idx; j++)
                                     list.Add(j == idx ? leaf : Undefined.Instance);
                                 obj = list;
@@ -455,4 +487,36 @@ internal static partial class Decoder
         }
     }
 #endif
+
+    // Helper for joining IEnumerable as comma-separated strings (avoiding LINQ)
+    private static string JoinAsCommaSeparatedStrings(IEnumerable enumerable)
+    {
+        var e = enumerable.GetEnumerator();
+        StringBuilder? sb = null;
+        var first = true;
+        try
+        {
+            while (e.MoveNext())
+            {
+                if (first)
+                {
+                    sb = new StringBuilder();
+                    first = false;
+                }
+                else
+                {
+                    sb!.Append(',');
+                }
+
+                var s = e.Current?.ToString() ?? string.Empty;
+                sb!.Append(s);
+            }
+        }
+        finally
+        {
+            (e as IDisposable)?.Dispose();
+        }
+
+        return sb?.ToString() ?? string.Empty;
+    }
 }
