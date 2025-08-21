@@ -284,22 +284,6 @@ public sealed class DecodeOptions
         return sb.ToString();
     }
 
-    /// <summary>
-    ///     Back-compat convenience that decodes a single value <b>as a value token</b>.
-    /// </summary>
-    /// <param name="value">The encoded value to decode (may be <c>null</c>).</param>
-    /// <param name="encoding">The character encoding to use, or <c>null</c> to use the default.</param>
-    /// <returns>The decoded value, or <c>null</c> if <paramref name="value" /> is <c>null</c>.</returns>
-    /// <remarks>
-    ///     Prefer <see cref="Decode(string?, Encoding?, DecodeKind)" />, <see cref="DecodeKey(string?, Encoding?)" />,
-    ///     or <see cref="DecodeValue(string?, Encoding?)" /> for context-aware decoding. This method always decodes
-    ///     with <see cref="DecodeKind.Value" />.
-    /// </remarks>
-    [Obsolete("Use Decode(value, encoding) or DecodeKey/DecodeValue for context-aware decoding.")]
-    public object? GetDecoder(string? value, Encoding? encoding = null)
-    {
-        return Decode(value, encoding);
-    }
 
     /// <summary>
     ///     Creates a new instance of DecodeOptions with the specified properties changed.
