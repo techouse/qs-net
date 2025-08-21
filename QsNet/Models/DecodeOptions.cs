@@ -15,6 +15,16 @@ namespace QsNet.Models;
 public delegate object? Decoder(string? value, Encoding? encoding);
 
 /// <summary>
+///     A function that decodes a value from a query string or form data with key/value context.
+///     The <see cref="DecodeKind" /> indicates whether the token is a key (or key segment) or a value.
+/// </summary>
+/// <param name="value">The encoded value to decode.</param>
+/// <param name="encoding">The character encoding to use for decoding, if any.</param>
+/// <param name="kind">Whether this token is a <see cref="DecodeKind.Key" /> or <see cref="DecodeKind.Value" />.</param>
+/// <returns>The decoded value, or null if the value is not present.</returns>
+public delegate object? KindAwareDecoder(string? value, Encoding? encoding, DecodeKind kind);
+
+/// <summary>
 ///     Options that configure the output of Qs.Decode.
 /// </summary>
 public sealed class DecodeOptions
@@ -40,9 +50,6 @@ public sealed class DecodeOptions
 
         if (ParameterLimit <= 0)
             throw new ArgumentException("Parameter limit must be positive");
-
-        if (DecodeDotInKeys && !AllowDots)
-            throw new ArgumentException("decodeDotInKeys requires allowDots to be true");
     }
 
     /// <summary>
@@ -161,6 +168,12 @@ public sealed class DecodeOptions
     public Decoder? Decoder { private get; init; }
 
     /// <summary>
+    ///     Optional decoder that receives key/value <see cref="DecodeKind" /> context.
+    ///     When provided, this takes precedence over <see cref="Decoder" />.
+    /// </summary>
+    public KindAwareDecoder? DecoderWithKind { private get; init; }
+
+    /// <summary>
     ///     Gets whether to decode dots in keys.
     /// </summary>
     public bool DecodeDotInKeys
@@ -170,14 +183,122 @@ public sealed class DecodeOptions
     }
 
     /// <summary>
-    ///     Decode the input using the specified decoder.
+    ///     Decode a single scalar token using the most specific decoder available.
+    ///     If <see cref="DecoderWithKind" /> is provided, it is always used (even when it returns null).
+    ///     Otherwise the legacy two-argument <see cref="Decoder" /> is used; if neither is set,
+    ///     a library default is used.
     /// </summary>
-    /// <param name="value">The value to decode</param>
-    /// <param name="encoding">The encoding to use</param>
-    /// <returns>The decoded value</returns>
+    public object? Decode(string? value, Encoding? encoding = null, DecodeKind kind = DecodeKind.Value)
+    {
+        if (kind == DecodeKind.Key && DecodeDotInKeys && !AllowDots)
+            throw new ArgumentException("decodeDotInKeys requires allowDots to be true");
+        var d3 = DecoderWithKind;
+        if (d3 is not null) return d3.Invoke(value, encoding, kind);
+
+        var d = Decoder;
+        return d is not null ? d.Invoke(value, encoding) : DefaultDecode(value, encoding, kind);
+    }
+
+    /// <summary>
+    ///     Decode a key (or key segment). Returns a string or null.
+    /// </summary>
+    public string? DecodeKey(string? value, Encoding? encoding = null)
+    {
+        return Decode(value, encoding, DecodeKind.Key) as string;
+    }
+
+    /// <summary>
+    ///     Decode a value token. Returns any scalar (string/number/etc.) or null.
+    /// </summary>
+    public object? DecodeValue(string? value, Encoding? encoding = null)
+    {
+        return Decode(value, encoding);
+    }
+
+    /// <summary>
+    ///     Default decoder used when no custom decoder is supplied.
+    ///     For <see cref="DecodeKind.Key" />, this protects encoded dots ("%2E"/"%2e") <b>before</b>
+    ///     percent-decoding so that dot-splitting and post-split mapping behave correctly.
+    ///     Inside bracket segments we always protect; outside brackets we only protect when
+    ///     <see cref="AllowDots" /> is true.
+    /// </summary>
+    private object? DefaultDecode(string? value, Encoding? encoding, DecodeKind kind)
+    {
+        if (value is null) return null;
+        if (kind == DecodeKind.Key)
+        {
+            var protectedKey = ProtectEncodedDotsForKeys(value, AllowDots);
+            return Utils.Decode(protectedKey, encoding);
+        }
+
+        return Utils.Decode(value, encoding);
+    }
+
+    // Protect %2E/%2e in KEY strings so percent-decoding does not turn them into '.' too early.
+    // Inside brackets we always protect; outside brackets only when includeOutsideBrackets is true.
+    private static string ProtectEncodedDotsForKeys(string input, bool includeOutsideBrackets)
+    {
+        if (string.IsNullOrEmpty(input) || input.IndexOf('%') < 0)
+            return input;
+
+        var sb = new StringBuilder(input.Length + 8);
+        var depth = 0;
+        for (var i = 0; i < input.Length;)
+        {
+            var ch = input[i];
+            if (ch == '[')
+            {
+                depth++;
+                sb.Append(ch);
+                i++;
+            }
+            else if (ch == ']')
+            {
+                if (depth > 0) depth--;
+                sb.Append(ch);
+                i++;
+            }
+            else if (ch == '%' && i + 2 < input.Length && input[i + 1] == '2' &&
+                     (input[i + 2] == 'E' || input[i + 2] == 'e'))
+            {
+                var inside = depth > 0;
+                if (inside || includeOutsideBrackets)
+                {
+                    sb.Append("%25");
+                    sb.Append(input[i + 2] == 'E' ? "2E" : "2e");
+                }
+                else
+                {
+                    sb.Append('%').Append('2').Append(input[i + 2]);
+                }
+
+                i += 3;
+            }
+            else
+            {
+                sb.Append(ch);
+                i++;
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    ///     Back-compat convenience that decodes a single value <b>as a value token</b>.
+    /// </summary>
+    /// <param name="value">The encoded value to decode (may be <c>null</c>).</param>
+    /// <param name="encoding">The character encoding to use, or <c>null</c> to use the default.</param>
+    /// <returns>The decoded value, or <c>null</c> if <paramref name="value" /> is <c>null</c>.</returns>
+    /// <remarks>
+    ///     Prefer <see cref="Decode(string?, Encoding?, DecodeKind)" />, <see cref="DecodeKey(string?, Encoding?)" />,
+    ///     or <see cref="DecodeValue(string?, Encoding?)" /> for context-aware decoding. This method always decodes
+    ///     with <see cref="DecodeKind.Value" />.
+    /// </remarks>
+    [Obsolete("Use Decode(value, encoding) or DecodeKey/DecodeValue for context-aware decoding.")]
     public object? GetDecoder(string? value, Encoding? encoding = null)
     {
-        return Decoder != null ? Decoder?.Invoke(value, encoding) : Utils.Decode(value, encoding);
+        return Decode(value, encoding);
     }
 
     /// <summary>
@@ -185,6 +306,7 @@ public sealed class DecodeOptions
     /// </summary>
     /// <param name="allowDots">Set to override AllowDots</param>
     /// <param name="decoder">Set to override the decoder function</param>
+    /// <param name="decoderWithKind">Set to override the kind-aware decoder function</param>
     /// <param name="decodeDotInKeys">Set to override DecodeDotInKeys</param>
     /// <param name="allowEmptyLists">Set to override AllowEmptyLists</param>
     /// <param name="allowSparseLists">Set to override AllowSparseLists</param>
@@ -206,6 +328,7 @@ public sealed class DecodeOptions
     public DecodeOptions CopyWith(
         bool? allowDots = null,
         Decoder? decoder = null,
+        KindAwareDecoder? decoderWithKind = null,
         bool? decodeDotInKeys = null,
         bool? allowEmptyLists = null,
         bool? allowSparseLists = null,
@@ -235,7 +358,8 @@ public sealed class DecodeOptions
             CharsetSentinel = charsetSentinel ?? CharsetSentinel,
             Comma = comma ?? Comma,
             DecodeDotInKeys = decodeDotInKeys ?? DecodeDotInKeys,
-            Decoder = decoder ?? GetDecoder,
+            Decoder = decoder ?? Decoder,
+            DecoderWithKind = decoderWithKind ?? DecoderWithKind,
             Delimiter = delimiter ?? Delimiter,
             Depth = depth ?? Depth,
             ParameterLimit = parameterLimit ?? ParameterLimit,
