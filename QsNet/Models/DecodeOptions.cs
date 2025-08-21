@@ -161,7 +161,7 @@ public sealed class DecodeOptions
     public bool AllowDots
     {
         init => _allowDots = value;
-        get => _allowDots ?? _decodeDotInKeys == true;
+        get => _allowDots ?? _decodeDotInKeys == true; // implied true when DecodeDotInKeys is true
     }
 
     /// <summary>
