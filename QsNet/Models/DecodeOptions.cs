@@ -22,6 +22,7 @@ public delegate object? Decoder(string? value, Encoding? encoding);
 /// <param name="encoding">The character encoding to use for decoding, if any.</param>
 /// <param name="kind">Whether this token is a <see cref="DecodeKind.Key" /> or <see cref="DecodeKind.Value" />.</param>
 /// <returns>The decoded value, or null if the value is not present.</returns>
+/// <remarks>When <paramref name="kind"/> is <see cref="DecodeKind.Key"/>, the decoder is expected to return a string or null.</remarks>
 public delegate object? KindAwareDecoder(string? value, Encoding? encoding, DecodeKind kind);
 
 /// <summary>
@@ -154,7 +155,7 @@ public sealed class DecodeOptions
     public bool ThrowOnLimitExceeded { get; init; }
 
     /// <summary>
-    ///     Set to true to use dot dictionary notation in the encoded output.
+    ///     Set to true to parse dot dictionary notation in the encoded input.
     ///     Note: when not explicitly set, this property implicitly evaluates to true
     ///     if <see cref="DecodeDotInKeys" /> is true, to keep option combinations coherent.
     /// </summary>
@@ -193,7 +194,8 @@ public sealed class DecodeOptions
     public object? Decode(string? value, Encoding? encoding = null, DecodeKind kind = DecodeKind.Value)
     {
         if (kind == DecodeKind.Key && DecodeDotInKeys && !AllowDots)
-            throw new ArgumentException("decodeDotInKeys requires allowDots to be true");
+            throw new ArgumentException(
+                "Invalid DecodeOptions: DecodeDotInKeys=true requires AllowDots=true when decoding keys.");
         var d3 = DecoderWithKind;
         if (d3 is not null) return d3.Invoke(value, encoding, kind);
 
@@ -212,7 +214,8 @@ public sealed class DecodeOptions
             null => null,
             string s => s,
             _ => throw new InvalidOperationException(
-                $"Key decoder must return a string or null; got {decoded.GetType().FullName}.")
+                $"Key decoder must return a string or null; got {decoded.GetType().FullName}. " +
+                "If using a custom decoder, ensure it returns string for keys.")
         };
     }
 
@@ -282,6 +285,12 @@ public sealed class DecodeOptions
                 }
 
                 i += 3;
+            }
+            else if (ch == '%' && (i + 2 >= input.Length || input[i + 1] == '\0' || input[i + 2] == '\0'))
+            {
+                // Leave malformed/incomplete escape as-is
+                sb.Append(ch);
+                i++;
             }
             else
             {
