@@ -218,4 +218,18 @@ public class DecodeOptionsTests
         copy3.DecodeValue("v", Encoding.UTF8).Should().Be("K2:Value:v");
         copy3.DecodeKey("k", Encoding.UTF8).Should().Be("K2:Key:k");
     }
+
+    [Fact]
+    public void DecodeKey_ProtectsEncodedDots_InsideBrackets_RegardlessOfAllowDots()
+    {
+        var o1 = new DecodeOptions { AllowDots = false, DecodeDotInKeys = false };
+        var o2 = new DecodeOptions { AllowDots = true, DecodeDotInKeys = false };
+
+        // Inside bracket: always protected
+        o1.DecodeKey("a[%2Eb]", Encoding.UTF8).Should().Be("a[%2Eb]");
+        o1.DecodeKey("a[b%2Ec]", Encoding.UTF8).Should().Be("a[b%2Ec]");
+
+        o2.DecodeKey("a[%2Eb]", Encoding.UTF8).Should().Be("a[%2Eb]");
+        o2.DecodeKey("a[b%2Ec]", Encoding.UTF8).Should().Be("a[b%2Ec]");
+    }
 }
