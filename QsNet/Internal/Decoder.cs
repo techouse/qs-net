@@ -49,6 +49,7 @@ internal static partial class Decoder
         Equals(e, Encoding.Latin1);
 #endif
 
+
     /// <summary>
     ///     Parses a list value from a string or any other type, applying the options provided.
     /// </summary>
@@ -163,15 +164,17 @@ internal static partial class Decoder
 
             if (pos == -1)
             {
-                key = options.GetDecoder(part, charset)?.ToString() ?? string.Empty;
+                key = options.DecodeKey(part, charset) ?? string.Empty;
                 value = options.StrictNullHandling ? null : "";
             }
             else
             {
 #if NETSTANDARD2_0
-                key = options.GetDecoder(part.Substring(0, pos), charset)?.ToString() ?? string.Empty;
+                var rawKey = part.Substring(0, pos);
+                key = options.DecodeKey(rawKey, charset) ?? string.Empty;
 #else
-                key = options.GetDecoder(part[..pos], charset)?.ToString() ?? string.Empty;
+                var rawKey = part[..pos];
+                key = options.DecodeKey(rawKey, charset) ?? string.Empty;
 #endif
                 var currentLength =
                     obj.TryGetValue(key, out var val) && val is IList<object?> list ? list.Count : 0;
@@ -179,12 +182,12 @@ internal static partial class Decoder
 #if NETSTANDARD2_0
                 value = Utils.Apply<object?>(
                     ParseListValue(part.Substring(pos + 1), options, currentLength),
-                    v => options.GetDecoder(v?.ToString(), charset)
+                    v => options.DecodeValue(v?.ToString(), charset)
                 );
 #else
                 value = Utils.Apply<object?>(
                     ParseListValue(part[(pos + 1)..], options, currentLength),
-                    v => options.GetDecoder(v?.ToString(), charset)
+                    v => options.DecodeValue(v?.ToString(), charset)
                 );
 #endif
             }
