@@ -206,7 +206,14 @@ public sealed class DecodeOptions
     /// </summary>
     public string? DecodeKey(string? value, Encoding? encoding = null)
     {
-        return Decode(value, encoding, DecodeKind.Key) as string;
+        var decoded = Decode(value, encoding, DecodeKind.Key);
+        return decoded switch
+        {
+            null => null,
+            string s => s,
+            _ => throw new InvalidOperationException(
+                $"Key decoder must return a string or null; got {decoded.GetType().FullName}.")
+        };
     }
 
     /// <summary>
