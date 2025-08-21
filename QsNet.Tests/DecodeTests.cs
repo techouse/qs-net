@@ -4123,4 +4123,133 @@ public class DecodeTest
         // Assert – keys are strings and values preserved
         decoded.Should().Equal(new Dictionary<string, object?> { ["x"] = 1, ["2"] = "y" });
     }
+
+    #region Encoded dot behavior in keys (%2E / %2e)
+
+    [Fact]
+    public void EncodedDot_TopLevel_AllowDotsTrue_DecodeDotInKeysTrue_PlainDotSplits_EncodedDotDoesNotSplit()
+    {
+        var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = true };
+
+        Qs.Decode("a.b=c", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
+            });
+
+        Qs.Decode("a%2Eb=c", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a.b"] = "c" });
+
+        Qs.Decode("a%2eb=c", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a.b"] = "c" });
+    }
+
+    [Fact]
+    public void EncodedDot_TopLevel_AllowDotsTrue_DecodeDotInKeysFalse_EncodedDotRemainsPercentSequence()
+    {
+        var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = false };
+
+        Qs.Decode("a%2Eb=c", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a%2Eb"] = "c" });
+
+        Qs.Decode("a%2eb=c", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a%2eb"] = "c" });
+    }
+
+    [Fact]
+    public void EncodedDot_AllowDotsFalse_DecodeDotInKeysTrue_IsInvalid()
+    {
+        var opt = new DecodeOptions { AllowDots = false, DecodeDotInKeys = true };
+        Action act = () => Qs.Decode("a%2Eb=c", opt);
+        act.Should().Throw<ArgumentException>();
+    }
+
+    [Fact]
+    public void EncodedDot_BracketSegment_MapsToDot_WhenDecodeDotInKeysTrue()
+    {
+        var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = true };
+
+        Qs.Decode("a[%2E]=x", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["."] = "x" }
+            });
+
+        Qs.Decode("a[%2e]=x", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["."] = "x" }
+            });
+    }
+
+    [Fact]
+    public void EncodedDot_BracketSegment_RemainsPercentSequence_WhenDecodeDotInKeysFalse()
+    {
+        var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = false };
+
+        Qs.Decode("a[%2E]=x", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["%2E"] = "x" }
+            });
+
+        Qs.Decode("a[%2e]=x", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["%2e"] = "x" }
+            });
+    }
+
+    [Fact]
+    public void EncodedDot_ValueAlwaysDecodesToDot()
+    {
+        Qs.Decode("x=%2E")
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?> { ["x"] = "." });
+    }
+
+    [Fact]
+    public void EncodedDot_TopLevel_Latin1_AllowDotsTrue_DecodeDotInKeysTrue()
+    {
+        var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = true, Charset = Encoding.Latin1 };
+
+        Qs.Decode("a%2Eb=c", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a.b"] = "c" });
+
+        Qs.Decode("a[%2E]=x", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["."] = "x" }
+            });
+    }
+
+    [Fact]
+    public void EncodedDot_TopLevel_Latin1_AllowDotsTrue_DecodeDotInKeysFalse()
+    {
+        var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = false, Charset = Encoding.Latin1 };
+
+        Qs.Decode("a%2Eb=c", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a%2Eb"] = "c" });
+
+        Qs.Decode("a[%2E]=x", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["%2E"] = "x" }
+            });
+    }
+
+    #endregion
 }
