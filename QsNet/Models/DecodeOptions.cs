@@ -155,6 +155,8 @@ public sealed class DecodeOptions
 
     /// <summary>
     ///     Set to true to use dot dictionary notation in the encoded output.
+    ///     Note: when not explicitly set, this property implicitly evaluates to true
+    ///     if <see cref="DecodeDotInKeys" /> is true, to keep option combinations coherent.
     /// </summary>
     public bool AllowDots
     {
