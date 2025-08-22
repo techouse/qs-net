@@ -242,21 +242,23 @@ public sealed class DecodeOptions
     private object? DefaultDecode(string? value, Encoding? encoding, DecodeKind kind)
     {
         if (value is null) return null;
-        if (kind == DecodeKind.Key)
-        {
-            var protectedKey = ProtectEncodedDotsForKeys(value, AllowDots);
-            return Utils.Decode(protectedKey, encoding);
-        }
-
-        return Utils.Decode(value, encoding);
+        if (kind != DecodeKind.Key) return Utils.Decode(value, encoding);
+        var protectedKey = ProtectEncodedDotsForKeys(value, AllowDots);
+        return Utils.Decode(protectedKey, encoding);
     }
 
-    // Protect %2E/%2e in KEY strings so percent-decoding does not turn them into '.' too early.
-    // Inside brackets we always protect; outside brackets only when includeOutsideBrackets is true.
+    /// <summary>
+    ///     Protect %2E/%2e in KEY strings so percent-decoding does not turn them into '.' too early.
+    ///     Inside brackets we always protect; outside brackets only when includeOutsideBrackets is true.
+    /// </summary>
+    /// <param name="input"></param>
+    /// <param name="includeOutsideBrackets"></param>
+    /// <returns></returns>
     private static string ProtectEncodedDotsForKeys(string input, bool includeOutsideBrackets)
     {
         if (string.IsNullOrEmpty(input) || input.IndexOf('%') < 0)
             return input;
+
         // Fast-path: if there are no encoded dots or brackets, skip scanning.
         if (input.IndexOf("%2E", StringComparison.OrdinalIgnoreCase) < 0
             && input.IndexOf("%5B", StringComparison.OrdinalIgnoreCase) < 0
