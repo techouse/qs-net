@@ -398,6 +398,59 @@ internal static partial class Decoder
     }
 
     /// <summary>
+    ///     Convert top-level dot segments into bracket groups, preserving dots inside brackets
+    ///     and ignoring degenerate segments (leading/trailing/double dots).
+    ///     Examples:
+    ///     "user.email.name" -> "user[email][name]"
+    ///     "a[b].c"          -> "a[b][c]" (dot outside brackets)
+    ///     "a[.].c"          -> remains "a[.][c]" (dot inside brackets is preserved)
+    ///     "user.email."     -> "user[email]" (trailing dot ignored)
+    /// </summary>
+    private static string DotToBracketTopLevel(string key)
+    {
+        if (string.IsNullOrEmpty(key) || key.IndexOf('.') < 0)
+            return key;
+
+        var sb = new StringBuilder(key.Length + 4);
+        var depth = 0;
+
+        for (var i = 0; i < key.Length; i++)
+        {
+            var ch = key[i];
+            switch (ch)
+            {
+                case '[':
+                    depth++;
+                    sb.Append(ch);
+                    break;
+                case ']':
+                    {
+                        if (depth > 0) depth--;
+                        sb.Append(ch);
+                        break;
+                    }
+                case '.' when depth == 0:
+                    {
+                        // Convert the immediate token after the dot into a bracketed segment.
+                        // The token ends at the next '.' or '[' or end of string.
+                        var j = i + 1;
+                        while (j < key.Length && key[j] != '.' && key[j] != '[') j++;
+                        var len = j - (i + 1);
+                        if (len > 0) sb.Append('[').Append(key, i + 1, len).Append(']');
+                        // Degenerate cases (leading/double/trailing dot): do nothing.
+                        i = j - 1; // continue from the delimiter we stopped at
+                        break;
+                    }
+                default:
+                    sb.Append(ch);
+                    break;
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
     ///     Splits a key into segments based on brackets and dots, handling depth and strictness.
     /// </summary>
     /// <param name="originalKey">The original key to split.</param>
@@ -414,9 +467,7 @@ internal static partial class Decoder
     )
     {
         // Apply dot→bracket *before* splitting, but when depth == 0, we do NOT split at all and do NOT throw.
-        var key = allowDots
-            ? DotToBracket.Replace(originalKey, match => $"[{match.Groups[1].Value}]")
-            : originalKey;
+        var key = allowDots ? DotToBracketTopLevel(originalKey) : originalKey;
 
         // Depth 0 semantics: use the original key as a single segment; never throw.
         if (maxDepth <= 0)
@@ -457,11 +508,14 @@ internal static partial class Decoder
                         break;
                     }
                 }
+
                 i++;
             }
 
             if (close < 0)
-                break; // unterminated group; stop collecting
+                // Unterminated group: treat the entire key as a single literal segment (qs semantics).
+                // This ensures inputs like "[", "[[", or "[hello[" are preserved as-is and do not get dropped.
+                return [key];
 #if NETSTANDARD2_0
             segments.Add(key.Substring(open, close + 1 - open)); // balanced group, e.g. "[b[c]]"
 #else
@@ -473,16 +527,22 @@ internal static partial class Decoder
         }
 
         // If there's any trailing text after the last closing bracket, treat it as a single final segment.
+        // Ignore a lone trailing '.' (degenerate top-level dot).
         if (lastClose < 0 || lastClose + 1 >= key.Length) return segments;
+#if NETSTANDARD2_0
+        var remainder = key.Substring(lastClose + 1);
+#else
+        var remainder = key[(lastClose + 1)..];
+#endif
+        if (remainder == ".") return segments;
+
         if (strictDepth)
             throw new IndexOutOfRangeException(
                 $"Input depth exceeded depth option of {maxDepth} and strictDepth is true"
             );
-#if NETSTANDARD2_0
-        segments.Add("[" + key.Substring(lastClose + 1) + "]");
-#else
-            segments.Add("[" + key[(lastClose + 1)..] + "]");
-#endif
+
+        // Wrap the remainder as one final bracket segment.
+        segments.Add("[" + remainder + "]");
 
         return segments;
     }
