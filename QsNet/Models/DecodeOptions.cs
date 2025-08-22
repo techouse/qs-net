@@ -22,7 +22,10 @@ public delegate object? Decoder(string? value, Encoding? encoding);
 /// <param name="encoding">The character encoding to use for decoding, if any.</param>
 /// <param name="kind">Whether this token is a <see cref="DecodeKind.Key" /> or <see cref="DecodeKind.Value" />.</param>
 /// <returns>The decoded value, or null if the value is not present.</returns>
-/// <remarks>When <paramref name="kind"/> is <see cref="DecodeKind.Key"/>, the decoder is expected to return a string or null.</remarks>
+/// <remarks>
+///     When <paramref name="kind" /> is <see cref="DecodeKind.Key" />, the decoder is expected to return a string or
+///     null.
+/// </remarks>
 public delegate object? KindAwareDecoder(string? value, Encoding? encoding, DecodeKind kind);
 
 /// <summary>
@@ -195,7 +198,9 @@ public sealed class DecodeOptions
     {
         if (kind == DecodeKind.Key && DecodeDotInKeys && !AllowDots)
             throw new ArgumentException(
-                "Invalid DecodeOptions: DecodeDotInKeys=true requires AllowDots=true when decoding keys.");
+                "DecodeDotInKeys=true requires AllowDots=true when decoding keys.",
+                nameof(DecodeDotInKeys)
+            );
         var d3 = DecoderWithKind;
         if (d3 is not null) return d3.Invoke(value, encoding, kind);
 
@@ -270,6 +275,21 @@ public sealed class DecodeOptions
                 sb.Append(ch);
                 i++;
             }
+            // Handle percent-encoded brackets to track depth even when [] are encoded.
+            else if (ch == '%' && i + 2 < input.Length && input[i + 1] == '5' &&
+                     (input[i + 2] == 'B' || input[i + 2] == 'b'))
+            {
+                depth++;
+                sb.Append('%').Append('5').Append(input[i + 2]);
+                i += 3;
+            }
+            else if (ch == '%' && i + 2 < input.Length && input[i + 1] == '5' &&
+                     (input[i + 2] == 'D' || input[i + 2] == 'd'))
+            {
+                if (depth > 0) depth--;
+                sb.Append('%').Append('5').Append(input[i + 2]);
+                i += 3;
+            }
             else if (ch == '%' && i + 2 < input.Length && input[i + 1] == '2' &&
                      (input[i + 2] == 'E' || input[i + 2] == 'e'))
             {
@@ -286,7 +306,7 @@ public sealed class DecodeOptions
 
                 i += 3;
             }
-            else if (ch == '%' && (i + 2 >= input.Length || input[i + 1] == '\0' || input[i + 2] == '\0'))
+            else if (ch == '%' && i + 2 >= input.Length)
             {
                 // Leave malformed/incomplete escape as-is
                 sb.Append(ch);
