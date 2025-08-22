@@ -234,17 +234,15 @@ public sealed class DecodeOptions
 
     /// <summary>
     ///     Default decoder used when no custom decoder is supplied.
-    ///     For <see cref="DecodeKind.Key" />, this protects encoded dots ("%2E"/"%2e") <b>before</b>
-    ///     percent-decoding so that dot-splitting and post-split mapping behave correctly.
-    ///     Inside bracket segments we always protect; outside brackets we only protect when
-    ///     <see cref="AllowDots" /> is true.
+    ///     Keys are decoded identically to values so percent-encoded octets (including
+    ///     "%2E"/"%2e") become their literal characters (e.g., ".") <b>before</b> any
+    ///     dot-to-bracket conversion and segment splitting.
     /// </summary>
     private object? DefaultDecode(string? value, Encoding? encoding, DecodeKind kind)
     {
-        if (value is null) return null;
-        if (kind != DecodeKind.Key) return Utils.Decode(value, encoding);
-        var protectedKey = ProtectEncodedDotsForKeys(value, AllowDots);
-        return Utils.Decode(protectedKey, encoding);
+        return value is null ? null :
+            // Decode keys exactly like values so %2E -> '.' prior to dot-to-bracket + splitting.
+            Utils.Decode(value, encoding);
     }
 
     /// <summary>

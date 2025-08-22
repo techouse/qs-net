@@ -435,6 +435,7 @@ internal static partial class Decoder
 
         var open = first;
         var depth = 0;
+        var lastClose = -1;
         while (open >= 0 && depth < maxDepth)
         {
             var close = key.IndexOf(']', open + 1);
@@ -445,20 +446,21 @@ internal static partial class Decoder
 #else
             segments.Add(key[open..(close + 1)]); // e.g. "[p]" or "[]"
 #endif
+            lastClose = close;
             depth++;
             open = key.IndexOf('[', close + 1);
         }
 
-        if (open < 0) return segments;
-        // When depth > 0, strictDepth can apply to the remainder.
+        // If there's any trailing text after the last closing bracket, treat it as a single final segment.
+        if (lastClose < 0 || lastClose + 1 >= key.Length) return segments;
         if (strictDepth)
             throw new IndexOutOfRangeException(
                 $"Input depth exceeded depth option of {maxDepth} and strictDepth is true"
             );
 #if NETSTANDARD2_0
-        segments.Add("[" + key.Substring(open) + "]");
+        segments.Add("[" + key.Substring(lastClose + 1) + "]");
 #else
-        segments.Add("[" + key[open..] + "]");
+            segments.Add("[" + key[(lastClose + 1)..] + "]");
 #endif
 
         return segments;
