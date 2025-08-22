@@ -1,3 +1,7 @@
+## 1.0.5
+
+* [FEAT] add key-aware decoding to the query string parser
+
 ## 1.0.4
 
 * [FIX] optimize Encoder by caching sequence materialization and reducing allocations
