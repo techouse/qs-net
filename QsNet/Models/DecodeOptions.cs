@@ -15,6 +15,20 @@ namespace QsNet.Models;
 public delegate object? Decoder(string? value, Encoding? encoding);
 
 /// <summary>
+///     A function that decodes a value from a query string or form data with key/value context.
+///     The <see cref="DecodeKind" /> indicates whether the token is a key (or key segment) or a value.
+/// </summary>
+/// <param name="value">The encoded value to decode.</param>
+/// <param name="encoding">The character encoding to use for decoding, if any.</param>
+/// <param name="kind">Whether this token is a <see cref="DecodeKind.Key" /> or <see cref="DecodeKind.Value" />.</param>
+/// <returns>The decoded value, or null if the value is not present.</returns>
+/// <remarks>
+///     When <paramref name="kind" /> is <see cref="DecodeKind.Key" />, the decoder is expected to return a string or
+///     null.
+/// </remarks>
+public delegate object? KindAwareDecoder(string? value, Encoding? encoding, DecodeKind kind);
+
+/// <summary>
 ///     Options that configure the output of Qs.Decode.
 /// </summary>
 public sealed class DecodeOptions
@@ -40,9 +54,6 @@ public sealed class DecodeOptions
 
         if (ParameterLimit <= 0)
             throw new ArgumentException("Parameter limit must be positive");
-
-        if (DecodeDotInKeys && !AllowDots)
-            throw new ArgumentException("decodeDotInKeys requires allowDots to be true");
     }
 
     /// <summary>
@@ -147,18 +158,26 @@ public sealed class DecodeOptions
     public bool ThrowOnLimitExceeded { get; init; }
 
     /// <summary>
-    ///     Set to true to use dot dictionary notation in the encoded output.
+    ///     Set to true to parse dot dictionary notation in the encoded input.
+    ///     Note: when not explicitly set, this property implicitly evaluates to true
+    ///     if <see cref="DecodeDotInKeys" /> is true, to keep option combinations coherent.
     /// </summary>
     public bool AllowDots
     {
         init => _allowDots = value;
-        get => _allowDots ?? _decodeDotInKeys == true;
+        get => _allowDots ?? _decodeDotInKeys == true; // implied true when DecodeDotInKeys is true
     }
 
     /// <summary>
     ///     Set a Decoder to affect the decoding of the input.
     /// </summary>
     public Decoder? Decoder { private get; init; }
+
+    /// <summary>
+    ///     Optional decoder that receives key/value <see cref="DecodeKind" /> context.
+    ///     When provided, this takes precedence over <see cref="Decoder" />.
+    /// </summary>
+    public KindAwareDecoder? DecoderWithKind { private get; init; }
 
     /// <summary>
     ///     Gets whether to decode dots in keys.
@@ -170,21 +189,65 @@ public sealed class DecodeOptions
     }
 
     /// <summary>
-    ///     Decode the input using the specified decoder.
+    ///     Decode a single scalar token using the most specific decoder available.
+    ///     If <see cref="DecoderWithKind" /> is provided, it is always used (even when it returns null).
+    ///     Otherwise the legacy two-argument <see cref="Decoder" /> is used; if neither is set,
+    ///     a library default is used.
     /// </summary>
-    /// <param name="value">The value to decode</param>
-    /// <param name="encoding">The encoding to use</param>
-    /// <returns>The decoded value</returns>
-    public object? GetDecoder(string? value, Encoding? encoding = null)
+    public object? Decode(string? value, Encoding? encoding = null, DecodeKind kind = DecodeKind.Value)
     {
-        return Decoder != null ? Decoder?.Invoke(value, encoding) : Utils.Decode(value, encoding);
+        if (kind == DecodeKind.Key && _decodeDotInKeys == true && _allowDots == false)
+            throw new ArgumentException(
+                "DecodeDotInKeys=true requires AllowDots=true when decoding keys.",
+                nameof(DecodeDotInKeys)
+            );
+        var d3 = DecoderWithKind;
+        if (d3 is not null) return d3.Invoke(value, encoding, kind);
+
+        var d = Decoder;
+        return d is not null ? d.Invoke(value, encoding) : DefaultDecode(value, encoding);
     }
+
+    /// <summary>
+    ///     Decode a key (or key segment). Returns a string or null.
+    /// </summary>
+    public string? DecodeKey(string? value, Encoding? encoding = null)
+    {
+        var decoded = Decode(value, encoding, DecodeKind.Key);
+        return decoded switch
+        {
+            null => null,
+            string s => s,
+            _ => throw new InvalidOperationException(
+                $"Key decoder must return a string or null; got {decoded.GetType().FullName}. " +
+                "If using a custom decoder, ensure it returns string for keys.")
+        };
+    }
+
+    /// <summary>
+    ///     Decode a value token. Returns any scalar (string/number/etc.) or null.
+    /// </summary>
+    public object? DecodeValue(string? value, Encoding? encoding = null)
+    {
+        return Decode(value, encoding);
+    }
+
+    /// <summary>
+    ///     Default decoder when no custom decoder is supplied. Keys are decoded identically
+    ///     to values using <see cref="Utils.Decode" /> with the provided encoding.
+    /// </summary>
+    private static object? DefaultDecode(string? value, Encoding? encoding)
+    {
+        return value is null ? null : Utils.Decode(value, encoding);
+    }
+
 
     /// <summary>
     ///     Creates a new instance of DecodeOptions with the specified properties changed.
     /// </summary>
     /// <param name="allowDots">Set to override AllowDots</param>
     /// <param name="decoder">Set to override the decoder function</param>
+    /// <param name="decoderWithKind">Set to override the kind-aware decoder function</param>
     /// <param name="decodeDotInKeys">Set to override DecodeDotInKeys</param>
     /// <param name="allowEmptyLists">Set to override AllowEmptyLists</param>
     /// <param name="allowSparseLists">Set to override AllowSparseLists</param>
@@ -206,6 +269,7 @@ public sealed class DecodeOptions
     public DecodeOptions CopyWith(
         bool? allowDots = null,
         Decoder? decoder = null,
+        KindAwareDecoder? decoderWithKind = null,
         bool? decodeDotInKeys = null,
         bool? allowEmptyLists = null,
         bool? allowSparseLists = null,
@@ -235,7 +299,8 @@ public sealed class DecodeOptions
             CharsetSentinel = charsetSentinel ?? CharsetSentinel,
             Comma = comma ?? Comma,
             DecodeDotInKeys = decodeDotInKeys ?? DecodeDotInKeys,
-            Decoder = decoder ?? GetDecoder,
+            Decoder = decoder ?? Decoder,
+            DecoderWithKind = decoderWithKind ?? DecoderWithKind,
             Delimiter = delimiter ?? Delimiter,
             Depth = depth ?? Depth,
             ParameterLimit = parameterLimit ?? ParameterLimit,

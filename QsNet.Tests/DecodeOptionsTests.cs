@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Text;
 using FluentAssertions;
 using QsNet.Enums;
@@ -107,5 +109,112 @@ public class DecodeOptionsTests
         newOptions.ParameterLimit.Should().Be(200);
         newOptions.ParseLists.Should().BeTrue();
         newOptions.StrictNullHandling.Should().BeFalse();
+    }
+
+    [Fact]
+    public void DecodeKey_ShouldThrow_When_DecodeDotInKeysTrue_And_AllowDotsFalse()
+    {
+        var options = new DecodeOptions
+        {
+            AllowDots = false,
+            DecodeDotInKeys = true
+        };
+
+        Action act = () => options.DecodeKey("a%2Eb", Encoding.UTF8);
+        act.Should().Throw<ArgumentException>()
+            .Where(e => e.Message.Contains("decodeDotInKeys", StringComparison.OrdinalIgnoreCase)
+                        && e.Message.Contains("allowDots", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public void DecodeKey_DecodesPercentSequences_LikeValues()
+    {
+        var options = new DecodeOptions
+        {
+            AllowDots = true,
+            DecodeDotInKeys = false
+        };
+
+        options.DecodeKey("a%2Eb", Encoding.UTF8).Should().Be("a.b");
+        options.DecodeKey("a%2eb", Encoding.UTF8).Should().Be("a.b");
+    }
+
+    [Fact]
+    public void DecodeValue_DecodesPercentSequences_Normally()
+    {
+        var options = new DecodeOptions();
+        options.DecodeValue("%2E", Encoding.UTF8).Should().Be(".");
+    }
+
+    [Fact]
+    public void DecoderWithKind_IsUsed_For_Key_And_Value()
+    {
+        var calls = new List<(string? s, DecodeKind kind)>();
+        var options = new DecodeOptions
+        {
+            DecoderWithKind = (s, enc, kind) =>
+            {
+                calls.Add((s, kind));
+                return s;
+            }
+        };
+
+        options.DecodeKey("x", Encoding.UTF8).Should().Be("x");
+        options.DecodeValue("y", Encoding.UTF8).Should().Be("y");
+
+        calls.Should().HaveCount(2);
+        calls[0].kind.Should().Be(DecodeKind.Key);
+        calls[0].s.Should().Be("x");
+        calls[1].kind.Should().Be(DecodeKind.Value);
+        calls[1].s.Should().Be("y");
+    }
+
+    [Fact]
+    public void DecoderWithKind_NullReturn_IsHonored_NoFallback()
+    {
+        var options = new DecodeOptions
+        {
+            DecoderWithKind = (s, enc, kind) => null
+        };
+
+        options.DecodeValue("foo", Encoding.UTF8).Should().BeNull();
+        options.DecodeKey("bar", Encoding.UTF8).Should().BeNull();
+    }
+
+    [Fact]
+    public void LegacyDecoder_IsUsed_When_NoKindAwareDecoder_IsProvided()
+    {
+        var options = new DecodeOptions
+        {
+            Decoder = (s, enc) => s is null ? null : s.ToUpperInvariant()
+        };
+
+        options.DecodeValue("abc", Encoding.UTF8).Should().Be("ABC");
+        // For keys, legacy decoder is also used when no kind-aware decoder is set
+        options.DecodeKey("a%2Eb", Encoding.UTF8).Should().Be("A%2EB");
+    }
+
+    [Fact]
+    public void CopyWith_PreservesAndOverrides_Decoders()
+    {
+        var original = new DecodeOptions
+        {
+            Decoder = (s, enc) => s == null ? null : $"L:{s}",
+            DecoderWithKind = (s, enc, k) => s == null ? null : $"K:{k}:{s}"
+        };
+
+        // Copy without overrides preserves both decoders
+        var copy = original.CopyWith();
+        copy.DecodeValue("v", Encoding.UTF8).Should().Be("K:Value:v");
+        copy.DecodeKey("k", Encoding.UTF8).Should().Be("K:Key:k");
+
+        // Override only the legacy decoder; kind-aware remains
+        var copy2 = original.CopyWith(decoder: (s, enc) => s == null ? null : $"L2:{s}");
+        copy2.DecodeValue("v", Encoding.UTF8).Should().Be("K:Value:v"); // still kind-aware takes precedence
+
+        // Override kind-aware decoder
+        var copy3 = original.CopyWith(decoderWithKind: (s, enc, k) => s == null ? null : $"K2:{k}:{s}");
+        copy3.DecodeValue("v", Encoding.UTF8).Should().Be("K2:Value:v");
+        copy3.DecodeKey("k", Encoding.UTF8).Should().Be("K2:Key:k");
     }
 }
