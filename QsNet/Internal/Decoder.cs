@@ -438,13 +438,34 @@ internal static partial class Decoder
         var lastClose = -1;
         while (open >= 0 && depth < maxDepth)
         {
-            var close = key.IndexOf(']', open + 1);
+            var level = 1;
+            var i = open + 1;
+            var close = -1;
+            while (i < key.Length)
+            {
+                var ch = key[i];
+                if (ch == '[')
+                {
+                    level++;
+                }
+                else if (ch == ']')
+                {
+                    level--;
+                    if (level == 0)
+                    {
+                        close = i;
+                        break;
+                    }
+                }
+                i++;
+            }
+
             if (close < 0)
-                break;
+                break; // unterminated group; stop collecting
 #if NETSTANDARD2_0
-            segments.Add(key.Substring(open, close + 1 - open)); // e.g. "[p]" or "[]"
+            segments.Add(key.Substring(open, close + 1 - open)); // balanced group, e.g. "[b[c]]"
 #else
-            segments.Add(key[open..(close + 1)]); // e.g. "[p]" or "[]"
+            segments.Add(key[open..(close + 1)]); // balanced group, e.g. "[b[c]]"
 #endif
             lastClose = close;
             depth++;
