@@ -4140,11 +4140,17 @@ public class DecodeTest
 
         Qs.Decode("a%2Eb=c", opt)
             .Should()
-            .BeEquivalentTo(new Dictionary<string, object?> { ["a.b"] = "c" });
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
+            });
 
         Qs.Decode("a%2eb=c", opt)
             .Should()
-            .BeEquivalentTo(new Dictionary<string, object?> { ["a.b"] = "c" });
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
+            });
     }
 
     [Fact]
@@ -4154,11 +4160,17 @@ public class DecodeTest
 
         Qs.Decode("a%2Eb=c", opt)
             .Should()
-            .BeEquivalentTo(new Dictionary<string, object?> { ["a%2Eb"] = "c" });
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
+            });
 
         Qs.Decode("a%2eb=c", opt)
             .Should()
-            .BeEquivalentTo(new Dictionary<string, object?> { ["a%2eb"] = "c" });
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
+            });
     }
 
     [Fact]
@@ -4198,14 +4210,14 @@ public class DecodeTest
             .Should()
             .BeEquivalentTo(new Dictionary<string, object?>
             {
-                ["a"] = new Dictionary<string, object?> { ["%2E"] = "x" }
+                ["a"] = new Dictionary<string, object?> { ["."] = "x" }
             });
 
         Qs.Decode("a[%2e]=x", opt)
             .Should()
             .BeEquivalentTo(new Dictionary<string, object?>
             {
-                ["a"] = new Dictionary<string, object?> { ["%2e"] = "x" }
+                ["a"] = new Dictionary<string, object?> { ["."] = "x" }
             });
     }
 
@@ -4224,7 +4236,10 @@ public class DecodeTest
 
         Qs.Decode("a%2Eb=c", opt)
             .Should()
-            .BeEquivalentTo(new Dictionary<string, object?> { ["a.b"] = "c" });
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
+            });
 
         Qs.Decode("a[%2E]=x", opt)
             .Should()
@@ -4241,13 +4256,16 @@ public class DecodeTest
 
         Qs.Decode("a%2Eb=c", opt)
             .Should()
-            .BeEquivalentTo(new Dictionary<string, object?> { ["a%2Eb"] = "c" });
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
+            });
 
         Qs.Decode("a[%2E]=x", opt)
             .Should()
             .BeEquivalentTo(new Dictionary<string, object?>
             {
-                ["a"] = new Dictionary<string, object?> { ["%2E"] = "x" }
+                ["a"] = new Dictionary<string, object?> { ["."] = "x" }
             });
     }
 
