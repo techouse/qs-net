@@ -4433,5 +4433,106 @@ public class DecodeTest
             });
     }
 
+    [Fact]
+    public void TopLevel_EncodedDot_Lowercase_AllowDotsTrue_Splits()
+    {
+        var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = false };
+        Qs.Decode("a%2eb=c", opt)
+            .Should().BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
+            });
+    }
+
+    [Fact]
+    public void DotBeforeIndex_AllowDotsTrue_IndexRemainsIndex()
+    {
+        var opt = new DecodeOptions { AllowDots = true };
+        Qs.Decode("foo[0].baz[0]=15&foo[0].bar=2", opt)
+            .Should().BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["foo"] = new List<object?>
+                    {
+                        new Dictionary<string, object?>
+                        {
+                            ["baz"] = new List<object?> { "15" },
+                            ["bar"] = "2"
+                        }
+                    }
+                });
+    }
+
+    [Fact]
+    public void TrailingDot_AllowDotsTrue_Ignored()
+    {
+        var opt = new DecodeOptions { AllowDots = true };
+        Qs.Decode("user.email.=x", opt)
+            .Should().BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["user"] = new Dictionary<string, object?> { ["email"] = "x" }
+            });
+    }
+
+    [Fact]
+    public void BracketSegment_EncodedDot_MappedToDot()
+    {
+        var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = true };
+        Qs.Decode("a[%2E]=x", opt)
+            .Should().BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["."] = "x" }
+            });
+
+        Qs.Decode("a[%2e]=x", opt)
+            .Should().BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["."] = "x" }
+            });
+    }
+
+    [Fact]
+    public void TopLevel_EncodedDot_BeforeBracket_Lowercase()
+    {
+        var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = true };
+        Qs.Decode("a%2e[b]=x", opt)
+            .Should().BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["b"] = "x" }
+            });
+    }
+
+    [Fact]
+    public void PlainDot_BeforeBracket_AllowDotsTrue()
+    {
+        var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = true };
+        Qs.Decode("a.[b]=x", opt)
+            .Should().BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["b"] = "x" }
+            });
+    }
+
+    [Fact]
+    public void DecoderWithKind_ReceivesKey_ForTopLevelAndBracketedKeys()
+    {
+        var calls = new List<(string? s, DecodeKind kind)>();
+        var opt = new DecodeOptions
+        {
+            DecoderWithKind = (s, enc, kind) =>
+            {
+                calls.Add((s, kind));
+                return s;
+            },
+            AllowDots = true,
+            DecodeDotInKeys = true
+        };
+
+        Qs.Decode("a%2Eb=c&a[b]=d", opt);
+
+        calls.Should().Contain(x => x.kind == DecodeKind.Key && (x.s == "a%2Eb" || x.s == "a[b]"));
+        calls.Should().Contain(x => x.kind == DecodeKind.Value && (x.s == "c" || x.s == "d"));
+    }
+
     #endregion
 }
