@@ -238,7 +238,7 @@ public sealed class DecodeOptions
     ///     "%2E"/"%2e") become their literal characters (e.g., ".") <b>before</b> any
     ///     dot-to-bracket conversion and segment splitting.
     /// </summary>
-    private object? DefaultDecode(string? value, Encoding? encoding, DecodeKind kind)
+    private static object? DefaultDecode(string? value, Encoding? encoding, DecodeKind kind)
     {
         return value is null ? null :
             // Decode keys exactly like values so %2E -> '.' prior to dot-to-bracket + splitting.
