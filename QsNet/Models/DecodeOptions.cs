@@ -196,7 +196,7 @@ public sealed class DecodeOptions
     /// </summary>
     public object? Decode(string? value, Encoding? encoding = null, DecodeKind kind = DecodeKind.Value)
     {
-        if (kind == DecodeKind.Key && DecodeDotInKeys && !AllowDots)
+        if (kind == DecodeKind.Key && _decodeDotInKeys == true && _allowDots == false)
             throw new ArgumentException(
                 "DecodeDotInKeys=true requires AllowDots=true when decoding keys.",
                 nameof(DecodeDotInKeys)
@@ -257,65 +257,72 @@ public sealed class DecodeOptions
     {
         if (string.IsNullOrEmpty(input) || input.IndexOf('%') < 0)
             return input;
+        // Fast-path: if there are no encoded dots or brackets, skip scanning.
+        if (input.IndexOf("%2E", StringComparison.OrdinalIgnoreCase) < 0
+            && input.IndexOf("%5B", StringComparison.OrdinalIgnoreCase) < 0
+            && input.IndexOf("%5D", StringComparison.OrdinalIgnoreCase) < 0)
+            return input;
 
         var sb = new StringBuilder(input.Length + 8);
         var depth = 0;
         for (var i = 0; i < input.Length;)
         {
             var ch = input[i];
-            if (ch == '[')
+            switch (ch)
             {
-                depth++;
-                sb.Append(ch);
-                i++;
-            }
-            else if (ch == ']')
-            {
-                if (depth > 0) depth--;
-                sb.Append(ch);
-                i++;
-            }
-            // Handle percent-encoded brackets to track depth even when [] are encoded.
-            else if (ch == '%' && i + 2 < input.Length && input[i + 1] == '5' &&
-                     (input[i + 2] == 'B' || input[i + 2] == 'b'))
-            {
-                depth++;
-                sb.Append('%').Append('5').Append(input[i + 2]);
-                i += 3;
-            }
-            else if (ch == '%' && i + 2 < input.Length && input[i + 1] == '5' &&
-                     (input[i + 2] == 'D' || input[i + 2] == 'd'))
-            {
-                if (depth > 0) depth--;
-                sb.Append('%').Append('5').Append(input[i + 2]);
-                i += 3;
-            }
-            else if (ch == '%' && i + 2 < input.Length && input[i + 1] == '2' &&
-                     (input[i + 2] == 'E' || input[i + 2] == 'e'))
-            {
-                var inside = depth > 0;
-                if (inside || includeOutsideBrackets)
-                {
-                    sb.Append("%25");
-                    sb.Append(input[i + 2] == 'E' ? "2E" : "2e");
-                }
-                else
-                {
-                    sb.Append('%').Append('2').Append(input[i + 2]);
-                }
+                case '[':
+                    depth++;
+                    sb.Append(ch);
+                    i++;
+                    break;
+                case ']':
+                    {
+                        if (depth > 0) depth--;
+                        sb.Append(ch);
+                        i++;
+                        break;
+                    }
+                // Handle percent-encoded brackets to track depth even when [] are encoded.
+                case '%' when i + 2 < input.Length && input[i + 1] == '5' &&
+                              (input[i + 2] == 'B' || input[i + 2] == 'b'):
+                    depth++;
+                    sb.Append('%').Append('5').Append(input[i + 2]);
+                    i += 3;
+                    break;
+                case '%' when i + 2 < input.Length && input[i + 1] == '5' &&
+                              (input[i + 2] == 'D' || input[i + 2] == 'd'):
+                    {
+                        if (depth > 0) depth--;
+                        sb.Append('%').Append('5').Append(input[i + 2]);
+                        i += 3;
+                        break;
+                    }
+                case '%' when i + 2 < input.Length && input[i + 1] == '2' &&
+                              (input[i + 2] == 'E' || input[i + 2] == 'e'):
+                    {
+                        var inside = depth > 0;
+                        if (inside || includeOutsideBrackets)
+                        {
+                            sb.Append("%25");
+                            sb.Append(input[i + 2] == 'E' ? "2E" : "2e");
+                        }
+                        else
+                        {
+                            sb.Append('%').Append('2').Append(input[i + 2]);
+                        }
 
-                i += 3;
-            }
-            else if (ch == '%' && i + 2 >= input.Length)
-            {
-                // Leave malformed/incomplete escape as-is
-                sb.Append(ch);
-                i++;
-            }
-            else
-            {
-                sb.Append(ch);
-                i++;
+                        i += 3;
+                        break;
+                    }
+                case '%' when i + 2 >= input.Length:
+                    // Leave malformed/incomplete escape as-is
+                    sb.Append(ch);
+                    i++;
+                    break;
+                default:
+                    sb.Append(ch);
+                    i++;
+                    break;
             }
         }
 
