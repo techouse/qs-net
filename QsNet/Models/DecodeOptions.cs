@@ -205,7 +205,7 @@ public sealed class DecodeOptions
         if (d3 is not null) return d3.Invoke(value, encoding, kind);
 
         var d = Decoder;
-        return d is not null ? d.Invoke(value, encoding) : DefaultDecode(value, encoding, kind);
+        return d is not null ? d.Invoke(value, encoding) : DefaultDecode(value, encoding);
     }
 
     /// <summary>
@@ -233,100 +233,12 @@ public sealed class DecodeOptions
     }
 
     /// <summary>
-    ///     Default decoder used when no custom decoder is supplied.
-    ///     Keys are decoded identically to values so percent-encoded octets (including
-    ///     "%2E"/"%2e") become their literal characters (e.g., ".") <b>before</b> any
-    ///     dot-to-bracket conversion and segment splitting.
+    ///     Default decoder when no custom decoder is supplied. Keys are decoded identically
+    ///     to values using <see cref="Utils.Decode" /> with the provided encoding.
     /// </summary>
-    private static object? DefaultDecode(string? value, Encoding? encoding, DecodeKind kind)
+    private static object? DefaultDecode(string? value, Encoding? encoding)
     {
-        return value is null ? null :
-            // Decode keys exactly like values so %2E -> '.' prior to dot-to-bracket + splitting.
-            Utils.Decode(value, encoding);
-    }
-
-    /// <summary>
-    ///     Protect %2E/%2e in KEY strings so percent-decoding does not turn them into '.' too early.
-    ///     Inside brackets we always protect; outside brackets only when includeOutsideBrackets is true.
-    /// </summary>
-    /// <param name="input"></param>
-    /// <param name="includeOutsideBrackets"></param>
-    /// <returns></returns>
-    private static string ProtectEncodedDotsForKeys(string input, bool includeOutsideBrackets)
-    {
-        if (string.IsNullOrEmpty(input) || input.IndexOf('%') < 0)
-            return input;
-
-        // Fast-path: if there are no encoded dots or brackets, skip scanning.
-        if (input.IndexOf("%2E", StringComparison.OrdinalIgnoreCase) < 0
-            && input.IndexOf("%5B", StringComparison.OrdinalIgnoreCase) < 0
-            && input.IndexOf("%5D", StringComparison.OrdinalIgnoreCase) < 0)
-            return input;
-
-        var sb = new StringBuilder(input.Length + 8);
-        var depth = 0;
-        for (var i = 0; i < input.Length;)
-        {
-            var ch = input[i];
-            switch (ch)
-            {
-                case '[':
-                    depth++;
-                    sb.Append(ch);
-                    i++;
-                    break;
-                case ']':
-                    {
-                        if (depth > 0) depth--;
-                        sb.Append(ch);
-                        i++;
-                        break;
-                    }
-                // Handle percent-encoded brackets to track depth even when [] are encoded.
-                case '%' when i + 2 < input.Length && input[i + 1] == '5' &&
-                              (input[i + 2] == 'B' || input[i + 2] == 'b'):
-                    depth++;
-                    sb.Append('%').Append('5').Append(input[i + 2]);
-                    i += 3;
-                    break;
-                case '%' when i + 2 < input.Length && input[i + 1] == '5' &&
-                              (input[i + 2] == 'D' || input[i + 2] == 'd'):
-                    {
-                        if (depth > 0) depth--;
-                        sb.Append('%').Append('5').Append(input[i + 2]);
-                        i += 3;
-                        break;
-                    }
-                case '%' when i + 2 < input.Length && input[i + 1] == '2' &&
-                              (input[i + 2] == 'E' || input[i + 2] == 'e'):
-                    {
-                        var inside = depth > 0;
-                        if (inside || includeOutsideBrackets)
-                        {
-                            sb.Append("%25");
-                            sb.Append(input[i + 2] == 'E' ? "2E" : "2e");
-                        }
-                        else
-                        {
-                            sb.Append('%').Append('2').Append(input[i + 2]);
-                        }
-
-                        i += 3;
-                        break;
-                    }
-                case '%' when i + 2 >= input.Length:
-                    // Leave malformed/incomplete escape as-is
-                    sb.Append(ch);
-                    i++;
-                    break;
-                default:
-                    sb.Append(ch);
-                    i++;
-                    break;
-            }
-        }
-
-        return sb.ToString();
+        return value is null ? null : Utils.Decode(value, encoding);
     }
 
 
