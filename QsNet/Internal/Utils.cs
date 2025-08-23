@@ -224,12 +224,12 @@ internal static partial class Utils
                 mergeTarget = ToDictionary(tmap);
                 break;
 
-            case IEnumerable<object?> tenum:
+            case IEnumerable<object?> tEnum:
                 {
                     // (keep your existing behavior for lists)
                     var dict = new Dictionary<object, object?>();
                     var i = 0;
-                    foreach (var v in tenum)
+                    foreach (var v in tEnum)
                     {
                         if (v is not Undefined)
                             dict[i.ToString()] = v;
