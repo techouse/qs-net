@@ -127,11 +127,11 @@ internal static class Encoder
         {
             if (encoder == null)
             {
-                var s = obj is bool b
-                    ? b
-                        ? "true"
-                        : "false"
-                    : obj?.ToString() ?? "";
+                var s = obj switch
+                {
+                    bool b => b ? "true" : "false",
+                    _ => obj?.ToString() ?? ""
+                };
                 return $"{fmt(keyPrefixStr)}={fmt(s)}";
             }
 
