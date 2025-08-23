@@ -126,7 +126,7 @@ public sealed class EncodeOptions
     public string Delimiter { get; init; } = "&";
 
     /// <summary>
-    ///     Set to false to disable encoding.
+    ///     Set to false in order to disable encoding.
     /// </summary>
     public bool Encode { get; init; } = true;
 
