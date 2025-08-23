@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using QsNet.Enums;
 using QsNet.Models;
 
@@ -18,23 +17,6 @@ internal static class Decoder
 internal static partial class Decoder
 #endif
 {
-    /// <summary>
-    ///     Regular expression to match dots followed by non-dot and non-bracket characters.
-    ///     This is used to replace dots in keys with brackets for parsing.
-    /// </summary>
-    private static readonly Regex DotToBracket = MyRegex();
-
-#if NETSTANDARD2_0
-    private static readonly Regex MyRegexInstance = new(@"\.([^.\[]+)", RegexOptions.Compiled);
-    private static Regex MyRegex()
-    {
-        return MyRegexInstance;
-    }
-#else
-    [GeneratedRegex(@"\.([^.\[]+)", RegexOptions.Compiled)]
-    private static partial Regex MyRegex();
-#endif
-
     private static Encoding Latin1Encoding =>
 #if NETSTANDARD2_0
         Encoding.GetEncoding(28591);
@@ -548,7 +530,13 @@ internal static partial class Decoder
     }
 
 #if NETSTANDARD2_0
-    // Efficient case-insensitive ordinal string replace for NETSTANDARD2_0 (no regex, no allocations beyond matches)
+    /// <summary>
+    ///     Efficient case-insensitive ordinal string replace for NETSTANDARD2_0 (no regex, no allocations beyond matches)
+    /// </summary>
+    /// <param name="input"></param>
+    /// <param name="oldValue"></param>
+    /// <param name="newValue"></param>
+    /// <returns></returns>
     private static string ReplaceOrdinalIgnoreCase(string input, string oldValue, string newValue)
     {
         if (string.IsNullOrEmpty(input) || string.IsNullOrEmpty(oldValue))
@@ -574,7 +562,11 @@ internal static partial class Decoder
     }
 #endif
 
-    // Helper for joining IEnumerable as comma-separated strings (avoiding LINQ)
+    /// <summary>
+    ///     Helper for joining IEnumerable as comma-separated strings (avoiding LINQ)
+    /// </summary>
+    /// <param name="enumerable"></param>
+    /// <returns></returns>
     private static string JoinAsCommaSeparatedStrings(IEnumerable enumerable)
     {
         var e = enumerable.GetEnumerator();
@@ -595,7 +587,7 @@ internal static partial class Decoder
                 }
 
                 var s = e.Current?.ToString() ?? string.Empty;
-                sb!.Append(s);
+                sb.Append(s);
             }
         }
         finally
