@@ -1,3 +1,10 @@
+## 1.0.7
+
+* [FIX] fix degenerate bracket and dot parsing in `Decoder` for edge cases and parity
+* [CHORE] add tests for top-level dot handling, depth remainder, and unterminated bracket cases in `Decoder`
+* [CHORE] add tests for `SplitKeyIntoSegments` remainder and strict depth handling
+* [CHORE] add tests for double dot and encoded bracket handling in `Decoder` with dot options
+
 ## 1.0.6
 
 * [FIX] remove unused regex for dot-to-bracket key parsing in Decoder
