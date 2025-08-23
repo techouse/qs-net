@@ -10,6 +10,7 @@ using QsNet.Internal;
 using QsNet.Models;
 using QsNet.Tests.Fixtures.Data;
 using Xunit;
+using InternalDecoder = QsNet.Internal.Decoder;
 
 
 namespace QsNet.Tests;
@@ -4612,6 +4613,47 @@ public class DecodeTest
                     ["a"] = new Dictionary<string, object?> { ["[b[c"] = "x" }
                 }
             );
+    }
+
+    #endregion
+
+    #region Split Key Segmentation Remainder Tests
+
+    [Fact]
+    public void NoRemainder_WhenWithinDepth()
+    {
+        var segs = InternalDecoder.SplitKeyIntoSegments("a[b][c]", false, 3, false);
+        segs.Should().Equal("a", "[b]", "[c]");
+    }
+
+    [Fact]
+    public void DoubleBracketRemainder_AllowDots_Depth1()
+    {
+        var segs = InternalDecoder.SplitKeyIntoSegments("a.b.c", true, 1, false);
+        segs.Should().Equal("a", "[b]", "[[c]]");
+    }
+
+    [Fact]
+    public void DoubleBracketRemainder_ForBracketInput()
+    {
+        var segs = InternalDecoder.SplitKeyIntoSegments("a[b][c][d]", false, 2,
+            false);
+        segs.Should().Equal("a", "[b]", "[c]", "[[d]]");
+    }
+
+    [Fact]
+    public void StrictDepthOverflow_RaisesForWellFormed()
+    {
+        var act = () =>
+            InternalDecoder.SplitKeyIntoSegments("a[b][c][d]", false, 1, true);
+        act.Should().Throw<IndexOutOfRangeException>();
+    }
+
+    [Fact]
+    public void UnterminatedGroup_DoesNotRaise_UnderStrictDepth()
+    {
+        var segs = InternalDecoder.SplitKeyIntoSegments("a[b[c", false, 5, true);
+        segs.Should().Equal("a", "[[b[c]");
     }
 
     #endregion
