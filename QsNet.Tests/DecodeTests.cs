@@ -4656,5 +4656,29 @@ public class DecodeTest
         segs.Should().Equal("a", "[[b[c]");
     }
 
+    [Fact]
+    public void DoubleDot_BeforeBracket_AllowDotsTrue()
+    {
+        var opt = new DecodeOptions { AllowDots = true };
+        Qs.Decode("a..[b]=x", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["a."] = new Dictionary<string, object?> { ["b"] = "x" }
+            });
+    }
+
+    [Fact]
+    public void LeadingDot_EncodedBracket_AllowDotsTrue_DecodeDotInKeysTrue()
+    {
+        var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = true };
+        Qs.Decode(".%5Bb%5D=x", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?>
+            {
+                ["b"] = "x"
+            });
+    }
+
     #endregion
 }
