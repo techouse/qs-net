@@ -299,6 +299,35 @@ internal static partial class Decoder
                 var cleanRoot = root.StartsWith('[') && root.EndsWith(']') ? root[1..^1] : root;
 #endif
 
+                // If we unwrapped a synthetic “double-bracket” remainder (e.g. "[[b[c]]"),
+                // the inner content becomes "[b[c]". That trailing ']' is artificial – drop it
+                // so the literal inner text is "[b[c" (matches qs/Kotlin parity and your tests).
+                if (root.Length >= 2 && root[0] == '[' && root[root.Length - 1] == ']')
+                {
+                    var inner = cleanRoot;
+                    int opens = 0, closes = 0;
+                    foreach (var ch2 in inner)
+                        switch (ch2)
+                        {
+                            case '[':
+                                opens++;
+                                break;
+                            case ']':
+                                closes++;
+                                break;
+                        }
+
+                    // More '[' than ']' inside AND it ends with ']' → trim the final ']'
+                    if (opens > closes && inner.Length > 0 && inner[inner.Length - 1] == ']')
+                    {
+#if NETSTANDARD2_0
+                        cleanRoot = inner.Substring(0, inner.Length - 1);
+#else
+                        cleanRoot = inner[..^1];
+#endif
+                    }
+                }
+
 #if NETSTANDARD2_0
                 var decodedRoot = options.DecodeDotInKeys
                     ? ReplaceOrdinalIgnoreCase(cleanRoot, "%2E", ".")
@@ -386,7 +415,9 @@ internal static partial class Decoder
     ///     "user.email.name" -> "user[email][name]"
     ///     "a[b].c"          -> "a[b][c]" (dot outside brackets)
     ///     "a[.].c"          -> remains "a[.][c]" (dot inside brackets is preserved)
-    ///     "user.email."     -> "user[email]" (trailing dot ignored)
+    ///     - double dots: the first dot is preserved literally ("a..b" → "a.[b]")
+    ///     - trailing dot: preserved literally ("a." → "a.")
+    ///     - ".[" degenerate: the dot is skipped ("a.[b]" → "a[b]")
     /// </summary>
     private static string DotToBracketTopLevel(string key)
     {
@@ -413,14 +444,28 @@ internal static partial class Decoder
                     }
                 case '.' when depth == 0:
                     {
-                        // Convert the immediate token after the dot into a bracketed segment.
-                        // The token ends at the next '.' or '[' or end of string.
-                        var j = i + 1;
-                        while (j < key.Length && key[j] != '.' && key[j] != '[') j++;
-                        var len = j - (i + 1);
-                        if (len > 0) sb.Append('[').Append(key, i + 1, len).Append(']');
-                        // Degenerate cases (leading/double/trailing dot): do nothing.
-                        i = j - 1; // continue from the delimiter we stopped at
+                        var hasNext = i + 1 < key.Length;
+                        var nextCh = hasNext ? key[i + 1] : '\0';
+
+                        if (nextCh == '[')
+                        {
+                            // Degenerate ".[" → skip the dot so "a.[b]" behaves like "a[b]".
+                            // Do nothing here; the next loop iteration will see '['.
+                        }
+                        else if (!hasNext || nextCh == '.')
+                        {
+                            // Trailing dot, or first of a double dot: preserve the literal dot.
+                            sb.Append('.');
+                        }
+                        else
+                        {
+                            // Normal split: convert the token after the dot into a bracket segment.
+                            var j = i + 1;
+                            while (j < key.Length && key[j] != '.' && key[j] != '[') j++;
+                            sb.Append('[').Append(key, i + 1, j - (i + 1)).Append(']');
+                            i = j - 1; // continue from the delimiter we stopped at
+                        }
+
                         break;
                     }
                 default:
@@ -434,6 +479,7 @@ internal static partial class Decoder
 
     /// <summary>
     ///     Splits a key into segments based on brackets and dots, handling depth and strictness.
+    ///     Unterminated bracket groups are treated as a single opaque remainder and do not trigger strictDepth overflows.
     /// </summary>
     /// <param name="originalKey">The original key to split.</param>
     /// <param name="allowDots">Whether to allow dots in the key.</param>
@@ -448,12 +494,12 @@ internal static partial class Decoder
         bool strictDepth
     )
     {
-        // Apply dot→bracket *before* splitting, but when depth == 0, we do NOT split at all and do NOT throw.
-        var key = allowDots ? DotToBracketTopLevel(originalKey) : originalKey;
-
         // Depth 0 semantics: use the original key as a single segment; never throw.
         if (maxDepth <= 0)
-            return [key];
+            return [originalKey];
+
+        // Apply dot→bracket *before* splitting (only when depth > 0).
+        var key = allowDots ? DotToBracketTopLevel(originalKey) : originalKey;
 
         var segments = new List<string>();
 
@@ -469,6 +515,7 @@ internal static partial class Decoder
         var open = first;
         var depth = 0;
         var lastClose = -1;
+        var brokeUnterminated = false;
         while (open >= 0 && depth < maxDepth)
         {
             var level = 1;
@@ -495,9 +542,11 @@ internal static partial class Decoder
             }
 
             if (close < 0)
-                // Unterminated group: treat the entire key as a single literal segment (qs semantics).
-                // This ensures inputs like "[", "[[", or "[hello[" are preserved as-is and do not get dropped.
-                return [key];
+            {
+                // Unterminated group: stop collecting; do not treat as strictDepth overflow.
+                brokeUnterminated = true;
+                break;
+            }
 #if NETSTANDARD2_0
             segments.Add(key.Substring(open, close + 1 - open)); // balanced group, e.g. "[b[c]]"
 #else
@@ -508,23 +557,51 @@ internal static partial class Decoder
             open = key.IndexOf('[', close + 1);
         }
 
-        // If there's any trailing text after the last closing bracket, treat it as a single final segment.
-        // Ignore a lone trailing '.' (degenerate top-level dot).
+        // If we broke early (either due to strict depth overflow or unterminated group),
+        // `open` will be >= 0 and points at the next '[' to process. In that case,
+        // treat the remainder starting at `open` as a single opaque segment by wrapping
+        // it in ONE extra pair of brackets (e.g., "[c][d]" → "[[c][d]]", "[b[c" → "[[b[c]").
+        // Important:
+        // - For an unterminated key that *starts* with '[', like "[", "[[", "[hello[",
+        //   return the *entire* original key as a single literal segment to preserve
+        //   existing semantics (qs/Kotlin/C# parity).
+        if (open >= 0)
+        {
+            // Well-formed overflow remainder: still subject to strictDepth
+            if (strictDepth && !brokeUnterminated)
+                throw new IndexOutOfRangeException(
+                    $"Input depth exceeded depth option of {maxDepth} and strictDepth is true"
+                );
+
+            // Unterminated starting bracket (e.g., "[", "[[", "[hello[") → single literal segment.
+            if (brokeUnterminated && first == 0)
+                return [originalKey];
+
+#if NETSTANDARD2_0
+            var remainderFromOpen = key.Substring(open);
+#else
+            var remainderFromOpen = key[open..];
+#endif
+
+            // Wrap once: "[b[c" → "[[b[c]" (so downstream unwrapping yields "[b[c")
+            segments.Add("[" + remainderFromOpen + "]");
+            return segments;
+        }
+
+        // Otherwise, handle any *trailing text* that comes after the last balanced group,
+        // like "a[b]c" → remainder "c". Ignore a lone trailing '.' (degenerate top‑level dot).
         if (lastClose < 0 || lastClose + 1 >= key.Length) return segments;
 #if NETSTANDARD2_0
-        var remainder = key.Substring(lastClose + 1);
+        var trailing = key.Substring(lastClose + 1);
 #else
-        var remainder = key[(lastClose + 1)..];
+        var trailing = key[(lastClose + 1)..];
 #endif
-        if (remainder == ".") return segments;
-
+        if (trailing == ".") return segments;
         if (strictDepth)
             throw new IndexOutOfRangeException(
                 $"Input depth exceeded depth option of {maxDepth} and strictDepth is true"
             );
-
-        // Wrap the remainder as one final bracket segment.
-        segments.Add("[" + remainder + "]");
+        segments.Add("[" + trailing + "]");
 
         return segments;
     }
