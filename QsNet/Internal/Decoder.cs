@@ -487,7 +487,7 @@ internal static partial class Decoder
     /// <param name="strictDepth">Whether to enforce strict depth limits.</param>
     /// <returns>A list of segments derived from the original key.</returns>
     /// <exception cref="IndexOutOfRangeException">If the depth exceeds maxDepth and strictDepth is true.</exception>
-    private static List<string> SplitKeyIntoSegments(
+    internal static List<string> SplitKeyIntoSegments(
         string originalKey,
         bool allowDots,
         int maxDepth,
