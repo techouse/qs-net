@@ -256,9 +256,9 @@ public static class Qs
         {
             // encodeURIComponent('&#10003;') and encodeURIComponent('✓')
             if (opts.Charset.WebName.Equals("iso-8859-1", StringComparison.OrdinalIgnoreCase))
-                sb.Append("utf8=%26%2310003%3B&");
+                sb.Append($"{Sentinel.Iso.GetEncoded()}&");
             else if (opts.Charset.WebName.Equals("utf-8", StringComparison.OrdinalIgnoreCase))
-                sb.Append("utf8=%E2%9C%93&");
+                sb.Append($"{Sentinel.Charset.GetEncoded()}&");
         }
 
         if (joined.Length > 0)
