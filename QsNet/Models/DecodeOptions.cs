@@ -85,7 +85,7 @@ public sealed class DecodeOptions
     ///     Some services add an initial utf8=✓ value to forms so that old InternetExplorer versions
     ///     are more likely to submit the form as UTF-8. Additionally, the server can check the value
     ///     against wrong encodings of the checkmark character and detect that a query string or
-    ///     application/x-www-form-urlencoded body was *not* sent as UTF-8, eg. if the form had an
+    ///     application/x-www-form-urlencoded body was *not* sent as UTF-8, e.g. if the form had an
     ///     accept-charset parameter or the containing page had a different character set.
     ///     QS supports this mechanism via the CharsetSentinel option. If specified, the UTF-8 parameter
     ///     will be omitted from the returned dictionary. It will be used to switch to ISO-8859-1/UTF-8 mode
@@ -191,7 +191,7 @@ public sealed class DecodeOptions
     /// <summary>
     ///     Decode a single scalar token using the most specific decoder available.
     ///     If <see cref="DecoderWithKind" /> is provided, it is always used (even when it returns null).
-    ///     Otherwise the legacy two-argument <see cref="Decoder" /> is used; if neither is set,
+    ///     Otherwise, the legacy two-argument <see cref="Decoder" /> is used; if neither is set,
     ///     a library default is used.
     /// </summary>
     public object? Decode(string? value, Encoding? encoding = null, DecodeKind kind = DecodeKind.Value)
