@@ -1,3 +1,12 @@
+## 1.0.6
+
+* [FIX] remove unused regex for dot-to-bracket key parsing in Decoder
+* [FIX] use Sentinel encoding methods for charset detection in query serialization
+* [CHORE] refactor boolean serialization to use switch expression in Encoder
+* [CHORE] update documentation of `EncodeOptions` and `DecodeOptions`
+* [CHORE] refactor test lambdas to discard unused parameters and simplify logic
+* [CHORE] refactor test data sources to use strongly-typed TheoryData and EndToEndTestCase
+
 ## 1.0.5
 
 * [FEAT] add key-aware decoding to the query string parser
