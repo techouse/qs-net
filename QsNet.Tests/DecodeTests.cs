@@ -11,6 +11,7 @@ using QsNet.Models;
 using QsNet.Tests.Fixtures.Data;
 using Xunit;
 
+
 namespace QsNet.Tests;
 
 public class DecodeTest
@@ -4533,6 +4534,84 @@ public class DecodeTest
 
         calls.Should().Contain(x => x.kind == DecodeKind.Key && (x.s == "a%2Eb" || x.s == "a[b]"));
         calls.Should().Contain(x => x.kind == DecodeKind.Value && (x.s == "c" || x.s == "d"));
+    }
+
+    #endregion
+
+    #region Top-level dot guardrails & depth remainder
+
+    [Fact]
+    public void LeadingDot_AllowDotsTrue_PreservesTokenAfterDot()
+    {
+        var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = false };
+
+        Qs.Decode(".a=x", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "x" });
+    }
+
+    [Fact]
+    public void DoubleDots_AllowDotsTrue_PreservesLiteralDotInParentKey()
+    {
+        var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = false };
+
+        // "a..b" → only the second dot splits; the empty middle becomes a literal '.' in the parent key
+        Qs.Decode("a..b=x", opt)
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a."] = new Dictionary<string, object?> { ["b"] = "x" }
+                }
+            );
+    }
+
+    [Fact]
+    public void DepthZero_DisablesTopLevelDotSplitting()
+    {
+        var opt = new DecodeOptions { AllowDots = true, Depth = 0 };
+
+        Qs.Decode("a.b=c", opt)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a.b"] = "c" });
+    }
+
+    [Fact]
+    public void DotToBracket_Depth1_RemainderIsSingleBracketedSegment()
+    {
+        var opt = new DecodeOptions { AllowDots = true, Depth = 1 };
+
+        // "a.b.c" → dot→bracket upstream → "a[b][c]" → with depth=1, remainder is one segment "[c]"
+        Qs.Decode("a.b.c=x", opt)
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new Dictionary<string, object?>
+                    {
+                        ["b"] = new Dictionary<string, object?> { ["[c]"] = "x" }
+                    }
+                }
+            );
+    }
+
+    [Fact]
+    public void UnterminatedBracket_DoesNotThrow_WithStrictDepthTrue_RemainderWrapped()
+    {
+        var opt = new DecodeOptions { Depth = 5, StrictDepth = true };
+
+        // Do not throw on unterminated groups even with strictDepth=true; keep raw remainder as a single key segment.
+        Action act = () => Qs.Decode("a[b[c]=x", opt);
+        act.Should().NotThrow();
+
+        Qs.Decode("a[b[c]=x", opt)
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new Dictionary<string, object?> { ["[b[c"] = "x" }
+                }
+            );
     }
 
     #endregion
