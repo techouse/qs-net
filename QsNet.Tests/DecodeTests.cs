@@ -8,6 +8,7 @@ using FluentAssertions;
 using QsNet.Enums;
 using QsNet.Internal;
 using QsNet.Models;
+using QsNet.Tests.Fixtures.Data;
 using Xunit;
 
 namespace QsNet.Tests;
@@ -2210,26 +2211,17 @@ public class DecodeTest
     }
 
     [Theory]
-    [MemberData(nameof(EmptyTestCases))]
-    public void Decode_ParsesEmptyKeys_SkipsEmptyStringKey(
-        string input,
-        Dictionary<string, object?> noEmptyKeys
-    )
+    [MemberData(nameof(GetEmptyTestCases))]
+    public void Decode_ParsesEmptyKeys_SkipsEmptyStringKey(Dictionary<string, object?> testCase)
     {
-        Qs.Decode(input).Should().BeEquivalentTo(noEmptyKeys);
+        Qs.Decode(testCase["input"]).Should().BeEquivalentTo(testCase["noEmptyKeys"]);
     }
 
-    public static IEnumerable<object[]> EmptyTestCases()
+    public static TheoryData<Dictionary<string, object?>> GetEmptyTestCases()
     {
-        // You'll need to define the actual test cases here based on your EmptyTestCases data
-        // This is just an example structure
-        yield return new object[] { "=value", new Dictionary<string, object?>() };
-        yield return new object[]
-        {
-            "key=",
-            new Dictionary<string, object?> { ["key"] = "" }
-        };
-        // Add more test cases as needed
+        var data = new TheoryData<Dictionary<string, object?>>();
+        foreach (var testCase in EmptyTestCases.Cases) data.Add(testCase);
+        return data;
     }
 
     [Fact]

@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using FluentAssertions;
 using JetBrains.Annotations;
 using QsNet.Models;
@@ -13,33 +11,27 @@ public class ExtensionTests
 {
     [Theory]
     [MemberData(nameof(GetEndToEndTestCases))]
-    public void ToQueryString_ShouldEncodeEndToEndTestCases(
-        Dictionary<string, object?> data,
-        string expectedEncoded
-    )
+    public void ToQueryString_ShouldEncodeEndToEndTestCases(EndToEndTestCase testCase)
     {
-        data.ToQueryString(new EncodeOptions { Encode = false })
+        testCase.Data.ToQueryString(new EncodeOptions { Encode = false })
             .Should()
-            .Be(expectedEncoded, $"Failed for test case: {data}");
+            .Be(testCase.Encoded, $"Failed for test case: {testCase.Data}");
     }
 
     [Theory]
     [MemberData(nameof(GetEndToEndTestCases))]
-    public void ToQueryMap_ShouldDecodeEndToEndTestCases(
-        Dictionary<string, object?> expectedData,
-        string encoded
-    )
+    public void ToQueryMap_ShouldDecodeEndToEndTestCases(EndToEndTestCase testCase)
     {
-        encoded
+        testCase.Encoded
             .ToQueryMap()
             .Should()
-            .BeEquivalentTo(expectedData, $"Failed for test case: {encoded}");
+            .BeEquivalentTo(testCase.Data, $"Failed for test case: {testCase.Encoded}");
     }
 
-    public static IEnumerable<object[]> GetEndToEndTestCases()
+    public static TheoryData<EndToEndTestCase> GetEndToEndTestCases()
     {
-        return EndToEndTestCases.Cases.Select(testCase =>
-            (object[])[testCase.Data, testCase.Encoded]
-        );
+        var data = new TheoryData<EndToEndTestCase>();
+        foreach (var testCase in EndToEndTestCases.Cases) data.Add(testCase);
+        return data;
     }
 }

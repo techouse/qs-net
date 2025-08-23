@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-using System.Linq;
 using FluentAssertions;
 using JetBrains.Annotations;
 using QsNet.Models;
@@ -13,19 +11,19 @@ public class EndToEndTests
 {
     [Theory]
     [MemberData(nameof(GetEndToEndTestCases))]
-    public void EndToEndTest_EncodeDecodeRoundTrip(object data, string encoded)
+    public void EndToEndTest_EncodeDecodeRoundTrip(EndToEndTestCase testCase)
     {
         // Encode the data and verify it matches the expected encoded string
-        Qs.Encode(data, new EncodeOptions { Encode = false }).Should().Be(encoded);
+        Qs.Encode(testCase.Data, new EncodeOptions { Encode = false }).Should().Be(testCase.Encoded);
 
         // Decode the encoded string and verify it matches the original data
-        Qs.Decode(encoded).Should().BeEquivalentTo(data);
+        Qs.Decode(testCase.Encoded).Should().BeEquivalentTo(testCase.Data);
     }
 
-    public static IEnumerable<object[]> GetEndToEndTestCases()
+    public static TheoryData<EndToEndTestCase> GetEndToEndTestCases()
     {
-        return EndToEndTestCases.Cases.Select(testCase =>
-            new object[] { testCase.Data, testCase.Encoded }
-        );
+        var data = new TheoryData<EndToEndTestCase>();
+        foreach (var testCase in EndToEndTestCases.Cases) data.Add(testCase);
+        return data;
     }
 }

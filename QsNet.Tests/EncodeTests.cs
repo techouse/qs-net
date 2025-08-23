@@ -3004,9 +3004,11 @@ public class EncodeTests
             .Be((string)stringifyOutput["repeat"]!);
     }
 
-    public static IEnumerable<object[]> GetEmptyTestCases()
+    public static TheoryData<Dictionary<string, object?>> GetEmptyTestCases()
     {
-        return EmptyTestCases.Cases.Select(testCase => new object[] { testCase });
+        var data = new TheoryData<Dictionary<string, object?>>();
+        foreach (var testCase in EmptyTestCases.Cases) data.Add(testCase);
+        return data;
     }
 
     [Fact]

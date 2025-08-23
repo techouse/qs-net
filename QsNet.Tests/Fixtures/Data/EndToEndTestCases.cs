@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace QsNet.Tests.Fixtures.Data;
 
-internal record EndToEndTestCase(Dictionary<string, object?> Data, string Encoded);
+public record EndToEndTestCase(Dictionary<string, object?> Data, string Encoded);
 
 internal static class EndToEndTestCases
 {
