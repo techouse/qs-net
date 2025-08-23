@@ -110,16 +110,16 @@ public class EncodeTests
                 new EncodeOptions
                 {
                     Encode = false,
-                    Filter = new FunctionFilter((prefix, map) =>
+                    Filter = new FunctionFilter((_, map) =>
                         {
                             // This should trigger the code path that accesses properties of non-Map, non-Iterable objects
                             var result = new Dictionary<string, object?>();
-                            if (map is IDictionary<string, object?> dict)
-                                foreach (var (key, value) in dict)
-                                    if (value is CustomObject customValue)
-                                        result[key] = customValue["prop"];
-                                    else
-                                        result[key] = value;
+                            if (map is not IDictionary<string, object?> dict) return result;
+                            foreach (var (key, value) in dict)
+                                if (value is CustomObject customValue)
+                                    result[key] = customValue["prop"];
+                                else
+                                    result[key] = value;
 
                             return result;
                         }
@@ -2979,7 +2979,6 @@ public class EncodeTests
     [MemberData(nameof(GetEmptyTestCases))]
     public void Encode_MapWithEmptyStringKey(Dictionary<string, object?> testCase)
     {
-        var input = (string)testCase["input"]!;
         var withEmptyKeys = (Dictionary<string, object?>)testCase["withEmptyKeys"]!;
         var stringifyOutput = (Dictionary<string, object?>)testCase["stringifyOutput"]!;
 

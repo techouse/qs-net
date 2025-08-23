@@ -1678,16 +1678,8 @@ public class DecodeTest
     [Fact]
     public void Decode_UseNumberDecoderParsesStringThatHasOneNumberWithCommaOptionEnabled()
     {
-        object? NumberDecoder(string? str, Encoding? charset)
-        {
-            if (int.TryParse(str, out var number))
-                return number;
-            return Utils.Decode(str, charset);
-        }
-
         var options = new DecodeOptions { Comma = true, Decoder = NumberDecoder };
 
-        // For now, testing with default decoder
         Qs.Decode("foo=1", new DecodeOptions { Comma = true })
             .Should()
             .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "1" });
@@ -1695,6 +1687,23 @@ public class DecodeTest
         Qs.Decode("foo=0", new DecodeOptions { Comma = true })
             .Should()
             .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = "0" });
+
+        Qs.Decode("foo=1", options)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = 1 });
+
+        Qs.Decode("foo=0", options)
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = 0 });
+
+        return;
+
+        object? NumberDecoder(string? str, Encoding? charset)
+        {
+            if (int.TryParse(str, out var number))
+                return number;
+            return Utils.Decode(str, charset);
+        }
     }
 
     [Fact]
@@ -1984,7 +1993,7 @@ public class DecodeTest
 
         string? CustomDecoder(string? str, Encoding? charset)
         {
-            return str?.Replace("%8c%a7", "県")?.Replace("%91%e5%8d%e3%95%7b", "大阪府");
+            return str?.Replace("%8c%a7", "県").Replace("%91%e5%8d%e3%95%7b", "大阪府");
         }
 
         var options = new DecodeOptions { Decoder = CustomDecoder };
@@ -4519,7 +4528,7 @@ public class DecodeTest
         var calls = new List<(string? s, DecodeKind kind)>();
         var opt = new DecodeOptions
         {
-            DecoderWithKind = (s, enc, kind) =>
+            DecoderWithKind = (s, _, kind) =>
             {
                 calls.Add((s, kind));
                 return s;

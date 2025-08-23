@@ -152,7 +152,7 @@ public class DecodeOptionsTests
         var calls = new List<(string? s, DecodeKind kind)>();
         var options = new DecodeOptions
         {
-            DecoderWithKind = (s, enc, kind) =>
+            DecoderWithKind = (s, _, kind) =>
             {
                 calls.Add((s, kind));
                 return s;
@@ -174,7 +174,7 @@ public class DecodeOptionsTests
     {
         var options = new DecodeOptions
         {
-            DecoderWithKind = (s, enc, kind) => null
+            DecoderWithKind = (_, _, _) => null
         };
 
         options.DecodeValue("foo", Encoding.UTF8).Should().BeNull();
@@ -186,7 +186,7 @@ public class DecodeOptionsTests
     {
         var options = new DecodeOptions
         {
-            Decoder = (s, enc) => s is null ? null : s.ToUpperInvariant()
+            Decoder = (s, _) => s?.ToUpperInvariant()
         };
 
         options.DecodeValue("abc", Encoding.UTF8).Should().Be("ABC");
@@ -199,8 +199,8 @@ public class DecodeOptionsTests
     {
         var original = new DecodeOptions
         {
-            Decoder = (s, enc) => s == null ? null : $"L:{s}",
-            DecoderWithKind = (s, enc, k) => s == null ? null : $"K:{k}:{s}"
+            Decoder = (s, _) => s == null ? null : $"L:{s}",
+            DecoderWithKind = (s, _, k) => s == null ? null : $"K:{k}:{s}"
         };
 
         // Copy without overrides preserves both decoders
@@ -209,11 +209,11 @@ public class DecodeOptionsTests
         copy.DecodeKey("k", Encoding.UTF8).Should().Be("K:Key:k");
 
         // Override only the legacy decoder; kind-aware remains
-        var copy2 = original.CopyWith(decoder: (s, enc) => s == null ? null : $"L2:{s}");
+        var copy2 = original.CopyWith(decoder: (s, _) => s == null ? null : $"L2:{s}");
         copy2.DecodeValue("v", Encoding.UTF8).Should().Be("K:Value:v"); // still kind-aware takes precedence
 
         // Override kind-aware decoder
-        var copy3 = original.CopyWith(decoderWithKind: (s, enc, k) => s == null ? null : $"K2:{k}:{s}");
+        var copy3 = original.CopyWith(decoderWithKind: (s, _, k) => s == null ? null : $"K2:{k}:{s}");
         copy3.DecodeValue("v", Encoding.UTF8).Should().Be("K2:Value:v");
         copy3.DecodeKey("k", Encoding.UTF8).Should().Be("K2:Key:k");
     }
