@@ -240,24 +240,30 @@ internal static partial class Decoder
 #endif
            )
         {
-            string parentKeyStr;
+            // Look only at the immediate parent segment, e.g. "[0]" in ["a", "[0]", "[]"]
             if (chain.Count > 1)
             {
-                var sbTmp = new StringBuilder();
-                for (var t = 0; t < chain.Count - 1; t++) sbTmp.Append(chain[t]);
-                parentKeyStr = sbTmp.ToString();
+#if NETSTANDARD2_0
+                var parentSeg = chain[chain.Count - 2];
+#else
+                var parentSeg = chain[^2];
+#endif
+                if (parentSeg.Length >= 2 && parentSeg[0] == '[' && parentSeg[parentSeg.Length - 1] == ']')
+                {
+#if NETSTANDARD2_0
+                    var idxStr = parentSeg.Substring(1, parentSeg.Length - 2);
+#else
+                    var idxStr = parentSeg[1..^1];
+#endif
+                    if (int.TryParse(idxStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parentIndex)
+                        && value is IList<object?> incomingList
+                        && parentIndex >= 0
+                        && parentIndex < incomingList.Count)
+                    {
+                        currentListLength = (incomingList[parentIndex] as IList<object?>)?.Count ?? 0;
+                    }
+                }
             }
-            else
-            {
-                parentKeyStr = string.Empty;
-            }
-
-            if (
-                int.TryParse(parentKeyStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parentKey)
-                && value is IList<object?> list
-                && parentKey < list.Count
-            )
-                currentListLength = (list[parentKey] as IList<object?>)?.Count ?? 0;
         }
 
         var leaf = valuesParsed ? value : ParseListValue(value, options, currentListLength);
