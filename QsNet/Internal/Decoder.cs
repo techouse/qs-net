@@ -49,7 +49,7 @@ internal static partial class Decoder
         if (value is string str && !string.IsNullOrEmpty(str) && options.Comma && str.Contains(','))
         {
             var splitVal = str.Split(',');
-            if (options.ThrowOnLimitExceeded && splitVal.Length > options.ListLimit)
+            if (options.ThrowOnLimitExceeded && currentListLength + splitVal.Length > options.ListLimit)
                 throw new InvalidOperationException(
                     $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
                 );
