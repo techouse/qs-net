@@ -424,10 +424,22 @@ internal static partial class Utils
 
         while (j < nonNullStr.Length)
         {
-            var segment =
-                nonNullStr.Length >= SegmentLimit
-                    ? nonNullStr.Substring(j, Math.Min(SegmentLimit, nonNullStr.Length - j))
-                    : nonNullStr;
+            // Take up to SegmentLimit characters, but never split a surrogate pair across the boundary.
+            var remaining = nonNullStr.Length - j;
+            var segmentLen = remaining >= SegmentLimit ? SegmentLimit : remaining;
+
+            // If the last char of this segment is a high surrogate and the next char exists and is a low surrogate,
+            // shrink the segment by one so the pair is encoded together in the next iteration.
+            if (
+                segmentLen < remaining &&
+                char.IsHighSurrogate(nonNullStr[j + segmentLen - 1]) &&
+                char.IsLowSurrogate(nonNullStr[j + segmentLen])
+            )
+            {
+                segmentLen--; // keep the high surrogate with its low surrogate in the next chunk
+            }
+
+            var segment = nonNullStr.Substring(j, segmentLen);
 
             var i = 0;
             while (i < segment.Length)
@@ -484,7 +496,7 @@ internal static partial class Utils
                 i += 2; // Skip the next character as it's part of the surrogate pair
             }
 
-            j += SegmentLimit;
+            j += segment.Length; // advance by the actual processed count
         }
 
         return buffer.ToString();
