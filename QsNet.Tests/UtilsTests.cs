@@ -1308,7 +1308,7 @@ public class UtilsTests
         Utils.InterpretNumericEntities("&#x41;").Should().Be("A"); // uppercase hex digits
         Utils.InterpretNumericEntities("&#x6d;").Should().Be("m"); // lowercase hex digits
     }
-    
+
     [Fact]
     public void InterpretNumericEntities_DecodesSingleHexEntity_UppercaseX()
     {
