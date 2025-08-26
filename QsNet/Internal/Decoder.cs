@@ -188,11 +188,11 @@ internal static partial class Decoder
                 value = Utils.InterpretNumericEntities(tmpStr);
             }
 
-            #if NETSTANDARD2_0
+#if NETSTANDARD2_0
             if (part.IndexOf("[]=", StringComparison.Ordinal) >= 0)
-            #else
+#else
             if (part.Contains("[]=", StringComparison.Ordinal))
-            #endif
+#endif
                 value = value is IEnumerable and not string ? new List<object?> { value } : value;
 
             if (obj.TryGetValue(key, out var existingVal))
@@ -426,13 +426,13 @@ internal static partial class Decoder
     /// </summary>
     private static string DotToBracketTopLevel(string key)
     {
-        #if NETSTANDARD2_0
+#if NETSTANDARD2_0
         if (string.IsNullOrEmpty(key) || key.IndexOf('.') < 0)
             return key;
-        #else
+#else
         if (string.IsNullOrEmpty(key) || !key.Contains('.'))
             return key;
-        #endif
+#endif
 
         var sb = new StringBuilder(key.Length + 4);
         var depth = 0;
