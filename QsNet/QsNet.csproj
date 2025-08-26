@@ -30,6 +30,7 @@
 
         <Deterministic>true</Deterministic>
         <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+        <TreatWarningsAsErrors Condition="'$(CI)' == 'true'">true</TreatWarningsAsErrors>
 
         <PackageReleaseNotes>See CHANGELOG: https://github.com/techouse/qs-net/releases</PackageReleaseNotes>
         <Title>QsNet - Query-string encoding/decoding for .NET</Title>
