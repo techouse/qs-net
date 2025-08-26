@@ -13,9 +13,9 @@ namespace QsNet.Models;
 /// <param name="encoding">The character encoding to use for decoding, if any.</param>
 /// <returns>The decoded value, or null if the value is not present.</returns>
 /// <remarks>
-///     When this delegate is used to decode keys (e.g., via <see cref="DecodeOptions.DecodeKey"/>),
-///     it must return either a <see cref="string"/> or <see langword="null"/>; returning any other
-///     type will cause <see cref="InvalidOperationException"/> at the call site.
+///     When this delegate is used to decode keys (e.g., via <see cref="DecodeOptions.DecodeKey" />),
+///     it must return either a <see cref="string" /> or <see langword="null" />; returning any other
+///     type will cause <see cref="InvalidOperationException" /> at the call site.
 /// </remarks>
 public delegate object? Decoder(string? value, Encoding? encoding);
 
@@ -28,9 +28,9 @@ public delegate object? Decoder(string? value, Encoding? encoding);
 /// <param name="kind">Whether this token is a <see cref="DecodeKind.Key" /> or <see cref="DecodeKind.Value" />.</param>
 /// <returns>The decoded value, or null if the value is not present.</returns>
 /// <remarks>
-///     When <paramref name="kind"/> is <see cref="DecodeKind.Key"/>, the decoder must return a
-///     <see cref="string"/> or <see langword="null"/>. Returning any other type will cause
-///     <see cref="InvalidOperationException"/> at the call site (see <see cref="DecodeOptions.DecodeKey"/>).
+///     When <paramref name="kind" /> is <see cref="DecodeKind.Key" />, the decoder must return a
+///     <see cref="string" /> or <see langword="null" />. Returning any other type will cause
+///     <see cref="InvalidOperationException" /> at the call site (see <see cref="DecodeOptions.DecodeKey" />).
 /// </remarks>
 public delegate object? KindAwareDecoder(string? value, Encoding? encoding, DecodeKind kind);
 

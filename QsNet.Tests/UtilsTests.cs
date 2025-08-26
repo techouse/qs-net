@@ -1355,7 +1355,7 @@ public class UtilsTests
     {
         Utils.InterpretNumericEntities("&#xZZ;").Should().Be("&#xZZ;"); // non-hex digits
         Utils.InterpretNumericEntities("&#x1G;").Should().Be("&#x1G;"); // invalid hex digit
-        Utils.InterpretNumericEntities("&#x41").Should().Be("&#x41");   // missing semicolon
+        Utils.InterpretNumericEntities("&#x41").Should().Be("&#x41"); // missing semicolon
     }
 
     [Fact]

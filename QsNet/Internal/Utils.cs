@@ -435,9 +435,7 @@ internal static partial class Utils
                 char.IsHighSurrogate(nonNullStr[j + segmentLen - 1]) &&
                 char.IsLowSurrogate(nonNullStr[j + segmentLen])
             )
-            {
                 segmentLen--; // keep the high surrogate with its low surrogate in the next chunk
-            }
 
             var segment = nonNullStr.Substring(j, segmentLen);
 
@@ -487,6 +485,7 @@ internal static partial class Utils
                     i++;
                     continue;
                 }
+
                 var nextC = segment[i + 1];
                 var codePoint = char.ConvertToUtf32((char)c, nextC);
                 buffer.Append(HexTable.Table[0xF0 | (codePoint >> 18)]);
@@ -832,7 +831,12 @@ internal static partial class Utils
                 {
                     var startDigits = j;
                     var hex = false;
-                    if (str[j] is 'x' or 'X') { hex = true; j++; startDigits = j; }
+                    if (str[j] is 'x' or 'X')
+                    {
+                        hex = true;
+                        j++;
+                        startDigits = j;
+                    }
 
                     // Advance j over the digit run without allocating per-digit strings
                     while (j < n && (hex ? Uri.IsHexDigit(str[j]) : char.IsDigit(str[j])))

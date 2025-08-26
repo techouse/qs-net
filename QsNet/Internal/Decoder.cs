@@ -1,9 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
-using System.Globalization;
 using QsNet.Enums;
 using QsNet.Models;
 
@@ -71,7 +71,7 @@ internal static partial class Decoder
     /// <param name="options">The decoding options that affect how the string is parsed.</param>
     /// <returns>A mutable dictionary containing the parsed key-value pairs.</returns>
     /// <exception cref="ArgumentException">If the parameter limit is not a positive integer.</exception>
-    ///  <exception cref="InvalidOperationException">If the parameter limit is exceeded and ThrowOnLimitExceeded is true.</exception>
+    /// <exception cref="InvalidOperationException">If the parameter limit is exceeded and ThrowOnLimitExceeded is true.</exception>
     internal static Dictionary<string, object?> ParseQueryStringValues(
         string str,
         DecodeOptions? options = null
@@ -239,7 +239,6 @@ internal static partial class Decoder
             chain[^1] == "[]"
 #endif
            )
-        {
             // Look only at the immediate parent segment, e.g. "[0]" in ["a", "[0]", "[]"]
             if (chain.Count > 1)
             {
@@ -259,12 +258,9 @@ internal static partial class Decoder
                         && value is IList<object?> incomingList
                         && parentIndex >= 0
                         && parentIndex < incomingList.Count)
-                    {
                         currentListLength = (incomingList[parentIndex] as IList<object?>)?.Count ?? 0;
-                    }
                 }
             }
-        }
 
         var leaf = valuesParsed ? value : ParseListValue(value, options, currentListLength);
 
@@ -303,7 +299,8 @@ internal static partial class Decoder
             {
                 // Unwrap [ ... ] and (optionally) decode %2E -> .
 #if NETSTANDARD2_0
-                var cleanRoot = root.StartsWith("[", StringComparison.Ordinal) && root.EndsWith("]", StringComparison.Ordinal)
+                var cleanRoot = root.StartsWith("[", StringComparison.Ordinal) &&
+                                root.EndsWith("]", StringComparison.Ordinal)
                     ? root.Substring(1, root.Length - 2)
                     : root;
 #else
