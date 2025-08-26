@@ -4765,4 +4765,22 @@ public class DecodeTest
     }
 
     #endregion
+
+    #region Nested brackets
+
+    [Fact]
+    public void NestedBrackets_AreParsedCorrectly()
+    {
+        Qs.Decode("a[b[]]=c", new DecodeOptions())
+            .Should().BeEquivalentTo(
+           new Dictionary<string, object?>
+           {
+               ["a"] = new Dictionary<string, object?>
+               {
+                   ["b[]"] = "c"
+               }
+           });
+    }
+
+    #endregion
 }
