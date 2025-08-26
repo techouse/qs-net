@@ -121,7 +121,7 @@ public class DecodeOptionsTests
         };
 
         Action act = () => options.DecodeKey("a%2Eb", Encoding.UTF8);
-        act.Should().Throw<ArgumentException>()
+        act.Should().Throw<InvalidOperationException>()
             .Where(e => e.Message.Contains("decodeDotInKeys", StringComparison.OrdinalIgnoreCase)
                         && e.Message.Contains("allowDots", StringComparison.OrdinalIgnoreCase));
     }
