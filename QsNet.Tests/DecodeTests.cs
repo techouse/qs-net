@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -4678,6 +4679,48 @@ public class DecodeTest
             {
                 ["b"] = "x"
             });
+    }
+
+    #endregion
+
+    #region Decode comma limit
+
+    [Fact]
+    public void Decode_CommaSplit_AllowedWhenSumEqualsLimit()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 5,
+            ThrowOnLimitExceeded = true,
+            ParseLists = true,
+            Duplicates = Duplicates.Combine
+        };
+
+        // Existing N=2 from first part, incoming M=3; N+M = 5 == limit → allowed
+        var result = Assert.IsType<Dictionary<string, object?>>(Qs.Decode("a=1,2&a=3,4,5", opts));
+        result.Should().ContainKey("a");
+
+        var list = Assert.IsType<List<object?>>(result["a"]);
+        list.Should().HaveCount(5);
+        list.Select(x => x?.ToString()).Should().Equal("1", "2", "3", "4", "5");
+    }
+
+    [Fact]
+    public void Decode_CommaSplit_ThrowsWhenSumExceedsLimitAndThrowOn()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 5,
+            ThrowOnLimitExceeded = true,
+            ParseLists = true,
+            Duplicates = Duplicates.Combine
+        };
+
+        // Existing N=2, incoming M=4; N+M = 6 > limit and ThrowOnLimitExceeded = true → throws
+        Action act = () => Qs.Decode("a=1,2&a=3,4,5,6", opts);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     #endregion
