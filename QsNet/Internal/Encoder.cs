@@ -86,7 +86,7 @@ internal static class Encoder
             if (objKey is not null && tmpSc.TryGet(objKey, out var pos))
             {
                 if (pos == step)
-                    throw new IndexOutOfRangeException("Cyclic object value");
+                    throw new InvalidOperationException("Cyclic object value");
                 found = true;
             }
 
@@ -370,7 +370,11 @@ internal static class Encoder
 
             var keyStr = key?.ToString() ?? "";
             var encodedKey = keyStr;
+#if NETSTANDARD2_0
             if (allowDots && encodeDotInKeys && keyStr.IndexOf('.') >= 0)
+#else
+            if (allowDots && encodeDotInKeys && keyStr.Contains('.'))
+#endif
                 encodedKey = keyStr.Replace(".", "%2E");
 
             var keyPrefix =
