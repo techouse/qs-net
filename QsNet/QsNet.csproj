@@ -7,17 +7,44 @@
         <PackageId>QsNet</PackageId>
         <Version>1.0.7</Version>
         <Authors>Klemen Tusar</Authors>
-        <PackageTags>query-string; parser; encoder; qs</PackageTags>
+        <PackageTags>
+            querystring;query-string;query;parameters;url;uri;http;
+            parser;encoder;decoder;encoding;decoding;
+            form-urlencoded;percent-encoding;nested;arrays;brackets;
+            qs;aspnetcore
+        </PackageTags>
         <Description>A query string encoding and decoding library for C#/.NET. Ported from qs for JavaScript.</Description>
         <PackageProjectUrl>https://techouse.github.io/qs-net/</PackageProjectUrl>
         <RepositoryUrl>https://github.com/techouse/qs-net</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageLicenseExpression>BSD-3-Clause</PackageLicenseExpression>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PublishRepositoryUrl>true</PublishRepositoryUrl>
+        <IncludeSymbols>true</IncludeSymbols>
+        <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+        <EmbedUntrackedSources>true</EmbedUntrackedSources>
+
+        <EnablePackageValidation>true</EnablePackageValidation>
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+        <AnalysisLevel>latest-recommended</AnalysisLevel>
+
+        <Deterministic>true</Deterministic>
+        <ContinuousIntegrationBuild Condition="'$(CI)' == 'true'">true</ContinuousIntegrationBuild>
+
+        <PackageReleaseNotes>See CHANGELOG: https://github.com/techouse/qs-net/releases</PackageReleaseNotes>
+        <Title>QsNet - Query-string encoding/decoding for .NET</Title>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+        <ImplicitUsings>enable</ImplicitUsings>
     </PropertyGroup>
     <ItemGroup>
         <None Include="..\README.md" Pack="true" PackagePath="\"/>
         <None Include="..\LICENSE" Pack="true" PackagePath="\"/>
         <InternalsVisibleTo Include="QsNet.Tests"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
     </ItemGroup>
 </Project>
