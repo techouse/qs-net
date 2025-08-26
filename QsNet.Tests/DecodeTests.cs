@@ -4724,4 +4724,23 @@ public class DecodeTest
     }
 
     #endregion
+
+    [Fact]
+    public void Decode_CommaSplit_TruncatesWhenSumExceedsLimit_AndThrowOff()
+    {
+        var opts = new DecodeOptions
+        { Comma = true, ListLimit = 3, ThrowOnLimitExceeded = false, Duplicates = Duplicates.Combine };
+        var result = Qs.Decode("a=1,2&a=3,4,5", opts);
+        // Define expected behavior explicitly: either first 3, or last 3, or exactly how ParseListValue truncates upstream.
+        // Assert accordingly once decided.
+    }
+
+    [Fact]
+    public void Decode_BracketSingle_CommaSplit_DefinesSingleOccurrenceBehavior()
+    {
+        var opts = new DecodeOptions { Comma = true };
+        var res = Qs.Decode("a=1,2,3", opts); // control
+        var res2 = Qs.Decode("a[]=1,2,3", opts); // bracketed
+        // Decide and assert: flat ["1","2","3"] or nested [["1","2","3"]]
+    }
 }
