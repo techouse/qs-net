@@ -1623,4 +1623,24 @@ public class UtilsTests
 
         outTopList[2].Should().Be(4);
     }
+
+    [Fact]
+    public void EnsureAstralCharactersAtSegmentLimitMinus1OrSegmentLimitEncodeAs4ByteSequences()
+    {
+        const int SegmentLimit = 1024;
+        // Ensure astral characters at SegmentLimit-1/SegmentLimit encode as 4-byte sequences
+        var s = new string('a', SegmentLimit - 1) + "\U0001F600" + "b";
+        var encoded = Utils.Encode(s, Encoding.UTF8, Format.Rfc3986);
+        Assert.Contains("%F0%9F%98%80", encoded);
+    }
+
+    [Fact]
+    public void EnsureAstralCharactersAtSegmentLimitEncodeAs4ByteSequences()
+    {
+        const int SegmentLimit = 1024;
+        // Astral character starts exactly at the chunk boundary (index == SegmentLimit)
+        var s = new string('a', SegmentLimit) + "\U0001F600" + "b";
+        var encoded = Utils.Encode(s, Encoding.UTF8, Format.Rfc3986);
+        Assert.Contains("%F0%9F%98%80", encoded);
+    }
 }
