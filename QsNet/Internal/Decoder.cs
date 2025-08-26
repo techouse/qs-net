@@ -225,7 +225,7 @@ internal static partial class Decoder
     /// <param name="valuesParsed">Indicates whether the values have already been parsed.</param>
     /// <returns>The resulting object after parsing the chain.</returns>
     private static object? ParseObject(
-        IReadOnlyList<string> chain,
+        List<string> chain,
         object? value,
         DecodeOptions options,
         bool valuesParsed
