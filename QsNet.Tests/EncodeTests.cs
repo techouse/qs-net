@@ -1790,13 +1790,13 @@ public class EncodeTests
 
         Action act1 = () =>
             Qs.Encode(new Dictionary<string, object?> { { "foo[bar]", "baz" }, { "foo[baz]", a } });
-        act1.Should().Throw<IndexOutOfRangeException>();
+        act1.Should().Throw<InvalidOperationException>();
 
         var circular = new Dictionary<string, object?> { { "a", "value" } };
         circular["a"] = circular;
 
         Action act2 = () => Qs.Encode(circular);
-        act2.Should().Throw<IndexOutOfRangeException>();
+        act2.Should().Throw<InvalidOperationException>();
 
         var arr = new List<object?> { "a" };
         Action act3 = () =>
@@ -3405,7 +3405,7 @@ public class EncodeTests
         a["self"] = a;
 
         var act = () => Qs.Encode(new Dictionary<string, object?> { { "a", a } });
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -3415,7 +3415,7 @@ public class EncodeTests
         l.Add(l);
 
         var act = () => Qs.Encode(new Dictionary<string, object?> { { "l", l } });
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
