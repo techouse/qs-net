@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Globalization;
 using QsNet.Enums;
 using QsNet.Internal;
 using QsNet.Models;
@@ -256,9 +257,9 @@ public static class Qs
         {
             // encodeURIComponent('&#10003;') and encodeURIComponent('✓')
             if (opts.Charset.WebName.Equals("iso-8859-1", StringComparison.OrdinalIgnoreCase))
-                sb.Append($"{Sentinel.Iso.GetEncoded()}&");
+                sb.Append(Sentinel.Iso.GetEncoded()).Append('&');
             else if (opts.Charset.WebName.Equals("utf-8", StringComparison.OrdinalIgnoreCase))
-                sb.Append($"{Sentinel.Charset.GetEncoded()}&");
+                sb.Append(Sentinel.Charset.GetEncoded()).Append('&');
         }
 
         if (joined.Length > 0)
@@ -272,7 +273,7 @@ public static class Qs
             var dict = new Dictionary<string, object?>(initial);
             var i = 0;
             foreach (var v in en)
-                dict.Add(i++.ToString(), v);
+                dict.Add(i++.ToString(CultureInfo.InvariantCulture), v);
             return dict;
         }
     }
