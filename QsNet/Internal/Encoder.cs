@@ -372,10 +372,11 @@ internal static class Encoder
             var encodedKey = keyStr;
 #if NETSTANDARD2_0
             if (allowDots && encodeDotInKeys && keyStr.IndexOf('.') >= 0)
-#else
-            if (allowDots && encodeDotInKeys && keyStr.Contains('.'))
-#endif
                 encodedKey = keyStr.Replace(".", "%2E");
+#else
+            if (allowDots && encodeDotInKeys && keyStr.Contains('.', StringComparison.Ordinal))
+                encodedKey = keyStr.Replace(".", "%2E", StringComparison.Ordinal);
+#endif
 
             var keyPrefix =
                 obj is IEnumerable and not string and not IDictionary
