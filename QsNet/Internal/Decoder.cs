@@ -18,7 +18,7 @@ internal static class Decoder
 internal static partial class Decoder
 #endif
 {
-    private static Encoding Latin1Encoding =>
+    private static readonly Encoding Latin1Encoding =
 #if NETSTANDARD2_0
         Encoding.GetEncoding(28591);
 #else
