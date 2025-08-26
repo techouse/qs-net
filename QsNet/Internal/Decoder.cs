@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Globalization;
 using QsNet.Enums;
 using QsNet.Models;
 
@@ -49,14 +50,14 @@ internal static partial class Decoder
         {
             var splitVal = str.Split(',');
             if (options.ThrowOnLimitExceeded && splitVal.Length > options.ListLimit)
-                throw new IndexOutOfRangeException(
+                throw new InvalidOperationException(
                     $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
                 );
             return splitVal.ToList<object?>();
         }
 
         if (options.ThrowOnLimitExceeded && currentListLength >= options.ListLimit)
-            throw new IndexOutOfRangeException(
+            throw new InvalidOperationException(
                 $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
             );
 
@@ -104,7 +105,7 @@ internal static partial class Decoder
             for (var i = 0; i < count; i++) parts.Add(allParts[i]);
 
             if (options.ThrowOnLimitExceeded && allParts.Length > limit.Value)
-                throw new IndexOutOfRangeException(
+                throw new InvalidOperationException(
                     $"Parameter limit exceeded. Only {limit} parameter{(limit == 1 ? "" : "s")} allowed."
                 );
         }
@@ -187,7 +188,11 @@ internal static partial class Decoder
                 value = Utils.InterpretNumericEntities(tmpStr);
             }
 
+            #if NETSTANDARD2_0
             if (part.IndexOf("[]=", StringComparison.Ordinal) >= 0)
+            #else
+            if (part.Contains("[]=", StringComparison.Ordinal))
+            #endif
                 value = value is IEnumerable and not string ? new List<object?> { value } : value;
 
             if (obj.TryGetValue(key, out var existingVal))
@@ -292,7 +297,7 @@ internal static partial class Decoder
             {
                 // Unwrap [ ... ] and (optionally) decode %2E -> .
 #if NETSTANDARD2_0
-                var cleanRoot = root.StartsWith("[") && root.EndsWith("]")
+                var cleanRoot = root.StartsWith("[", StringComparison.Ordinal) && root.EndsWith("]", StringComparison.Ordinal)
                     ? root.Substring(1, root.Length - 2)
                     : root;
 #else
@@ -342,7 +347,7 @@ internal static partial class Decoder
                 var isPureNumeric =
                     int.TryParse(decodedRoot, out var idx) && !string.IsNullOrEmpty(decodedRoot);
                 var isBracketedNumeric =
-                    isPureNumeric && root != decodedRoot && idx.ToString() == decodedRoot;
+                    isPureNumeric && root != decodedRoot && idx.ToString(CultureInfo.InvariantCulture) == decodedRoot;
 
                 if (!options.ParseLists || options.ListLimit < 0)
                 {
@@ -421,8 +426,13 @@ internal static partial class Decoder
     /// </summary>
     private static string DotToBracketTopLevel(string key)
     {
+        #if NETSTANDARD2_0
         if (string.IsNullOrEmpty(key) || key.IndexOf('.') < 0)
             return key;
+        #else
+        if (string.IsNullOrEmpty(key) || !key.Contains('.'))
+            return key;
+        #endif
 
         var sb = new StringBuilder(key.Length + 4);
         var depth = 0;
@@ -569,7 +579,7 @@ internal static partial class Decoder
         {
             // Well-formed overflow remainder: still subject to strictDepth
             if (strictDepth && !brokeUnterminated)
-                throw new IndexOutOfRangeException(
+                throw new InvalidOperationException(
                     $"Input depth exceeded depth option of {maxDepth} and strictDepth is true"
                 );
 
@@ -598,7 +608,7 @@ internal static partial class Decoder
 #endif
         if (trailing == ".") return segments;
         if (strictDepth)
-            throw new IndexOutOfRangeException(
+            throw new InvalidOperationException(
                 $"Input depth exceeded depth option of {maxDepth} and strictDepth is true"
             );
         segments.Add("[" + trailing + "]");
