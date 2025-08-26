@@ -188,7 +188,7 @@ internal static partial class Utils
                                     foreach (var item in srcIter)
                                     {
                                         if (item is not Undefined)
-                                            mutable[i.ToString()] = item;
+                                            mutable[i.ToString(CultureInfo.InvariantCulture)] = item;
                                         i++;
                                     }
 
@@ -232,7 +232,7 @@ internal static partial class Utils
                     foreach (var v in tEnum)
                     {
                         if (v is not Undefined)
-                            dict[i.ToString()] = v;
+                            dict[i.ToString(CultureInfo.InvariantCulture)] = v;
                         i++;
                     }
 
@@ -296,9 +296,9 @@ internal static partial class Utils
             )
                 sb.Append(t);
             else if (c < 256)
-                sb.Append('%').Append(c.ToString("X2"));
+                sb.Append('%').Append(c.ToString("X2", CultureInfo.InvariantCulture));
             else
-                sb.Append("%u").Append(c.ToString("X4"));
+                sb.Append("%u").Append(c.ToString("X4", CultureInfo.InvariantCulture));
         }
 
         return sb.ToString();
@@ -327,7 +327,7 @@ internal static partial class Utils
                         int.TryParse(
                             str.Substring(i + 2, 4),
                             NumberStyles.HexNumber,
-                            null,
+                            CultureInfo.InvariantCulture,
                             out var code
                         )
                     )
@@ -337,7 +337,7 @@ internal static partial class Utils
                         int.TryParse(
                             str.AsSpan(i + 2, 4),
                             NumberStyles.HexNumber,
-                            null,
+                            CultureInfo.InvariantCulture,
                             out var code
                         )
                     )
@@ -351,9 +351,9 @@ internal static partial class Utils
                 else if (
                     i + 3 <= str.Length
 #if NETSTANDARD2_0
-                    && int.TryParse(str.Substring(i + 1, 2), NumberStyles.HexNumber, null, out var b)
+                    && int.TryParse(str.Substring(i + 1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var b)
 #else
-                    && int.TryParse(str.AsSpan(i + 1, 2), NumberStyles.HexNumber, null, out var b)
+                    && int.TryParse(str.AsSpan(i + 1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var b)
 #endif
                 )
                 {
@@ -407,9 +407,9 @@ internal static partial class Utils
                     match =>
                     {
 #if NETSTANDARD2_0
-                        var code = int.Parse(match.Value.Substring(2), NumberStyles.HexNumber);
+                        var code = int.Parse(match.Value.Substring(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 #else
-                        var code = int.Parse(match.Value[2..], NumberStyles.HexNumber);
+                        var code = int.Parse(match.Value[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 #endif
                         return $"%26%23{code}%3B";
                     }
@@ -787,9 +787,13 @@ internal static partial class Utils
     {
         if (str.Length < 4)
             return str;
-        var first = str.IndexOf("&#", StringComparison.Ordinal);
-        if (first == -1)
+#if NETSTANDARD2_0
+        if (str.IndexOf("&#", StringComparison.Ordinal) == -1)
             return str;
+#else
+        if (!str.Contains("&#", StringComparison.Ordinal))
+            return str;
+#endif
 
         var sb = new StringBuilder(str.Length);
         var i = 0;
@@ -1119,7 +1123,6 @@ internal static partial class Utils
                 // List node ➜ List<object?>
                 case IList srcList when dst is List<object?> dstList:
                     foreach (var item in srcList)
-                    {
                         switch (item)
                         {
                             case IDictionary innerDict:
@@ -1161,7 +1164,6 @@ internal static partial class Utils
                                 dstList.Add(item);
                                 break;
                         }
-                    }
 
                     break;
             }
