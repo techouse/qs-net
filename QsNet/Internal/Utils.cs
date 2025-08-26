@@ -809,20 +809,42 @@ internal static partial class Utils
                 var j = i + 2;
                 if (j < n && (char.IsDigit(str[j]) || (str[j] is 'x' or 'X' && j + 1 < n)))
                 {
-                    var code = 0;
                     var startDigits = j;
                     var hex = false;
                     if (str[j] is 'x' or 'X') { hex = true; j++; startDigits = j; }
+
+                    // Advance j over the digit run without allocating per-digit strings
                     while (j < n && (hex ? Uri.IsHexDigit(str[j]) : char.IsDigit(str[j])))
-                    {
-                        code = hex
-                               ? (code << 4) + Convert.ToInt32(str[j].ToString(), 16)
-                               : code * 10 + (str[j] - '0');
                         j++;
-                    }
 
                     if (j < n && str[j] == ';' && j > startDigits)
                     {
+                        int code;
+#if NETSTANDARD2_0
+                        var digits = str.Substring(startDigits, j - startDigits);
+                        var ok = int.TryParse(
+                            digits,
+                            hex ? NumberStyles.HexNumber : NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out code
+                        );
+#else
+                        var digits = str.AsSpan(startDigits, j - startDigits);
+                        var ok = int.TryParse(
+                            digits,
+                            hex ? NumberStyles.HexNumber : NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out code
+                        );
+#endif
+                        if (!ok)
+                        {
+                            // Overflow or invalid digits: leave input unchanged
+                            sb.Append('&');
+                            i++;
+                            continue;
+                        }
+
                         switch (code)
                         {
                             case <= 0xFFFF:
