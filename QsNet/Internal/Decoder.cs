@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using QsNet.Enums;
@@ -17,7 +18,7 @@ internal static class Decoder
 internal static partial class Decoder
 #endif
 {
-    private static Encoding Latin1Encoding =>
+    private static readonly Encoding Latin1Encoding =
 #if NETSTANDARD2_0
         Encoding.GetEncoding(28591);
 #else
@@ -48,15 +49,15 @@ internal static partial class Decoder
         if (value is string str && !string.IsNullOrEmpty(str) && options.Comma && str.Contains(','))
         {
             var splitVal = str.Split(',');
-            if (options.ThrowOnLimitExceeded && splitVal.Length > options.ListLimit)
-                throw new IndexOutOfRangeException(
+            if (options.ThrowOnLimitExceeded && currentListLength + splitVal.Length > options.ListLimit)
+                throw new InvalidOperationException(
                     $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
                 );
             return splitVal.ToList<object?>();
         }
 
         if (options.ThrowOnLimitExceeded && currentListLength >= options.ListLimit)
-            throw new IndexOutOfRangeException(
+            throw new InvalidOperationException(
                 $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
             );
 
@@ -70,7 +71,7 @@ internal static partial class Decoder
     /// <param name="options">The decoding options that affect how the string is parsed.</param>
     /// <returns>A mutable dictionary containing the parsed key-value pairs.</returns>
     /// <exception cref="ArgumentException">If the parameter limit is not a positive integer.</exception>
-    /// <exception cref="IndexOutOfRangeException">If the parameter limit is exceeded and ThrowOnLimitExceeded is true.</exception>
+    /// <exception cref="InvalidOperationException">If the parameter limit is exceeded and ThrowOnLimitExceeded is true.</exception>
     internal static Dictionary<string, object?> ParseQueryStringValues(
         string str,
         DecodeOptions? options = null
@@ -104,7 +105,7 @@ internal static partial class Decoder
             for (var i = 0; i < count; i++) parts.Add(allParts[i]);
 
             if (options.ThrowOnLimitExceeded && allParts.Length > limit.Value)
-                throw new IndexOutOfRangeException(
+                throw new InvalidOperationException(
                     $"Parameter limit exceeded. Only {limit} parameter{(limit == 1 ? "" : "s")} allowed."
                 );
         }
@@ -187,7 +188,11 @@ internal static partial class Decoder
                 value = Utils.InterpretNumericEntities(tmpStr);
             }
 
+#if NETSTANDARD2_0
             if (part.IndexOf("[]=", StringComparison.Ordinal) >= 0)
+#else
+            if (part.Contains("[]=", StringComparison.Ordinal))
+#endif
                 value = value is IEnumerable and not string ? new List<object?> { value } : value;
 
             if (obj.TryGetValue(key, out var existingVal))
@@ -220,7 +225,7 @@ internal static partial class Decoder
     /// <param name="valuesParsed">Indicates whether the values have already been parsed.</param>
     /// <returns>The resulting object after parsing the chain.</returns>
     private static object? ParseObject(
-        IReadOnlyList<string> chain,
+        List<string> chain,
         object? value,
         DecodeOptions options,
         bool valuesParsed
@@ -234,26 +239,28 @@ internal static partial class Decoder
             chain[^1] == "[]"
 #endif
            )
-        {
-            string parentKeyStr;
+            // Look only at the immediate parent segment, e.g. "[0]" in ["a", "[0]", "[]"]
             if (chain.Count > 1)
             {
-                var sbTmp = new StringBuilder();
-                for (var t = 0; t < chain.Count - 1; t++) sbTmp.Append(chain[t]);
-                parentKeyStr = sbTmp.ToString();
+#if NETSTANDARD2_0
+                var parentSeg = chain[chain.Count - 2];
+#else
+                var parentSeg = chain[^2];
+#endif
+                if (parentSeg.Length >= 2 && parentSeg[0] == '[' && parentSeg[parentSeg.Length - 1] == ']')
+                {
+#if NETSTANDARD2_0
+                    var idxStr = parentSeg.Substring(1, parentSeg.Length - 2);
+#else
+                    var idxStr = parentSeg[1..^1];
+#endif
+                    if (int.TryParse(idxStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parentIndex)
+                        && value is IList<object?> incomingList
+                        && parentIndex >= 0
+                        && parentIndex < incomingList.Count)
+                        currentListLength = (incomingList[parentIndex] as IList<object?>)?.Count ?? 0;
+                }
             }
-            else
-            {
-                parentKeyStr = string.Empty;
-            }
-
-            if (
-                int.TryParse(parentKeyStr, out var parentKey)
-                && value is IList<object?> list
-                && parentKey < list.Count
-            )
-                currentListLength = (list[parentKey] as IList<object?>)?.Count ?? 0;
-        }
 
         var leaf = valuesParsed ? value : ParseListValue(value, options, currentListLength);
 
@@ -292,16 +299,22 @@ internal static partial class Decoder
             {
                 // Unwrap [ ... ] and (optionally) decode %2E -> .
 #if NETSTANDARD2_0
-                var cleanRoot = root.StartsWith("[") && root.EndsWith("]")
+                var cleanRoot = root.StartsWith("[", StringComparison.Ordinal) &&
+                                root.EndsWith("]", StringComparison.Ordinal)
                     ? root.Substring(1, root.Length - 2)
                     : root;
 #else
                 var cleanRoot = root.StartsWith('[') && root.EndsWith(']') ? root[1..^1] : root;
 #endif
 
-                // If we unwrapped a synthetic “double-bracket” remainder (e.g. "[[b[c]]"),
-                // the inner content becomes "[b[c]". That trailing ']' is artificial – drop it
-                // so the literal inner text is "[b[c" (matches qs/Kotlin parity and your tests).
+                // Why does `opens > closes` imply the trailing ']' is synthetic?
+                // SplitKeyIntoSegments() wraps any overflow/unterminated remainder exactly once:
+                //   segments.Add("[" + remainder + "]");
+                // Here we've already removed that outer wrapper (cleanRoot = root[1..^1]).
+                // If the remaining inner text has more '[' than ']' and *still* ends with ']',
+                // that last ']' cannot be balancing any '[' from the inner text — it's the
+                // closing bracket from the synthetic wrapper that leaked into this inner slice.
+                // Trimming it recovers the literal remainder (e.g., "[[b[c]]" → cleanRoot "[b[c]" → trim → "[b[c").
                 if (root.Length >= 2 && root[0] == '[' && root[root.Length - 1] == ']')
                 {
                     var inner = cleanRoot;
@@ -317,7 +330,6 @@ internal static partial class Decoder
                                 break;
                         }
 
-                    // More '[' than ']' inside AND it ends with ']' → trim the final ']'
                     if (opens > closes && inner.Length > 0 && inner[inner.Length - 1] == ']')
                     {
 #if NETSTANDARD2_0
@@ -340,9 +352,10 @@ internal static partial class Decoder
 
                 // Bracketed numeric like "[1]"?
                 var isPureNumeric =
-                    int.TryParse(decodedRoot, out var idx) && !string.IsNullOrEmpty(decodedRoot);
+                    int.TryParse(decodedRoot, NumberStyles.Integer, CultureInfo.InvariantCulture, out var idx) &&
+                    !string.IsNullOrEmpty(decodedRoot);
                 var isBracketedNumeric =
-                    isPureNumeric && root != decodedRoot && idx.ToString() == decodedRoot;
+                    isPureNumeric && root != decodedRoot && idx.ToString(CultureInfo.InvariantCulture) == decodedRoot;
 
                 if (!options.ParseLists || options.ListLimit < 0)
                 {
@@ -421,8 +434,13 @@ internal static partial class Decoder
     /// </summary>
     private static string DotToBracketTopLevel(string key)
     {
+#if NETSTANDARD2_0
         if (string.IsNullOrEmpty(key) || key.IndexOf('.') < 0)
             return key;
+#else
+        if (string.IsNullOrEmpty(key) || !key.Contains('.'))
+            return key;
+#endif
 
         var sb = new StringBuilder(key.Length + 4);
         var depth = 0;
@@ -486,7 +504,7 @@ internal static partial class Decoder
     /// <param name="maxDepth">The maximum depth for splitting.</param>
     /// <param name="strictDepth">Whether to enforce strict depth limits.</param>
     /// <returns>A list of segments derived from the original key.</returns>
-    /// <exception cref="IndexOutOfRangeException">If the depth exceeds maxDepth and strictDepth is true.</exception>
+    /// <exception cref="InvalidOperationException">If the depth exceeds maxDepth and strictDepth is true.</exception>
     internal static List<string> SplitKeyIntoSegments(
         string originalKey,
         bool allowDots,
@@ -569,7 +587,7 @@ internal static partial class Decoder
         {
             // Well-formed overflow remainder: still subject to strictDepth
             if (strictDepth && !brokeUnterminated)
-                throw new IndexOutOfRangeException(
+                throw new InvalidOperationException(
                     $"Input depth exceeded depth option of {maxDepth} and strictDepth is true"
                 );
 
@@ -598,7 +616,7 @@ internal static partial class Decoder
 #endif
         if (trailing == ".") return segments;
         if (strictDepth)
-            throw new IndexOutOfRangeException(
+            throw new InvalidOperationException(
                 $"Input depth exceeded depth option of {maxDepth} and strictDepth is true"
             );
         segments.Add("[" + trailing + "]");

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Web;
@@ -272,7 +273,7 @@ public class DecodeTest
 
         action
             .Should()
-            .Throw<IndexOutOfRangeException>()
+            .Throw<InvalidOperationException>()
             .WithMessage("List limit exceeded. Only 3 elements allowed in a list.");
     }
 
@@ -2277,7 +2278,7 @@ public class DecodeTest
         var options = new DecodeOptions { Depth = 1, StrictDepth = true };
 
         Action act = () => Qs.Decode("a[b][c][d][e][f][g][h][i]=j", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -2286,7 +2287,7 @@ public class DecodeTest
         var options = new DecodeOptions { Depth = 3, StrictDepth = true };
 
         Action act = () => Qs.Decode("a[0][1][2][3][4]=b", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -2295,7 +2296,7 @@ public class DecodeTest
         var options = new DecodeOptions { Depth = 3, StrictDepth = true };
 
         Action act = () => Qs.Decode("a[b][c][0][d][e]=f", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -2304,7 +2305,7 @@ public class DecodeTest
         var options = new DecodeOptions { Depth = 3, StrictDepth = true };
 
         Action act = () => Qs.Decode("a[b][c][d][e]=true&a[b][c][d][f]=42", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -2405,7 +2406,7 @@ public class DecodeTest
         var options = new DecodeOptions { ParameterLimit = 3, ThrowOnLimitExceeded = true };
 
         Action act = () => Qs.Decode("a=1&b=2&c=3&d=4&e=5&f=6", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -2483,7 +2484,7 @@ public class DecodeTest
         var options = new DecodeOptions { ListLimit = 3, ThrowOnLimitExceeded = true };
 
         Action act = () => Qs.Decode("a[]=1&a[]=2&a[]=3&a[]=4", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -2530,7 +2531,7 @@ public class DecodeTest
         var options = new DecodeOptions { ListLimit = -1, ThrowOnLimitExceeded = true };
 
         Action act = () => Qs.Decode("a[]=1&a[]=2", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -2539,7 +2540,7 @@ public class DecodeTest
         var options = new DecodeOptions { ListLimit = 3, ThrowOnLimitExceeded = true };
 
         Action act = () => Qs.Decode("a[0][]=1&a[0][]=2&a[0][]=3&a[0][]=4", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -4127,10 +4128,50 @@ public class DecodeTest
         decoded.Should().Equal(new Dictionary<string, object?> { ["x"] = 1, ["2"] = "y" });
     }
 
+    [Fact]
+    public void Decode_CommaSplit_NoTruncationWhenSumExceedsLimit_AndThrowOff()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 3,
+            ThrowOnLimitExceeded = false,
+            ParseLists = true,
+            Duplicates = Duplicates.Combine
+        };
+
+        var result = Qs.Decode("a=1,2&a=3,4,5", opts);
+
+        var dict = Assert.IsType<Dictionary<string, object?>>(result);
+        var list = Assert.IsType<List<object?>>(dict["a"]);
+        // With ThrowOnLimitExceeded = false, no truncation occurs; full concatenation is allowed
+        list.Select(x => x?.ToString()).Should().Equal("1", "2", "3", "4", "5");
+    }
+
+    [Fact]
+    public void Decode_BracketSingle_CommaSplit_YieldsNestedList()
+    {
+        var opts = new DecodeOptions { Comma = true };
+
+        // Control: unbracketed key
+        var res = Qs.Decode("a=1,2,3", opts);
+        var dict1 = Assert.IsType<Dictionary<string, object?>>(res);
+        var list1 = Assert.IsType<List<object?>>(dict1["a"]);
+        list1.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
+
+        // Bracketed single occurrence yields a nested list: [["1","2","3"]]
+        var res2 = Qs.Decode("a[]=1,2,3", opts);
+        var dict2 = Assert.IsType<Dictionary<string, object?>>(res2);
+        var outer = Assert.IsType<List<object?>>(dict2["a"]);
+        outer.Should().HaveCount(1);
+        var inner = Assert.IsType<List<object?>>(outer[0]);
+        inner.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
+    }
+
     #region Encoded dot behavior in keys (%2E / %2e)
 
     [Fact]
-    public void EncodedDot_TopLevel_AllowDotsTrue_DecodeDotInKeysTrue_PlainDotSplits_EncodedDotDoesNotSplit()
+    public void EncodedDot_TopLevel_AllowDotsTrue_DecodeDotInKeysTrue_PlainAndEncodedDotSplit()
     {
         var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = true };
 
@@ -4157,7 +4198,7 @@ public class DecodeTest
     }
 
     [Fact]
-    public void EncodedDot_TopLevel_AllowDotsTrue_DecodeDotInKeysFalse_EncodedDotRemainsPercentSequence()
+    public void EncodedDot_TopLevel_AllowDotsTrue_DecodeDotInKeysFalse_EncodedDotAlsoSplits()
     {
         var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = false };
 
@@ -4181,7 +4222,7 @@ public class DecodeTest
     {
         var opt = new DecodeOptions { AllowDots = false, DecodeDotInKeys = true };
         Action act = () => Qs.Decode("a%2Eb=c", opt);
-        act.Should().Throw<ArgumentException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -4205,7 +4246,7 @@ public class DecodeTest
     }
 
     [Fact]
-    public void EncodedDot_BracketSegment_RemainsPercentSequence_WhenDecodeDotInKeysFalse()
+    public void EncodedDot_BracketSegment_DecodesToDot_WhenDecodeDotInKeysFalse()
     {
         var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = false };
 
@@ -4349,8 +4390,9 @@ public class DecodeTest
     {
         var opt = new DecodeOptions { AllowDots = false, DecodeDotInKeys = true };
         Action act = () => Qs.Decode("a%5Bb%5D%5Bc%5D%2Ed=x", opt);
-        act.Should().Throw<ArgumentException>()
-            .WithMessage("*decodeDotInKeys*allowDots*");
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*DecodeDotInKeys*AllowDots*")
+            .WithMessage("*DecodeDotInKeys=true*AllowDots=true*");
     }
 
     [Fact]
@@ -4646,7 +4688,7 @@ public class DecodeTest
     {
         var act = () =>
             InternalDecoder.SplitKeyIntoSegments("a[b][c][d]", false, 1, true);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -4678,6 +4720,48 @@ public class DecodeTest
             {
                 ["b"] = "x"
             });
+    }
+
+    #endregion
+
+    #region Decode comma limit
+
+    [Fact]
+    public void Decode_CommaSplit_AllowedWhenSumEqualsLimit()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 5,
+            ThrowOnLimitExceeded = true,
+            ParseLists = true,
+            Duplicates = Duplicates.Combine
+        };
+
+        // Existing N=2 from first part, incoming M=3; N+M = 5 == limit → allowed
+        var result = Assert.IsType<Dictionary<string, object?>>(Qs.Decode("a=1,2&a=3,4,5", opts));
+        result.Should().ContainKey("a");
+
+        var list = Assert.IsType<List<object?>>(result["a"]);
+        list.Should().HaveCount(5);
+        list.Select(x => x?.ToString()).Should().Equal("1", "2", "3", "4", "5");
+    }
+
+    [Fact]
+    public void Decode_CommaSplit_ThrowsWhenSumExceedsLimitAndThrowOn()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 5,
+            ThrowOnLimitExceeded = true,
+            ParseLists = true,
+            Duplicates = Duplicates.Combine
+        };
+
+        // Existing N=2, incoming M=4; N+M = 6 > limit and ThrowOnLimitExceeded = true → throws
+        Action act = () => Qs.Decode("a=1,2&a=3,4,5,6", opts);
+        act.Should().Throw<InvalidOperationException>();
     }
 
     #endregion

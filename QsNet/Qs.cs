@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using QsNet.Enums;
@@ -25,7 +26,7 @@ public static class Qs
     /// <param name="options">Optional decoder settings</param>
     /// <returns>The decoded Dictionary</returns>
     /// <exception cref="ArgumentException">If the input is not a string or Dictionary</exception>
-    /// <exception cref="IndexOutOfRangeException">If limits are exceeded and ThrowOnLimitExceeded is true</exception>
+    /// <exception cref="InvalidOperationException">If limits are exceeded and ThrowOnLimitExceeded is true</exception>
     public static Dictionary<string, object?> Decode(object? input, DecodeOptions? options = null)
     {
         var opts = options ?? new DecodeOptions();
@@ -121,7 +122,7 @@ public static class Qs
     /// <param name="data">The data to encode</param>
     /// <param name="options">Optional encoder settings</param>
     /// <returns>The encoded query string</returns>
-    /// <exception cref="IndexOutOfRangeException">Thrown when index is out of bounds</exception>
+    /// <exception cref="InvalidOperationException">Thrown when options/limits are violated during encoding</exception>
     public static string Encode(object? data, EncodeOptions? options = null)
     {
         var opts = options ?? new EncodeOptions();
@@ -256,9 +257,9 @@ public static class Qs
         {
             // encodeURIComponent('&#10003;') and encodeURIComponent('✓')
             if (opts.Charset.WebName.Equals("iso-8859-1", StringComparison.OrdinalIgnoreCase))
-                sb.Append($"{Sentinel.Iso.GetEncoded()}&");
+                sb.Append(Sentinel.Iso.GetEncoded()).Append(joined.Length > 0 ? "&" : "");
             else if (opts.Charset.WebName.Equals("utf-8", StringComparison.OrdinalIgnoreCase))
-                sb.Append($"{Sentinel.Charset.GetEncoded()}&");
+                sb.Append(Sentinel.Charset.GetEncoded()).Append(joined.Length > 0 ? "&" : "");
         }
 
         if (joined.Length > 0)
@@ -272,7 +273,7 @@ public static class Qs
             var dict = new Dictionary<string, object?>(initial);
             var i = 0;
             foreach (var v in en)
-                dict.Add(i++.ToString(), v);
+                dict.Add(i++.ToString(CultureInfo.InvariantCulture), v);
             return dict;
         }
     }

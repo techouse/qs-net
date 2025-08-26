@@ -1285,8 +1285,8 @@ public class UtilsTests
         Utils.InterpretNumericEntities("&#;").Should().Be("&#;");
         // Missing terminating semicolon
         Utils.InterpretNumericEntities("&#12").Should().Be("&#12");
-        // Hex form not supported by this decoder
-        Utils.InterpretNumericEntities("&#x41;").Should().Be("&#x41;");
+        // Hex form is supported by this decoder
+        Utils.InterpretNumericEntities("&#x41;").Should().Be("A");
         // Space inside
         Utils.InterpretNumericEntities("&# 12;").Should().Be("&# 12;");
         // Negative / non-digit after '#'
@@ -1300,6 +1300,62 @@ public class UtilsTests
     {
         // Max valid is 0x10FFFF (1114111). One above should be left as literal.
         Utils.InterpretNumericEntities("&#1114112;").Should().Be("&#1114112;");
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_DecodesSingleHexEntity()
+    {
+        Utils.InterpretNumericEntities("&#x41;").Should().Be("A"); // uppercase hex digits
+        Utils.InterpretNumericEntities("&#x6d;").Should().Be("m"); // lowercase hex digits
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_DecodesSingleHexEntity_UppercaseX()
+    {
+        Utils.InterpretNumericEntities("&#X41;").Should().Be("A");
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_AcceptsMaxValidHexAndRejectsBeyond()
+    {
+        // U+10FFFF is valid
+        Utils.InterpretNumericEntities("&#x10FFFF;").Should().Be(char.ConvertFromUtf32(0x10FFFF));
+        // One above max should remain unchanged
+        Utils.InterpretNumericEntities("&#x110000;").Should().Be("&#x110000;");
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_EmptyHexDigitsRemainUnchanged()
+    {
+        Utils.InterpretNumericEntities("&#x;").Should().Be("&#x;");
+        Utils.InterpretNumericEntities("&#X;").Should().Be("&#X;");
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_DecodesMultipleHexEntities()
+    {
+        Utils.InterpretNumericEntities("&#x48;&#x0069;!").Should().Be("Hi!");
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_DecodesHexSurrogatePair()
+    {
+        // U+1F4A9 (💩) as surrogate halves: 0xD83D, 0xDCA9
+        Utils.InterpretNumericEntities("&#xD83D;&#xDCA9;").Should().Be("💩");
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_MixedDecimalAndHexEntities()
+    {
+        Utils.InterpretNumericEntities("A = &#x41; and &#66;").Should().Be("A = A and B");
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_InvalidHexEntitiesRemainUnchanged()
+    {
+        Utils.InterpretNumericEntities("&#xZZ;").Should().Be("&#xZZ;"); // non-hex digits
+        Utils.InterpretNumericEntities("&#x1G;").Should().Be("&#x1G;"); // invalid hex digit
+        Utils.InterpretNumericEntities("&#x41").Should().Be("&#x41"); // missing semicolon
     }
 
     [Fact]
@@ -1566,5 +1622,25 @@ public class UtilsTests
         outDict3["c"].Should().Be(3);
 
         outTopList[2].Should().Be(4);
+    }
+
+    [Fact]
+    public void EnsureAstralCharactersAtSegmentLimitMinus1OrSegmentLimitEncodeAs4ByteSequences()
+    {
+        const int SegmentLimit = 1024;
+        // Ensure astral characters at SegmentLimit-1/SegmentLimit encode as 4-byte sequences
+        var s = new string('a', SegmentLimit - 1) + "\U0001F600" + "b";
+        var encoded = Utils.Encode(s, Encoding.UTF8, Format.Rfc3986);
+        Assert.Contains("%F0%9F%98%80", encoded);
+    }
+
+    [Fact]
+    public void EnsureAstralCharactersAtSegmentLimitEncodeAs4ByteSequences()
+    {
+        const int SegmentLimit = 1024;
+        // Astral character starts exactly at the chunk boundary (index == SegmentLimit)
+        var s = new string('a', SegmentLimit) + "\U0001F600" + "b";
+        var encoded = Utils.Encode(s, Encoding.UTF8, Format.Rfc3986);
+        Assert.Contains("%F0%9F%98%80", encoded);
     }
 }

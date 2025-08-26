@@ -188,7 +188,7 @@ internal static partial class Utils
                                     foreach (var item in srcIter)
                                     {
                                         if (item is not Undefined)
-                                            mutable[i.ToString()] = item;
+                                            mutable[i.ToString(CultureInfo.InvariantCulture)] = item;
                                         i++;
                                     }
 
@@ -232,7 +232,7 @@ internal static partial class Utils
                     foreach (var v in tEnum)
                     {
                         if (v is not Undefined)
-                            dict[i.ToString()] = v;
+                            dict[i.ToString(CultureInfo.InvariantCulture)] = v;
                         i++;
                     }
 
@@ -296,9 +296,9 @@ internal static partial class Utils
             )
                 sb.Append(t);
             else if (c < 256)
-                sb.Append('%').Append(c.ToString("X2"));
+                sb.Append('%').Append(c.ToString("X2", CultureInfo.InvariantCulture));
             else
-                sb.Append("%u").Append(c.ToString("X4"));
+                sb.Append("%u").Append(c.ToString("X4", CultureInfo.InvariantCulture));
         }
 
         return sb.ToString();
@@ -327,7 +327,7 @@ internal static partial class Utils
                         int.TryParse(
                             str.Substring(i + 2, 4),
                             NumberStyles.HexNumber,
-                            null,
+                            CultureInfo.InvariantCulture,
                             out var code
                         )
                     )
@@ -337,7 +337,7 @@ internal static partial class Utils
                         int.TryParse(
                             str.AsSpan(i + 2, 4),
                             NumberStyles.HexNumber,
-                            null,
+                            CultureInfo.InvariantCulture,
                             out var code
                         )
                     )
@@ -351,9 +351,10 @@ internal static partial class Utils
                 else if (
                     i + 3 <= str.Length
 #if NETSTANDARD2_0
-                    && int.TryParse(str.Substring(i + 1, 2), NumberStyles.HexNumber, null, out var b)
+                    && int.TryParse(str.Substring(i + 1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture,
+                        out var b)
 #else
-                    && int.TryParse(str.AsSpan(i + 1, 2), NumberStyles.HexNumber, null, out var b)
+                    && int.TryParse(str.AsSpan(i + 1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var b)
 #endif
                 )
                 {
@@ -407,9 +408,10 @@ internal static partial class Utils
                     match =>
                     {
 #if NETSTANDARD2_0
-                        var code = int.Parse(match.Value.Substring(2), NumberStyles.HexNumber);
+                        var code = int.Parse(match.Value.Substring(2), NumberStyles.HexNumber,
+                            CultureInfo.InvariantCulture);
 #else
-                        var code = int.Parse(match.Value[2..], NumberStyles.HexNumber);
+                        var code = int.Parse(match.Value[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 #endif
                         return $"%26%23{code}%3B";
                     }
@@ -422,10 +424,20 @@ internal static partial class Utils
 
         while (j < nonNullStr.Length)
         {
-            var segment =
-                nonNullStr.Length >= SegmentLimit
-                    ? nonNullStr.Substring(j, Math.Min(SegmentLimit, nonNullStr.Length - j))
-                    : nonNullStr;
+            // Take up to SegmentLimit characters, but never split a surrogate pair across the boundary.
+            var remaining = nonNullStr.Length - j;
+            var segmentLen = remaining >= SegmentLimit ? SegmentLimit : remaining;
+
+            // If the last char of this segment is a high surrogate and the next char exists and is a low surrogate,
+            // shrink the segment by one so the pair is encoded together in the next iteration.
+            if (
+                segmentLen < remaining &&
+                char.IsHighSurrogate(nonNullStr[j + segmentLen - 1]) &&
+                char.IsLowSurrogate(nonNullStr[j + segmentLen])
+            )
+                segmentLen--; // keep the high surrogate with its low surrogate in the next chunk
+
+            var segment = nonNullStr.Substring(j, segmentLen);
 
             var i = 0;
             while (i < segment.Length)
@@ -463,9 +475,19 @@ internal static partial class Utils
                         continue;
                 }
 
-                // 4 bytes (surrogate pair)
-                var nextC = i + 1 < segment.Length ? segment[i + 1] : 0;
-                var codePoint = 0x10000 + (((c & 0x3FF) << 10) | (nextC & 0x3FF));
+                // 4 bytes (surrogate pair) – only if valid pair; otherwise treat as 3-byte fallback
+                if (i + 1 >= segment.Length || !char.IsSurrogatePair(segment[i], segment[i + 1]))
+                {
+                    // Fallback: percent-encode the single surrogate code unit to remain lossless
+                    buffer.Append(HexTable.Table[0xE0 | (c >> 12)]);
+                    buffer.Append(HexTable.Table[0x80 | ((c >> 6) & 0x3F)]);
+                    buffer.Append(HexTable.Table[0x80 | (c & 0x3F)]);
+                    i++;
+                    continue;
+                }
+
+                var nextC = segment[i + 1];
+                var codePoint = char.ConvertToUtf32((char)c, nextC);
                 buffer.Append(HexTable.Table[0xF0 | (codePoint >> 18)]);
                 buffer.Append(HexTable.Table[0x80 | ((codePoint >> 12) & 0x3F)]);
                 buffer.Append(HexTable.Table[0x80 | ((codePoint >> 6) & 0x3F)]);
@@ -473,7 +495,7 @@ internal static partial class Utils
                 i += 2; // Skip the next character as it's part of the surrogate pair
             }
 
-            j += SegmentLimit;
+            j += segment.Length; // advance by the actual processed count
         }
 
         return buffer.ToString();
@@ -787,9 +809,13 @@ internal static partial class Utils
     {
         if (str.Length < 4)
             return str;
-        var first = str.IndexOf("&#", StringComparison.Ordinal);
-        if (first == -1)
+#if NETSTANDARD2_0
+        if (str.IndexOf("&#", StringComparison.Ordinal) == -1)
             return str;
+#else
+        if (!str.Contains("&#", StringComparison.Ordinal))
+            return str;
+#endif
 
         var sb = new StringBuilder(str.Length);
         var i = 0;
@@ -801,18 +827,49 @@ internal static partial class Utils
             if (ch == '&' && i + 2 < n && str[i + 1] == '#')
             {
                 var j = i + 2;
-                if (j < n && char.IsDigit(str[j]))
+                if (j < n && (char.IsDigit(str[j]) || (str[j] is 'x' or 'X' && j + 1 < n)))
                 {
-                    var code = 0;
                     var startDigits = j;
-                    while (j < n && char.IsDigit(str[j]))
+                    var hex = false;
+                    if (str[j] is 'x' or 'X')
                     {
-                        code = code * 10 + (str[j] - '0');
+                        hex = true;
                         j++;
+                        startDigits = j;
                     }
+
+                    // Advance j over the digit run without allocating per-digit strings
+                    while (j < n && (hex ? Uri.IsHexDigit(str[j]) : char.IsDigit(str[j])))
+                        j++;
 
                     if (j < n && str[j] == ';' && j > startDigits)
                     {
+                        int code;
+#if NETSTANDARD2_0
+                        var digits = str.Substring(startDigits, j - startDigits);
+                        var ok = int.TryParse(
+                            digits,
+                            hex ? NumberStyles.HexNumber : NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out code
+                        );
+#else
+                        var digits = str.AsSpan(startDigits, j - startDigits);
+                        var ok = int.TryParse(
+                            digits,
+                            hex ? NumberStyles.HexNumber : NumberStyles.Integer,
+                            CultureInfo.InvariantCulture,
+                            out code
+                        );
+#endif
+                        if (!ok)
+                        {
+                            // Overflow or invalid digits: leave input unchanged
+                            sb.Append('&');
+                            i++;
+                            continue;
+                        }
+
                         switch (code)
                         {
                             case <= 0xFFFF:
@@ -1119,7 +1176,6 @@ internal static partial class Utils
                 // List node ➜ List<object?>
                 case IList srcList when dst is List<object?> dstList:
                     foreach (var item in srcList)
-                    {
                         switch (item)
                         {
                             case IDictionary innerDict:
@@ -1161,7 +1217,6 @@ internal static partial class Utils
                                 dstList.Add(item);
                                 break;
                         }
-                    }
 
                     break;
             }

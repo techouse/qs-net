@@ -86,7 +86,7 @@ internal static class Encoder
             if (objKey is not null && tmpSc.TryGet(objKey, out var pos))
             {
                 if (pos == step)
-                    throw new IndexOutOfRangeException("Cyclic object value");
+                    throw new InvalidOperationException("Cyclic object value");
                 found = true;
             }
 
@@ -370,8 +370,13 @@ internal static class Encoder
 
             var keyStr = key?.ToString() ?? "";
             var encodedKey = keyStr;
+#if NETSTANDARD2_0
             if (allowDots && encodeDotInKeys && keyStr.IndexOf('.') >= 0)
                 encodedKey = keyStr.Replace(".", "%2E");
+#else
+            if (allowDots && encodeDotInKeys && keyStr.Contains('.', StringComparison.Ordinal))
+                encodedKey = keyStr.Replace(".", "%2E", StringComparison.Ordinal);
+#endif
 
             var keyPrefix =
                 obj is IEnumerable and not string and not IDictionary
