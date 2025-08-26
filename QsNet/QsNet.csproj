@@ -39,6 +39,10 @@
     <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
         <ImplicitUsings>enable</ImplicitUsings>
     </PropertyGroup>
+    <!-- Optionally: for other TFMs where supported in future -->
+    <!-- <PropertyGroup Condition="'$(TargetFramework)' == 'netX.Y'"> -->
+    <!--   <ImplicitUsings>enable</ImplicitUsings> -->
+    <!-- </PropertyGroup> -->
     <ItemGroup>
         <None Include="..\README.md" Pack="true" PackagePath="\"/>
         <None Include="..\LICENSE" Pack="true" PackagePath="\"/>
