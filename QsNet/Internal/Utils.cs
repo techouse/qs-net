@@ -351,7 +351,8 @@ internal static partial class Utils
                 else if (
                     i + 3 <= str.Length
 #if NETSTANDARD2_0
-                    && int.TryParse(str.Substring(i + 1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var b)
+                    && int.TryParse(str.Substring(i + 1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture,
+                        out var b)
 #else
                     && int.TryParse(str.AsSpan(i + 1, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var b)
 #endif
@@ -407,7 +408,8 @@ internal static partial class Utils
                     match =>
                     {
 #if NETSTANDARD2_0
-                        var code = int.Parse(match.Value.Substring(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
+                        var code = int.Parse(match.Value.Substring(2), NumberStyles.HexNumber,
+                            CultureInfo.InvariantCulture);
 #else
                         var code = int.Parse(match.Value[2..], NumberStyles.HexNumber, CultureInfo.InvariantCulture);
 #endif
@@ -805,13 +807,17 @@ internal static partial class Utils
             if (ch == '&' && i + 2 < n && str[i + 1] == '#')
             {
                 var j = i + 2;
-                if (j < n && char.IsDigit(str[j]))
+                if (j < n && (char.IsDigit(str[j]) || (str[j] is 'x' or 'X' && j + 1 < n)))
                 {
                     var code = 0;
                     var startDigits = j;
-                    while (j < n && char.IsDigit(str[j]))
+                    var hex = false;
+                    if (str[j] is 'x' or 'X') { hex = true; j++; startDigits = j; }
+                    while (j < n && (hex ? Uri.IsHexDigit(str[j]) : char.IsDigit(str[j])))
                     {
-                        code = code * 10 + (str[j] - '0');
+                        code = hex
+                               ? (code << 4) + Convert.ToInt32(str[j].ToString(), 16)
+                               : code * 10 + (str[j] - '0');
                         j++;
                     }
 
