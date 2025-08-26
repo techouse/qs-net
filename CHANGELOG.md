@@ -1,3 +1,7 @@
+## 1.0.8
+
+* [CHORE] standardize exception handling and improve culture-invariant string formatting
+
 ## 1.0.7
 
 * [FIX] fix degenerate bracket and dot parsing in `Decoder` for edge cases and parity
