@@ -272,7 +272,7 @@ public class DecodeTest
 
         action
             .Should()
-            .Throw<IndexOutOfRangeException>()
+            .Throw<InvalidOperationException>()
             .WithMessage("List limit exceeded. Only 3 elements allowed in a list.");
     }
 
@@ -2277,7 +2277,7 @@ public class DecodeTest
         var options = new DecodeOptions { Depth = 1, StrictDepth = true };
 
         Action act = () => Qs.Decode("a[b][c][d][e][f][g][h][i]=j", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -2286,7 +2286,7 @@ public class DecodeTest
         var options = new DecodeOptions { Depth = 3, StrictDepth = true };
 
         Action act = () => Qs.Decode("a[0][1][2][3][4]=b", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -2295,7 +2295,7 @@ public class DecodeTest
         var options = new DecodeOptions { Depth = 3, StrictDepth = true };
 
         Action act = () => Qs.Decode("a[b][c][0][d][e]=f", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -2304,7 +2304,7 @@ public class DecodeTest
         var options = new DecodeOptions { Depth = 3, StrictDepth = true };
 
         Action act = () => Qs.Decode("a[b][c][d][e]=true&a[b][c][d][f]=42", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -2405,7 +2405,7 @@ public class DecodeTest
         var options = new DecodeOptions { ParameterLimit = 3, ThrowOnLimitExceeded = true };
 
         Action act = () => Qs.Decode("a=1&b=2&c=3&d=4&e=5&f=6", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -2483,7 +2483,7 @@ public class DecodeTest
         var options = new DecodeOptions { ListLimit = 3, ThrowOnLimitExceeded = true };
 
         Action act = () => Qs.Decode("a[]=1&a[]=2&a[]=3&a[]=4", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -2530,7 +2530,7 @@ public class DecodeTest
         var options = new DecodeOptions { ListLimit = -1, ThrowOnLimitExceeded = true };
 
         Action act = () => Qs.Decode("a[]=1&a[]=2", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -2539,7 +2539,7 @@ public class DecodeTest
         var options = new DecodeOptions { ListLimit = 3, ThrowOnLimitExceeded = true };
 
         Action act = () => Qs.Decode("a[0][]=1&a[0][]=2&a[0][]=3&a[0][]=4", options);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -4181,7 +4181,7 @@ public class DecodeTest
     {
         var opt = new DecodeOptions { AllowDots = false, DecodeDotInKeys = true };
         Action act = () => Qs.Decode("a%2Eb=c", opt);
-        act.Should().Throw<ArgumentException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -4349,7 +4349,7 @@ public class DecodeTest
     {
         var opt = new DecodeOptions { AllowDots = false, DecodeDotInKeys = true };
         Action act = () => Qs.Decode("a%5Bb%5D%5Bc%5D%2Ed=x", opt);
-        act.Should().Throw<ArgumentException>()
+        act.Should().Throw<InvalidOperationException>()
             .WithMessage("*decodeDotInKeys*allowDots*");
     }
 
@@ -4646,7 +4646,7 @@ public class DecodeTest
     {
         var act = () =>
             InternalDecoder.SplitKeyIntoSegments("a[b][c][d]", false, 1, true);
-        act.Should().Throw<IndexOutOfRangeException>();
+        act.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
