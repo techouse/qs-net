@@ -4391,7 +4391,8 @@ public class DecodeTest
         var opt = new DecodeOptions { AllowDots = false, DecodeDotInKeys = true };
         Action act = () => Qs.Decode("a%5Bb%5D%5Bc%5D%2Ed=x", opt);
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*decodeDotInKeys*allowDots*");
+            .WithMessage("*DecodeDotInKeys*AllowDots*")
+            .WithMessage("*DecodeDotInKeys=true*AllowDots=true*");
     }
 
     [Fact]
