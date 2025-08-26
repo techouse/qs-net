@@ -4129,28 +4129,49 @@ public class DecodeTest
     }
 
     [Fact]
-    public void Decode_CommaSplit_TruncatesWhenSumExceedsLimit_AndThrowOff()
+    public void Decode_CommaSplit_NoTruncationWhenSumExceedsLimit_AndThrowOff()
     {
         var opts = new DecodeOptions
-        { Comma = true, ListLimit = 3, ThrowOnLimitExceeded = false, Duplicates = Duplicates.Combine };
+        {
+            Comma = true,
+            ListLimit = 3,
+            ThrowOnLimitExceeded = false,
+            ParseLists = true,
+            Duplicates = Duplicates.Combine
+        };
+
         var result = Qs.Decode("a=1,2&a=3,4,5", opts);
-        // Define expected behavior explicitly: either first 3, or last 3, or exactly how ParseListValue truncates upstream.
-        // Assert accordingly once decided.
+
+        var dict = Assert.IsType<Dictionary<string, object?>>(result);
+        var list = Assert.IsType<List<object?>>(dict["a"]);
+        // With ThrowOnLimitExceeded = false, no truncation occurs; full concatenation is allowed
+        list.Select(x => x?.ToString()).Should().Equal("1", "2", "3", "4", "5");
     }
 
     [Fact]
-    public void Decode_BracketSingle_CommaSplit_DefinesSingleOccurrenceBehavior()
+    public void Decode_BracketSingle_CommaSplit_YieldsNestedList()
     {
         var opts = new DecodeOptions { Comma = true };
-        var res = Qs.Decode("a=1,2,3", opts); // control
-        var res2 = Qs.Decode("a[]=1,2,3", opts); // bracketed
-        // Decide and assert: flat ["1","2","3"] or nested [["1","2","3"]]
+
+        // Control: unbracketed key
+        var res = Qs.Decode("a=1,2,3", opts);
+        var dict1 = Assert.IsType<Dictionary<string, object?>>(res);
+        var list1 = Assert.IsType<List<object?>>(dict1["a"]);
+        list1.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
+
+        // Bracketed single occurrence yields a nested list: [["1","2","3"]]
+        var res2 = Qs.Decode("a[]=1,2,3", opts);
+        var dict2 = Assert.IsType<Dictionary<string, object?>>(res2);
+        var outer = Assert.IsType<List<object?>>(dict2["a"]);
+        outer.Should().HaveCount(1);
+        var inner = Assert.IsType<List<object?>>(outer[0]);
+        inner.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
     }
 
     #region Encoded dot behavior in keys (%2E / %2e)
 
     [Fact]
-    public void EncodedDot_TopLevel_AllowDotsTrue_DecodeDotInKeysTrue_PlainDotSplits_EncodedDotDoesNotSplit()
+    public void EncodedDot_TopLevel_AllowDotsTrue_DecodeDotInKeysTrue_PlainAndEncodedDotSplit()
     {
         var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = true };
 
@@ -4177,7 +4198,7 @@ public class DecodeTest
     }
 
     [Fact]
-    public void EncodedDot_TopLevel_AllowDotsTrue_DecodeDotInKeysFalse_EncodedDotRemainsPercentSequence()
+    public void EncodedDot_TopLevel_AllowDotsTrue_DecodeDotInKeysFalse_EncodedDotAlsoSplits()
     {
         var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = false };
 
@@ -4225,7 +4246,7 @@ public class DecodeTest
     }
 
     [Fact]
-    public void EncodedDot_BracketSegment_RemainsPercentSequence_WhenDecodeDotInKeysFalse()
+    public void EncodedDot_BracketSegment_DecodesToDot_WhenDecodeDotInKeysFalse()
     {
         var opt = new DecodeOptions { AllowDots = true, DecodeDotInKeys = false };
 
