@@ -253,7 +253,7 @@ internal static partial class Decoder
             }
 
             if (
-                int.TryParse(parentKeyStr, out var parentKey)
+                int.TryParse(parentKeyStr, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parentKey)
                 && value is IList<object?> list
                 && parentKey < list.Count
             )
@@ -349,7 +349,8 @@ internal static partial class Decoder
 
                 // Bracketed numeric like "[1]"?
                 var isPureNumeric =
-                    int.TryParse(decodedRoot, out var idx) && !string.IsNullOrEmpty(decodedRoot);
+                    int.TryParse(decodedRoot, NumberStyles.Integer, CultureInfo.InvariantCulture, out var idx) &&
+                    !string.IsNullOrEmpty(decodedRoot);
                 var isBracketedNumeric =
                     isPureNumeric && root != decodedRoot && idx.ToString(CultureInfo.InvariantCulture) == decodedRoot;
 
