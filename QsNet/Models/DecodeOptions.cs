@@ -197,9 +197,8 @@ public sealed class DecodeOptions
     public object? Decode(string? value, Encoding? encoding = null, DecodeKind kind = DecodeKind.Value)
     {
         if (kind == DecodeKind.Key && _decodeDotInKeys == true && _allowDots == false)
-            throw new ArgumentException(
-                "DecodeDotInKeys=true requires AllowDots=true when decoding keys.",
-                nameof(DecodeDotInKeys)
+            throw new InvalidOperationException(
+                "Invalid DecodeOptions: DecodeDotInKeys=true requires AllowDots=true when decoding keys."
             );
         var d3 = DecoderWithKind;
         if (d3 is not null) return d3.Invoke(value, encoding, kind);
@@ -236,7 +235,7 @@ public sealed class DecodeOptions
     ///     Default decoder when no custom decoder is supplied. Keys are decoded identically
     ///     to values using <see cref="Utils.Decode" /> with the provided encoding.
     /// </summary>
-    private static object? DefaultDecode(string? value, Encoding? encoding)
+    private static string? DefaultDecode(string? value, Encoding? encoding)
     {
         return value is null ? null : Utils.Decode(value, encoding);
     }
