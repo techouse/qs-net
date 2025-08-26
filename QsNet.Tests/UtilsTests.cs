@@ -1308,6 +1308,28 @@ public class UtilsTests
         Utils.InterpretNumericEntities("&#x41;").Should().Be("A"); // uppercase hex digits
         Utils.InterpretNumericEntities("&#x6d;").Should().Be("m"); // lowercase hex digits
     }
+    
+    [Fact]
+    public void InterpretNumericEntities_DecodesSingleHexEntity_UppercaseX()
+    {
+        Utils.InterpretNumericEntities("&#X41;").Should().Be("A");
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_AcceptsMaxValidHexAndRejectsBeyond()
+    {
+        // U+10FFFF is valid
+        Utils.InterpretNumericEntities("&#x10FFFF;").Should().Be(char.ConvertFromUtf32(0x10FFFF));
+        // One above max should remain unchanged
+        Utils.InterpretNumericEntities("&#x110000;").Should().Be("&#x110000;");
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_EmptyHexDigitsRemainUnchanged()
+    {
+        Utils.InterpretNumericEntities("&#x;").Should().Be("&#x;");
+        Utils.InterpretNumericEntities("&#X;").Should().Be("&#X;");
+    }
 
     [Fact]
     public void InterpretNumericEntities_DecodesMultipleHexEntities()
