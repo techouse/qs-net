@@ -465,9 +465,18 @@ internal static partial class Utils
                         continue;
                 }
 
-                // 4 bytes (surrogate pair)
-                var nextC = i + 1 < segment.Length ? segment[i + 1] : 0;
-                var codePoint = 0x10000 + (((c & 0x3FF) << 10) | (nextC & 0x3FF));
+                // 4 bytes (surrogate pair) – only if valid pair; otherwise treat as 3-byte fallback
+                if (i + 1 >= segment.Length || !char.IsSurrogatePair(segment[i], segment[i + 1]))
+                {
+                    // Fallback: percent-encode the single surrogate code unit to remain lossless
+                    buffer.Append(HexTable.Table[0xE0 | (c >> 12)]);
+                    buffer.Append(HexTable.Table[0x80 | ((c >> 6) & 0x3F)]);
+                    buffer.Append(HexTable.Table[0x80 | (c & 0x3F)]);
+                    i++;
+                    continue;
+                }
+                var nextC = segment[i + 1];
+                var codePoint = char.ConvertToUtf32((char)c, nextC);
                 buffer.Append(HexTable.Table[0xF0 | (codePoint >> 18)]);
                 buffer.Append(HexTable.Table[0x80 | ((codePoint >> 12) & 0x3F)]);
                 buffer.Append(HexTable.Table[0x80 | ((codePoint >> 6) & 0x3F)]);
