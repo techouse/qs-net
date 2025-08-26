@@ -1285,8 +1285,8 @@ public class UtilsTests
         Utils.InterpretNumericEntities("&#;").Should().Be("&#;");
         // Missing terminating semicolon
         Utils.InterpretNumericEntities("&#12").Should().Be("&#12");
-        // Hex form not supported by this decoder
-        Utils.InterpretNumericEntities("&#x41;").Should().Be("&#x41;");
+        // Hex form is supported by this decoder
+        Utils.InterpretNumericEntities("&#x41;").Should().Be("A");
         // Space inside
         Utils.InterpretNumericEntities("&# 12;").Should().Be("&# 12;");
         // Negative / non-digit after '#'
@@ -1300,6 +1300,40 @@ public class UtilsTests
     {
         // Max valid is 0x10FFFF (1114111). One above should be left as literal.
         Utils.InterpretNumericEntities("&#1114112;").Should().Be("&#1114112;");
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_DecodesSingleHexEntity()
+    {
+        Utils.InterpretNumericEntities("&#x41;").Should().Be("A"); // uppercase hex digits
+        Utils.InterpretNumericEntities("&#x6d;").Should().Be("m"); // lowercase hex digits
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_DecodesMultipleHexEntities()
+    {
+        Utils.InterpretNumericEntities("&#x48;&#x0069;!").Should().Be("Hi!");
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_DecodesHexSurrogatePair()
+    {
+        // U+1F4A9 (💩) as surrogate halves: 0xD83D, 0xDCA9
+        Utils.InterpretNumericEntities("&#xD83D;&#xDCA9;").Should().Be("💩");
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_MixedDecimalAndHexEntities()
+    {
+        Utils.InterpretNumericEntities("A = &#x41; and &#66;").Should().Be("A = A and B");
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_InvalidHexEntitiesRemainUnchanged()
+    {
+        Utils.InterpretNumericEntities("&#xZZ;").Should().Be("&#xZZ;"); // non-hex digits
+        Utils.InterpretNumericEntities("&#x1G;").Should().Be("&#x1G;"); // invalid hex digit
+        Utils.InterpretNumericEntities("&#x41").Should().Be("&#x41");   // missing semicolon
     }
 
     [Fact]
