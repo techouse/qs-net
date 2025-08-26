@@ -26,7 +26,7 @@ public static class Qs
     /// <param name="options">Optional decoder settings</param>
     /// <returns>The decoded Dictionary</returns>
     /// <exception cref="ArgumentException">If the input is not a string or Dictionary</exception>
-    /// <exception cref="IndexOutOfRangeException">If limits are exceeded and ThrowOnLimitExceeded is true</exception>
+    /// <exception cref="InvalidOperationException">If limits are exceeded and ThrowOnLimitExceeded is true</exception>
     public static Dictionary<string, object?> Decode(object? input, DecodeOptions? options = null)
     {
         var opts = options ?? new DecodeOptions();
@@ -122,7 +122,7 @@ public static class Qs
     /// <param name="data">The data to encode</param>
     /// <param name="options">Optional encoder settings</param>
     /// <returns>The encoded query string</returns>
-    /// <exception cref="IndexOutOfRangeException">Thrown when index is out of bounds</exception>
+    /// <exception cref="InvalidOperationException">Thrown when options/limits are violated during encoding</exception>
     public static string Encode(object? data, EncodeOptions? options = null)
     {
         var opts = options ?? new EncodeOptions();
