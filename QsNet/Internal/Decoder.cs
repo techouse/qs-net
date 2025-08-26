@@ -71,7 +71,7 @@ internal static partial class Decoder
     /// <param name="options">The decoding options that affect how the string is parsed.</param>
     /// <returns>A mutable dictionary containing the parsed key-value pairs.</returns>
     /// <exception cref="ArgumentException">If the parameter limit is not a positive integer.</exception>
-    /// <exception cref="IndexOutOfRangeException">If the parameter limit is exceeded and ThrowOnLimitExceeded is true.</exception>
+    ///  <exception cref="InvalidOperationException">If the parameter limit is exceeded and ThrowOnLimitExceeded is true.</exception>
     internal static Dictionary<string, object?> ParseQueryStringValues(
         string str,
         DecodeOptions? options = null
@@ -496,7 +496,7 @@ internal static partial class Decoder
     /// <param name="maxDepth">The maximum depth for splitting.</param>
     /// <param name="strictDepth">Whether to enforce strict depth limits.</param>
     /// <returns>A list of segments derived from the original key.</returns>
-    /// <exception cref="IndexOutOfRangeException">If the depth exceeds maxDepth and strictDepth is true.</exception>
+    /// <exception cref="InvalidOperationException">If the depth exceeds maxDepth and strictDepth is true.</exception>
     internal static List<string> SplitKeyIntoSegments(
         string originalKey,
         bool allowDots,
