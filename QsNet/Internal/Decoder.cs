@@ -304,9 +304,14 @@ internal static partial class Decoder
                 var cleanRoot = root.StartsWith('[') && root.EndsWith(']') ? root[1..^1] : root;
 #endif
 
-                // If we unwrapped a synthetic “double-bracket” remainder (e.g. "[[b[c]]"),
-                // the inner content becomes "[b[c]". That trailing ']' is artificial – drop it
-                // so the literal inner text is "[b[c" (matches qs/Kotlin parity and your tests).
+                // Why does `opens > closes` imply the trailing ']' is synthetic?
+                // SplitKeyIntoSegments() wraps any overflow/unterminated remainder exactly once:
+                //   segments.Add("[" + remainder + "]");
+                // Here we've already removed that outer wrapper (cleanRoot = root[1..^1]).
+                // If the remaining inner text has more '[' than ']' and *still* ends with ']',
+                // that last ']' cannot be balancing any '[' from the inner text — it's the
+                // closing bracket from the synthetic wrapper that leaked into this inner slice.
+                // Trimming it recovers the literal remainder (e.g., "[[b[c]]" → cleanRoot "[b[c]" → trim → "[b[c").
                 if (root.Length >= 2 && root[0] == '[' && root[root.Length - 1] == ']')
                 {
                     var inner = cleanRoot;
@@ -322,7 +327,6 @@ internal static partial class Decoder
                                 break;
                         }
 
-                    // More '[' than ']' inside AND it ends with ']' → trim the final ']'
                     if (opens > closes && inner.Length > 0 && inner[inner.Length - 1] == ']')
                     {
 #if NETSTANDARD2_0
