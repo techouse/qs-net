@@ -1,3 +1,7 @@
+## 1.0.9
+
+* [CHORE] add logo to NuGet package
+
 ## 1.0.8
 
 * [CHORE] standardize exception handling and improve culture-invariant string formatting
