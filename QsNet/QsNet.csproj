@@ -34,6 +34,7 @@
 
         <PackageReleaseNotes>See CHANGELOG: https://github.com/techouse/qs-net/releases</PackageReleaseNotes>
         <Title>QsNet - Query-string encoding/decoding for .NET</Title>
+        <PackageIcon>logo.png</PackageIcon>
     </PropertyGroup>
 
     <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
@@ -46,6 +47,7 @@
     <ItemGroup>
         <None Include="..\README.md" Pack="true" PackagePath="\"/>
         <None Include="..\LICENSE" Pack="true" PackagePath="\"/>
+        <None Include="..\logo.png" Pack="true" PackagePath="\"/>
         <InternalsVisibleTo Include="QsNet.Tests"/>
     </ItemGroup>
 
