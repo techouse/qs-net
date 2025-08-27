@@ -32,6 +32,13 @@
         "files": [
           "images/**"
         ]
+      },
+      {
+        "src": ".",
+        "files": [
+          "logo.png"
+        ],
+        "dest": "images"
       }
     ],
     "output": "_site",
@@ -40,8 +47,10 @@
       "modern"
     ],
     "globalMetadata": {
+      "_appLogoPath": "images/logo.png",
       "_appName": "QsNet",
       "_appTitle": "QsNet",
+      "_appFaviconPath": "images/logo.png",
       "_enableSearch": true,
       "pdf": false
     }
