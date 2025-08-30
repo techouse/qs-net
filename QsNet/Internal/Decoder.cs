@@ -80,13 +80,24 @@ internal static partial class Decoder
         options ??= new DecodeOptions();
 
 #if NETSTANDARD2_0
-        var cleanStr = options.IgnoreQueryPrefix ? str.TrimStart('?') : str;
-        cleanStr = ReplaceOrdinalIgnoreCase(cleanStr, "%5B", "[");
-        cleanStr = ReplaceOrdinalIgnoreCase(cleanStr, "%5D", "]");
+        var tmp = options.IgnoreQueryPrefix ? str.TrimStart('?') : str;
+        // Only scan/replace when there's any percent-encoding in the string
+        if (tmp.IndexOf('%') >= 0)
+        {
+            tmp = ReplaceOrdinalIgnoreCase(tmp, "%5B", "[");
+            tmp = ReplaceOrdinalIgnoreCase(tmp, "%5D", "]");
+        }
+
+        var cleanStr = tmp;
 #else
-        var cleanStr = (options.IgnoreQueryPrefix ? str.TrimStart('?') : str)
-            .Replace("%5B", "[", StringComparison.OrdinalIgnoreCase)
-            .Replace("%5D", "]", StringComparison.OrdinalIgnoreCase);
+        var tmp = options.IgnoreQueryPrefix ? str.TrimStart('?') : str;
+        // Only scan/replace when there's any percent-encoding in the string
+        if (tmp.Contains('%'))
+        {
+            tmp = tmp.Replace("%5B", "[", StringComparison.OrdinalIgnoreCase)
+                     .Replace("%5D", "]", StringComparison.OrdinalIgnoreCase);
+        }
+        var cleanStr = tmp;
 #endif
 
         var limit = options.ParameterLimit == int.MaxValue ? (int?)null : options.ParameterLimit;
@@ -139,6 +150,8 @@ internal static partial class Decoder
                 continue;
 
             var part = parts[i];
+            var hadExisting = false;
+            object? existingVal = null;
             var bracketEqualsPos = part.IndexOf("]=", StringComparison.Ordinal);
             var pos = bracketEqualsPos == -1 ? part.IndexOf('=') : bracketEqualsPos + 1;
 
@@ -149,6 +162,7 @@ internal static partial class Decoder
             {
                 key = options.DecodeKey(part, charset) ?? string.Empty;
                 value = options.StrictNullHandling ? null : "";
+                hadExisting = obj.TryGetValue(key, out existingVal);
             }
             else
             {
@@ -159,8 +173,8 @@ internal static partial class Decoder
                 var rawKey = part[..pos];
                 key = options.DecodeKey(rawKey, charset) ?? string.Empty;
 #endif
-                var currentLength =
-                    obj.TryGetValue(key, out var val) && val is IList<object?> list ? list.Count : 0;
+                hadExisting = obj.TryGetValue(key, out existingVal);
+                var currentLength = hadExisting && existingVal is IList<object?> list ? list.Count : 0;
 
 #if NETSTANDARD2_0
                 value = Utils.Apply<object?>(
@@ -195,7 +209,7 @@ internal static partial class Decoder
 #endif
                 value = value is IEnumerable and not string ? new List<object?> { value } : value;
 
-            if (obj.TryGetValue(key, out var existingVal))
+            if (hadExisting)
                 switch (options.Duplicates)
                 {
                     case Duplicates.Combine:
