@@ -143,6 +143,12 @@ jobs:
             6.0.x
             8.0.x
             9.0.x
+      - name: Setup .NET 10 preview SDK (non-blocking)
+        continue-on-error: true
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          dotnet-quality: preview
       - name: Create consumer project (multi-target)
         run: |
           set -euo pipefail
@@ -151,7 +157,7 @@ jobs:
           <Project Sdk="Microsoft.NET.Sdk">
             <PropertyGroup>
               <OutputType>Exe</OutputType>
-              <TargetFrameworks>net5.0;net6.0;net8.0;net9.0</TargetFrameworks>
+              <TargetFrameworks>net5.0;net6.0;net8.0;net9.0;net10.0</TargetFrameworks>
               <Nullable>enable</Nullable>
               <ImplicitUsings>false</ImplicitUsings>
             </PropertyGroup>
@@ -191,8 +197,23 @@ jobs:
           CS
       - name: Restore consumer
         run: dotnet restore consumer-smoke/consumer-smoke.csproj
-      - name: Build consumer
-        run: dotnet build -c Release consumer-smoke/consumer-smoke.csproj --no-restore
+      - name: Build consumer (net6.0; net8.0; net9.0)
+        run: |
+          set -euo pipefail
+          for f in net6.0 net8.0 net9.0; do
+            echo "Building $f"
+            dotnet build -c Release -f "$f" consumer-smoke/consumer-smoke.csproj --no-restore
+          done
+      - name: Build consumer (net5.0 — non-blocking)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          dotnet build -c Release -f net5.0 consumer-smoke/consumer-smoke.csproj --no-restore
+      - name: Build consumer (net10.0 preview — non-blocking)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          dotnet build -c Release -f net10.0 consumer-smoke/consumer-smoke.csproj --no-restore
       - name: Run smoke (net5.0 — non-blocking)
         continue-on-error: true
         run: |
@@ -205,6 +226,11 @@ jobs:
             echo "Running smoke for $f"
             dotnet run -c Release --framework "$f" --project consumer-smoke/consumer-smoke.csproj --no-build
           done
+      - name: Run smoke (net10.0 preview — non-blocking)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          dotnet run -c Release --framework net10.0 --project consumer-smoke/consumer-smoke.csproj --no-build
   smoke_netfx:
     name: Consumer smoke (.NET Framework 4.6.1 on Windows)
     needs: lint
