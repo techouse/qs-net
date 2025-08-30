@@ -46,17 +46,49 @@ internal static partial class Decoder
         int currentListLength
     )
     {
-        if (value is string str && !string.IsNullOrEmpty(str) && options.Comma && str.Contains(','))
+        // If lists are disabled (ListLimit < 0), skip comma splitting and limit checks entirely.
+        if (options.ListLimit < 0)
+            return value;
+        if (value is string str && options.Comma && str.Length != 0)
         {
-            var splitVal = str.Split(',');
-            if (options.ThrowOnLimitExceeded && currentListLength + splitVal.Length > options.ListLimit)
-                throw new InvalidOperationException(
-                    $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
-                );
-            return splitVal.ToList<object?>();
+            // Single-pass: fast-path check with IndexOf, then split while enforcing the list limit.
+            var idx = str.IndexOf(',');
+            if (idx >= 0)
+            {
+                var list = new List<object?>(
+                    4); // Initial capacity for typical comma lists (3-5 elements); grows as needed
+                var start = 0;
+
+                while (true)
+                {
+                    // Before adding the next element, ensure we won't exceed the limit.
+                    if (options.ThrowOnLimitExceeded && currentListLength + list.Count >= options.ListLimit)
+                        throw new InvalidOperationException(
+                            $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
+                        );
+
+                    // Add the segment before the comma (can be empty when there are consecutive commas)
+                    list.Add(str.Substring(start, idx - start));
+                    start = idx + 1;
+
+                    idx = str.IndexOf(',', start);
+                    if (idx < 0)
+                        break;
+                }
+
+                // Add the final (possibly empty) segment, with the same limit guard
+                if (options.ThrowOnLimitExceeded && currentListLength + list.Count >= options.ListLimit)
+                    throw new InvalidOperationException(
+                        $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
+                    );
+
+                list.Add(str.Substring(start));
+                return list;
+            }
         }
 
-        if (options.ThrowOnLimitExceeded && currentListLength >= options.ListLimit)
+        // No commas: treat as a scalar and (if enforcing) block adding another element past the limit.
+        if (options is { ListLimit: >= 0, ThrowOnLimitExceeded: true } && currentListLength >= options.ListLimit)
             throw new InvalidOperationException(
                 $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
             );
@@ -80,13 +112,24 @@ internal static partial class Decoder
         options ??= new DecodeOptions();
 
 #if NETSTANDARD2_0
-        var cleanStr = options.IgnoreQueryPrefix ? str.TrimStart('?') : str;
-        cleanStr = ReplaceOrdinalIgnoreCase(cleanStr, "%5B", "[");
-        cleanStr = ReplaceOrdinalIgnoreCase(cleanStr, "%5D", "]");
+        var tmp = options.IgnoreQueryPrefix ? str.TrimStart('?') : str;
+        // Only scan/replace when there's any percent-encoding in the string
+        if (tmp.IndexOf('%') >= 0)
+        {
+            tmp = ReplaceOrdinalIgnoreCase(tmp, "%5B", "[");
+            tmp = ReplaceOrdinalIgnoreCase(tmp, "%5D", "]");
+        }
+
+        var cleanStr = tmp;
 #else
-        var cleanStr = (options.IgnoreQueryPrefix ? str.TrimStart('?') : str)
-            .Replace("%5B", "[", StringComparison.OrdinalIgnoreCase)
-            .Replace("%5D", "]", StringComparison.OrdinalIgnoreCase);
+        var tmp = options.IgnoreQueryPrefix ? str.TrimStart('?') : str;
+        // Only scan/replace when there's any percent-encoding in the string
+        if (tmp.Contains('%'))
+        {
+            tmp = tmp.Replace("%5B", "[", StringComparison.OrdinalIgnoreCase)
+                     .Replace("%5D", "]", StringComparison.OrdinalIgnoreCase);
+        }
+        var cleanStr = tmp;
 #endif
 
         var limit = options.ParameterLimit == int.MaxValue ? (int?)null : options.ParameterLimit;
@@ -133,12 +176,16 @@ internal static partial class Decoder
                     break;
                 }
 
+        var isLatin1 = IsLatin1(charset);
+
         for (var i = 0; i < parts.Count; i++)
         {
             if (i == skipIndex)
                 continue;
 
             var part = parts[i];
+            var hadExisting = false;
+            object? existingVal = null;
             var bracketEqualsPos = part.IndexOf("]=", StringComparison.Ordinal);
             var pos = bracketEqualsPos == -1 ? part.IndexOf('=') : bracketEqualsPos + 1;
 
@@ -149,6 +196,7 @@ internal static partial class Decoder
             {
                 key = options.DecodeKey(part, charset) ?? string.Empty;
                 value = options.StrictNullHandling ? null : "";
+                hadExisting = obj.TryGetValue(key, out existingVal);
             }
             else
             {
@@ -159,8 +207,14 @@ internal static partial class Decoder
                 var rawKey = part[..pos];
                 key = options.DecodeKey(rawKey, charset) ?? string.Empty;
 #endif
-                var currentLength =
-                    obj.TryGetValue(key, out var val) && val is IList<object?> list ? list.Count : 0;
+                hadExisting = obj.TryGetValue(key, out existingVal);
+                // Only count existing when combining; Last/First do not increase length.
+                var currentLength = 0;
+                if (hadExisting && options.Duplicates == Duplicates.Combine)
+                {
+                    if (existingVal is IList<object?> l) currentLength = l.Count;
+                    else if (!Utils.IsEmpty(existingVal)) currentLength = 1;
+                }
 
 #if NETSTANDARD2_0
                 value = Utils.Apply<object?>(
@@ -179,7 +233,7 @@ internal static partial class Decoder
                 value != null
                 && !Utils.IsEmpty(value)
                 && options.InterpretNumericEntities
-                && IsLatin1(charset)
+                && isLatin1
             )
             {
                 var tmpStr = value is IEnumerable enumerable and not string
@@ -195,7 +249,7 @@ internal static partial class Decoder
 #endif
                 value = value is IEnumerable and not string ? new List<object?> { value } : value;
 
-            if (obj.TryGetValue(key, out var existingVal))
+            if (hadExisting)
                 switch (options.Duplicates)
                 {
                     case Duplicates.Combine:
@@ -285,15 +339,27 @@ internal static partial class Decoder
             var root = chain[i];
             object? obj;
 
-            if (root == "[]" && options.ParseLists)
+            if (root == "[]")
             {
-                if (
-                    options.AllowEmptyLists
-                    && (leaf?.Equals("") == true || (options.StrictNullHandling && leaf == null))
-                )
-                    obj = new List<object?>();
+                // If lists are disabled or list parsing is off, do not create lists.
+                if (!options.ParseLists || options.ListLimit < 0)
+                {
+                    if (options is { ListLimit: < 0, ThrowOnLimitExceeded: true })
+                        throw new InvalidOperationException("Lists are disabled (ListLimit < 0).");
+
+                    // Degrade to a map: treat the first element as index "0".
+                    obj = new Dictionary<object, object?> { ["0"] = leaf };
+                }
                 else
-                    obj = Utils.Combine<object?>(new List<object?>(), leaf);
+                {
+                    if (
+                        options.AllowEmptyLists
+                        && (leaf?.Equals("") == true || (options.StrictNullHandling && leaf == null))
+                    )
+                        obj = new List<object?>();
+                    else
+                        obj = Utils.Combine<object?>(new List<object?>(), leaf);
+                }
             }
             else
             {
