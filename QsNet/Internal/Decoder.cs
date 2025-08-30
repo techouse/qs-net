@@ -46,13 +46,17 @@ internal static partial class Decoder
         int currentListLength
     )
     {
+        // If lists are disabled (ListLimit < 0), skip comma splitting and limit checks entirely.
+        if (options.ListLimit < 0)
+            return value;
         if (value is string str && options.Comma && str.Length != 0)
         {
             // Single-pass: fast-path check with IndexOf, then split while enforcing the list limit.
             var idx = str.IndexOf(',');
             if (idx >= 0)
             {
-                var list = new List<object?>(4); // Initial capacity for typical comma lists (3-5 elements); grows as needed
+                var list = new List<object?>(
+                    4); // Initial capacity for typical comma lists (3-5 elements); grows as needed
                 var start = 0;
 
                 while (true)
@@ -84,7 +88,7 @@ internal static partial class Decoder
         }
 
         // No commas: treat as a scalar and (if enforcing) block adding another element past the limit.
-        if (options.ThrowOnLimitExceeded && currentListLength >= options.ListLimit)
+        if (options is { ListLimit: >= 0, ThrowOnLimitExceeded: true } && currentListLength >= options.ListLimit)
             throw new InvalidOperationException(
                 $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
             );
@@ -209,15 +213,11 @@ internal static partial class Decoder
                 if (hadExisting)
                 {
                     if (existingVal is IList<object?> list)
-                    {
                         currentLength = list.Count;
-                    }
                     else if (existingVal != null)
-                    {
                         // Treat a singleton existing value as one element so ListLimit applies correctly
                         // when combining duplicates (e.g., "a=1&a=2").
                         currentLength = 1;
-                    }
                 }
 
 #if NETSTANDARD2_0
@@ -343,15 +343,27 @@ internal static partial class Decoder
             var root = chain[i];
             object? obj;
 
-            if (root == "[]" && options.ParseLists)
+            if (root == "[]")
             {
-                if (
-                    options.AllowEmptyLists
-                    && (leaf?.Equals("") == true || (options.StrictNullHandling && leaf == null))
-                )
-                    obj = new List<object?>();
+                // If lists are disabled or list parsing is off, do not create lists.
+                if (!options.ParseLists || options.ListLimit < 0)
+                {
+                    if (options is { ListLimit: < 0, ThrowOnLimitExceeded: true })
+                        throw new InvalidOperationException("Lists are disabled (ListLimit < 0).");
+
+                    // Degrade to a map: treat the first element as index "0".
+                    obj = new Dictionary<object, object?> { ["0"] = leaf };
+                }
                 else
-                    obj = Utils.Combine<object?>(new List<object?>(), leaf);
+                {
+                    if (
+                        options.AllowEmptyLists
+                        && (leaf?.Equals("") == true || (options.StrictNullHandling && leaf == null))
+                    )
+                        obj = new List<object?>();
+                    else
+                        obj = Utils.Combine<object?>(new List<object?>(), leaf);
+                }
             }
             else
             {
