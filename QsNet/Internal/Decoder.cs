@@ -143,6 +143,7 @@ internal static partial class Decoder
                     skipIndex = i;
                     break;
                 }
+        var isLatin1 = IsLatin1(charset);
 
         for (var i = 0; i < parts.Count; i++)
         {
@@ -193,7 +194,7 @@ internal static partial class Decoder
                 value != null
                 && !Utils.IsEmpty(value)
                 && options.InterpretNumericEntities
-                && IsLatin1(charset)
+                && isLatin1
             )
             {
                 var tmpStr = value is IEnumerable enumerable and not string
