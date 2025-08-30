@@ -256,7 +256,7 @@ jobs:
         with:
           dotnet-version: |
             8.0.x
-      - name: Create consumer project (net461)
+      - name: Create consumer project (net461 & net481)
         shell: bash
         run: |
           set -euo pipefail
