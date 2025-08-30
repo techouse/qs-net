@@ -130,15 +130,16 @@ jobs:
             cs.out
             diff.out
   smoke:
-    name: Consumer smoke (net6.0; net8.0; net9.0)
+    name: Consumer smoke (net5.0; net6.0; net8.0; net9.0)
     needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Setup .NET SDKs (6, 8, 9)
+      - name: Setup .NET SDKs (5, 6, 8, 9)
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
+            5.0.x
             6.0.x
             8.0.x
             9.0.x
@@ -150,7 +151,7 @@ jobs:
           <Project Sdk="Microsoft.NET.Sdk">
             <PropertyGroup>
               <OutputType>Exe</OutputType>
-              <TargetFrameworks>net6.0;net8.0;net9.0</TargetFrameworks>
+              <TargetFrameworks>net5.0;net6.0;net8.0;net9.0</TargetFrameworks>
               <Nullable>enable</Nullable>
               <ImplicitUsings>enable</ImplicitUsings>
             </PropertyGroup>
@@ -192,6 +193,11 @@ jobs:
         run: dotnet restore consumer-smoke/consumer-smoke.csproj
       - name: Build consumer
         run: dotnet build -c Release consumer-smoke/consumer-smoke.csproj --no-restore
+      - name: Run smoke (net5.0 — non-blocking)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          dotnet run -c Release --framework net5.0 --project consumer-smoke/consumer-smoke.csproj --no-build
       - name: Run smoke (net6.0; net8.0; net9.0)
         run: |
           set -euo pipefail
