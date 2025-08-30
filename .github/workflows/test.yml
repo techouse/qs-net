@@ -153,7 +153,7 @@ jobs:
             cs.out
             diff.out
   smoke:
-    name: Consumer smoke (net5.0; net6.0; net8.0; net9.0)
+    name: Consumer smoke (net5.0; net6.0; net7.0; net8.0; net9.0)
     needs: lint
     runs-on: ubuntu-latest
     steps:
@@ -243,10 +243,10 @@ jobs:
         run: |
           set -euo pipefail
           dotnet run -c Release --framework net5.0 --project consumer-smoke/consumer-smoke.csproj --no-build
-      - name: Run smoke (net6.0; net8.0; net9.0)
+      - name: Run smoke (net6.0; net7.0; net8.0; net9.0)
         run: |
           set -euo pipefail
-          for f in net6.0 net8.0 net9.0; do
+          for f in net6.0 net7.0 net8.0 net9.0; do
             echo "Running smoke for $f"
             dotnet run -c Release --framework "$f" --project consumer-smoke/consumer-smoke.csproj --no-build
           done
