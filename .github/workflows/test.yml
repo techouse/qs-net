@@ -205,6 +205,70 @@ jobs:
             echo "Running smoke for $f"
             dotnet run -c Release --framework "$f" --project consumer-smoke/consumer-smoke.csproj --no-build
           done
+  smoke_netfx:
+    name: Consumer smoke (.NET Framework 4.6.1 on Windows)
+    needs: lint
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+      - name: Create consumer project (net461)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p consumer-netfx
+          cat > consumer-netfx/consumer-netfx.csproj <<'XML'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>net461</TargetFramework>
+              <Nullable>disable</Nullable>
+              <ImplicitUsings>false</ImplicitUsings>
+              <LangVersion>7.3</LangVersion>
+            </PropertyGroup>
+            <ItemGroup>
+              <ProjectReference Include="../QsNet/QsNet.csproj" />
+              <PackageReference Include="NETStandard.Library" Version="2.0.3" />
+            </ItemGroup>
+          </Project>
+          XML
+          cat > consumer-netfx/Program.cs <<'CS'
+          using System;
+          using System.Collections.Generic;
+          using QsNet;
+          class P
+          {
+              static int Main()
+              {
+                  try
+                  {
+                      var decoded = Qs.Decode("foo[bar]=baz&foo[list][]=a&foo[list][]=b");
+                      var qs = Qs.Encode(new Dictionary<string, object?> {
+                          ["foo"] = new Dictionary<string, object?> { ["bar"] = "baz" }
+                      });
+                      if (string.IsNullOrEmpty(qs))
+                          throw new Exception("Encode returned empty string");
+                      Console.WriteLine("SMOKE NET461 OK");
+                      return 0;
+                  }
+                  catch (Exception ex)
+                  {
+                      Console.Error.WriteLine(ex);
+                      return 1;
+                  }
+              }
+          }
+          CS
+      - name: Restore consumer
+        run: dotnet restore consumer-netfx/consumer-netfx.csproj
+      - name: Build consumer
+        run: dotnet build -c Release consumer-netfx/consumer-netfx.csproj --no-restore
+      - name: Run smoke (net461)
+        run: dotnet run -c Release --framework net461 --project consumer-netfx/consumer-netfx.csproj --no-build
   coverage:
     name: Coverage (merged)
     runs-on: ubuntu-latest
@@ -212,6 +276,7 @@ jobs:
       - test
       - ensure_compatibility
       - smoke
+      - smoke_netfx
     steps:
       - uses: actions/checkout@v5
       - name: Setup .NET 8 SDK
