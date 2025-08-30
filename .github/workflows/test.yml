@@ -158,12 +158,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Setup .NET SDKs (5, 6, 8, 9)
+      - name: Setup .NET SDKs (5, 6, 7, 8, 9)
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
             5.0.x
             6.0.x
+            7.0.x
             8.0.x
             9.0.x
       - name: Setup .NET 10 preview SDK (non-blocking)
@@ -180,7 +181,7 @@ jobs:
           <Project Sdk="Microsoft.NET.Sdk">
             <PropertyGroup>
               <OutputType>Exe</OutputType>
-              <TargetFrameworks>net5.0;net6.0;net8.0;net9.0;net10.0</TargetFrameworks>
+              <TargetFrameworks>net5.0;net6.0;net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
               <Nullable>enable</Nullable>
               <ImplicitUsings>false</ImplicitUsings>
             </PropertyGroup>
@@ -220,10 +221,10 @@ jobs:
           CS
       - name: Restore consumer
         run: dotnet restore consumer-smoke/consumer-smoke.csproj
-      - name: Build consumer (net6.0; net8.0; net9.0)
+      - name: Build consumer (net6.0; net7.0; net8.0; net9.0)
         run: |
           set -euo pipefail
-          for f in net6.0 net8.0 net9.0; do
+          for f in net6.0 net7.0 net8.0 net9.0; do
             echo "Building $f"
             dotnet build -c Release -f "$f" consumer-smoke/consumer-smoke.csproj --no-restore
           done
