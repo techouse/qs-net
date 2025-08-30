@@ -249,13 +249,19 @@ jobs:
     name: Consumer smoke (netcoreapp3.1 compile-only)
     needs: lint
     runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/dotnet/sdk:3.1
     continue-on-error: true
     steps:
       - uses: actions/checkout@v5
-      - name: Setup .NET 3.1 SDK (non-blocking)
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: '3.1.x'
+      - name: Ensure git in container
+        run: |
+          set -euo pipefail
+          if ! command -v git >/dev/null 2>&1; then
+            apt-get update
+            apt-get install -y git ca-certificates
+            rm -rf /var/lib/apt/lists/*
+          fi
       - name: Create consumer project (netcoreapp3.1)
         run: |
           set -euo pipefail
