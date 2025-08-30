@@ -52,7 +52,7 @@ internal static partial class Decoder
             var idx = str.IndexOf(',');
             if (idx >= 0)
             {
-                var list = new List<object?>(4); // small starting capacity; grows as needed
+                var list = new List<object?>(4); // Initial capacity for typical comma lists (3-5 elements); grows as needed
                 var start = 0;
 
                 while (true)
