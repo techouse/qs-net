@@ -299,7 +299,7 @@ jobs:
       - name: Restore consumer
         run: dotnet restore consumer-core31/consumer-core31.csproj
       - name: Build consumer (compile only)
-        run: dotnet build -c Release consumer-core31/consumer-core31.csproj --no-restore -p:EnableSourceControlManagerQueries=false -p:DeterministicSourcePaths=false -p:SourceLinkCreate=false
+        run: dotnet build -c Release consumer-core31/consumer-core31.csproj --no-restore -p:EnableSourceControlManagerQueries=false -p:DeterministicSourcePaths=false -p:Deterministic=false -p:SourceLinkCreate=false -p:EnableSourceLink=false -p:UseSourceLink=false -p:PublishRepositoryUrl=false -p:EmbedUntrackedSources=false
   smoke_netfx:
     name: Consumer smoke (.NET Framework 4.6.1 & 4.8.1 on Windows)
     needs: lint
