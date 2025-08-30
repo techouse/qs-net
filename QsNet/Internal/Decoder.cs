@@ -46,16 +46,44 @@ internal static partial class Decoder
         int currentListLength
     )
     {
-        if (value is string str && !string.IsNullOrEmpty(str) && options.Comma && str.Contains(','))
+        if (value is string str && options.Comma && str.Length != 0)
         {
-            var splitVal = str.Split(',');
-            if (options.ThrowOnLimitExceeded && currentListLength + splitVal.Length > options.ListLimit)
-                throw new InvalidOperationException(
-                    $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
-                );
-            return splitVal.ToList<object?>();
+            // Single-pass: fast-path check with IndexOf, then split while enforcing the list limit.
+            var idx = str.IndexOf(',');
+            if (idx >= 0)
+            {
+                var list = new List<object?>(4); // small starting capacity; grows as needed
+                var start = 0;
+
+                while (true)
+                {
+                    // Before adding the next element, ensure we won't exceed the limit.
+                    if (options.ThrowOnLimitExceeded && currentListLength + list.Count >= options.ListLimit)
+                        throw new InvalidOperationException(
+                            $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
+                        );
+
+                    // Add the segment before the comma (can be empty when there are consecutive commas)
+                    list.Add(str.Substring(start, idx - start));
+                    start = idx + 1;
+
+                    idx = str.IndexOf(',', start);
+                    if (idx < 0)
+                        break;
+                }
+
+                // Add the final (possibly empty) segment, with the same limit guard
+                if (options.ThrowOnLimitExceeded && currentListLength + list.Count >= options.ListLimit)
+                    throw new InvalidOperationException(
+                        $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
+                    );
+
+                list.Add(str.Substring(start));
+                return list;
+            }
         }
 
+        // No commas: treat as a scalar and (if enforcing) block adding another element past the limit.
         if (options.ThrowOnLimitExceeded && currentListLength >= options.ListLimit)
             throw new InvalidOperationException(
                 $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
@@ -143,6 +171,7 @@ internal static partial class Decoder
                     skipIndex = i;
                     break;
                 }
+
         var isLatin1 = IsLatin1(charset);
 
         for (var i = 0; i < parts.Count; i++)
