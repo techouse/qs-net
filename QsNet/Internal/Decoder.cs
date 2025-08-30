@@ -204,7 +204,21 @@ internal static partial class Decoder
                 key = options.DecodeKey(rawKey, charset) ?? string.Empty;
 #endif
                 hadExisting = obj.TryGetValue(key, out existingVal);
-                var currentLength = hadExisting && existingVal is IList<object?> list ? list.Count : 0;
+                // Explicit currentLength logic: count a singleton non-list value as 1, null as 0
+                var currentLength = 0;
+                if (hadExisting)
+                {
+                    if (existingVal is IList<object?> list)
+                    {
+                        currentLength = list.Count;
+                    }
+                    else if (existingVal != null)
+                    {
+                        // Treat a singleton existing value as one element so ListLimit applies correctly
+                        // when combining duplicates (e.g., "a=1&a=2").
+                        currentLength = 1;
+                    }
+                }
 
 #if NETSTANDARD2_0
                 value = Utils.Apply<object?>(
