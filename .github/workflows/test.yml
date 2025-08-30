@@ -44,19 +44,33 @@ jobs:
     name: Test ${{ matrix.dotnet }} on ${{ matrix.os }}
     needs: lint
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest ]
-        dotnet: 
-          - '8.0.x'
-          - '9.0.x'
+        include:
+          - os: ubuntu-latest
+            dotnet: '8.0.x'
+            experimental: false
+          - os: ubuntu-latest
+            dotnet: '9.0.x'
+            experimental: false
+          - os: ubuntu-latest
+            dotnet: '10.0.x'
+            experimental: true
     steps:
       - uses: actions/checkout@v5
-      - name: Setup .NET SDK
+      - name: Setup .NET SDK (stable)
+        if: ${{ matrix.dotnet != '10.0.x' }}
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
+      - name: Setup .NET SDK (10 preview)
+        if: ${{ matrix.dotnet == '10.0.x' }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+          dotnet-quality: preview
       - name: Cache NuGet
         uses: actions/cache@v4
         with:
