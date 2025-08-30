@@ -715,8 +715,8 @@ internal static partial class Utils
                 case null:
                     // If T is a reference type or Nullable<T>, default(T) is null.
                     // Only then can we safely include a null element.
-                    if (default(T) == null)
-                        result.Add((T)(object?)null!);
+                    if (default(T) is null)
+                        result.Add(default!); // safe: T is a reference or Nullable<T> here
                     break;
             }
         }
