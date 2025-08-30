@@ -57,8 +57,8 @@ dotnet add package QsNet
 
 ## Requirements
 
-- **Target frameworks:** `net8.0`, `netstandard2.0`
-- **Supported runtimes (via the TFMs above):**
+- **Target frameworks (TFMs):** `net8.0`, `netstandard2.0`
+- **Supported runtimes (via the target frameworks above):**
 
 | Runtime        | Version      | CI Coverage                          | Status    |
 |----------------|--------------|--------------------------------------|-----------|
