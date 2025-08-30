@@ -264,7 +264,7 @@ jobs:
           fi
       - name: Create consumer project (netcoreapp3.1)
         run: |
-          set -euo pipefail
+          set -eu
           mkdir -p consumer-core31
           cat > consumer-core31/consumer-core31.csproj <<'XML'
           <Project Sdk="Microsoft.NET.Sdk">
