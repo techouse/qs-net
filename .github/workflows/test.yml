@@ -245,6 +245,55 @@ jobs:
         run: |
           set -euo pipefail
           dotnet run -c Release --framework net10.0 --project consumer-smoke/consumer-smoke.csproj --no-build
+  smoke_netcore31:
+    name: Consumer smoke (netcoreapp3.1 compile-only)
+    needs: lint
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup .NET 3.1 SDK (non-blocking)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '3.1.x'
+      - name: Create consumer project (netcoreapp3.1)
+        run: |
+          set -euo pipefail
+          mkdir -p consumer-core31
+          cat > consumer-core31/consumer-core31.csproj <<'XML'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>netcoreapp3.1</TargetFramework>
+              <Nullable>enable</Nullable>
+              <ImplicitUsings>false</ImplicitUsings>
+            </PropertyGroup>
+            <ItemGroup>
+              <ProjectReference Include="../QsNet/QsNet.csproj" />
+            </ItemGroup>
+          </Project>
+          XML
+          cat > consumer-core31/Program.cs <<'CS'
+          using System;
+          using System.Collections.Generic;
+          using QsNet;
+          class P
+          {
+              static int Main()
+              {
+                  // compile-only smoke; not executed in CI
+                  var decoded = Qs.Decode("a[b]=c&x[]=1&x[]=2");
+                  var qs = Qs.Encode(new Dictionary<string, object?> {
+                      ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
+                  });
+                  return string.IsNullOrEmpty(qs) ? 1 : 0;
+              }
+          }
+          CS
+      - name: Restore consumer
+        run: dotnet restore consumer-core31/consumer-core31.csproj
+      - name: Build consumer (compile only)
+        run: dotnet build -c Release consumer-core31/consumer-core31.csproj --no-restore
   smoke_netfx:
     name: Consumer smoke (.NET Framework 4.6.1 & 4.8.1 on Windows)
     needs: lint
@@ -325,6 +374,7 @@ jobs:
       - test
       - ensure_compatibility
       - smoke
+      - smoke_netcore31
       - smoke_netfx
     steps:
       - uses: actions/checkout@v5
