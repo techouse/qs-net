@@ -226,9 +226,9 @@ jobs:
             <PropertyGroup>
               <OutputType>Exe</OutputType>
               <TargetFramework>net461</TargetFramework>
-              <Nullable>disable</Nullable>
+              <Nullable>enable</Nullable>
               <ImplicitUsings>false</ImplicitUsings>
-              <LangVersion>7.3</LangVersion>
+              <LangVersion>8.0</LangVersion>
             </PropertyGroup>
             <ItemGroup>
               <ProjectReference Include="../QsNet/QsNet.csproj" />
