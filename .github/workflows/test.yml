@@ -91,7 +91,6 @@ jobs:
     name: Ensure compatibility with qs (JS vs C#)
     needs: lint
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -130,12 +129,83 @@ jobs:
             node.out
             cs.out
             diff.out
+  smoke:
+    name: Consumer smoke (net6.0; net8.0; net9.0)
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup .NET SDKs (6, 8, 9)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            6.0.x
+            8.0.x
+            9.0.x
+      - name: Create consumer project (multi-target)
+        run: |
+          set -euo pipefail
+          mkdir -p consumer-smoke
+          cat > consumer-smoke/consumer-smoke.csproj <<'XML'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFrameworks>net6.0;net8.0;net9.0</TargetFrameworks>
+              <Nullable>enable</Nullable>
+              <ImplicitUsings>enable</ImplicitUsings>
+            </PropertyGroup>
+            <ItemGroup>
+              <ProjectReference Include="../QsNet/QsNet.csproj" />
+            </ItemGroup>
+          </Project>
+          XML
+          cat > consumer-smoke/Program.cs <<'CS'
+          using System;
+          using System.Collections.Generic;
+          using QsNet;
+          class P
+          {
+              static int Main()
+              {
+                  try
+                  {
+                      // Decode should not throw and should return a non-null object graph.
+                      var decoded = Qs.Decode("foo[bar]=baz&foo[list][]=a&foo[list][]=b");
+                      // Encode should produce a non-empty query string.
+                      var qs = Qs.Encode(new Dictionary<string, object?> {
+                          ["foo"] = new Dictionary<string, object?> { ["bar"] = "baz" }
+                      });
+                      if (string.IsNullOrEmpty(qs))
+                          throw new Exception("Encode returned empty string");
+                      Console.WriteLine("SMOKE OK");
+                      return 0;
+                  }
+                  catch (Exception ex)
+                  {
+                      Console.Error.WriteLine(ex);
+                      return 1;
+                  }
+              }
+          }
+          CS
+      - name: Restore consumer
+        run: dotnet restore consumer-smoke/consumer-smoke.csproj
+      - name: Build consumer
+        run: dotnet build -c Release consumer-smoke/consumer-smoke.csproj --no-restore
+      - name: Run smoke (net6.0; net8.0; net9.0)
+        run: |
+          set -euo pipefail
+          for f in net6.0 net8.0 net9.0; do
+            echo "Running smoke for $f"
+            dotnet run -c Release --framework "$f" --project consumer-smoke/consumer-smoke.csproj --no-build
+          done
   coverage:
     name: Coverage (merged)
     runs-on: ubuntu-latest
     needs: 
       - test
       - ensure_compatibility
+      - smoke
     steps:
       - uses: actions/checkout@v5
       - name: Setup .NET 8 SDK
