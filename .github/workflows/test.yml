@@ -293,7 +293,13 @@ jobs:
                       });
                       if (string.IsNullOrEmpty(qs))
                           throw new Exception("Encode returned empty string");
-                      Console.WriteLine("SMOKE NET461 OK");
+          #if NET461
+                      Console.WriteLine("SMOKE net461 OK");
+          #elif NET481
+                      Console.WriteLine("SMOKE net481 OK");
+          #else
+                      Console.WriteLine("SMOKE NETFX OK");
+          #endif
                       return 0;
                   }
                   catch (Exception ex)
