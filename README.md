@@ -59,15 +59,19 @@ dotnet add package QsNet
 
 - **Target frameworks:** `net8.0`, `netstandard2.0`
 - **Supported runtimes (via the TFMs above):**
-  - **.NET 10 (preview)** — covered in CI (non-blocking)
-  - **.NET 9 (STS)** — covered in CI
-  - **.NET 8 (LTS)** — covered in CI
-  - **.NET 7** — consumer smoke tested
-  - **.NET 6 (LTS)** — consumer smoke tested
-  - **.NET 5** — optional smoke (non-blocking / EOL)
-  - **.NET Core 3.1** — compile-only smoke in container (EOL)
-  - **.NET Framework** — **4.6.1** and **4.8.1** smoke tested; any **4.6.1+** is compatible via `netstandard2.0`
-  - **Platforms:** Windows, Linux, macOS (pure managed; no native dependencies)
+
+| Runtime        | Version      | CI Coverage                          | Status    |
+|----------------|--------------|--------------------------------------|-----------|
+| .NET           | 10 (preview) | Full CI (experimental; non-blocking) | Preview   |
+| .NET           | 9 (STS)      | Full CI                              | Supported |
+| .NET           | 8 (LTS)      | Full CI                              | Supported |
+| .NET           | 7            | Consumer smoke test                  | Supported |
+| .NET           | 6 (LTS)      | Consumer smoke test                  | Supported |
+| .NET           | 5            | Optional smoke (non-blocking)        | EOL       |
+| .NET Core      | 3.1          | Compile-only smoke                   | EOL       |
+| .NET Framework | 4.6.1+       | Smoke test (4.6.1, 4.8.1)            | Supported |
+
+- **Platforms:** Windows, Linux, macOS (cross-platform, no native dependencies)
 
 ---
 
