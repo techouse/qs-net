@@ -40,6 +40,15 @@ jobs:
         run: dotnet format --verify-no-changes --verbosity minimal
       - name: Build (warnings -> errors)
         run: dotnet build --configuration Release -p:TreatWarningsAsErrors=true --no-restore
+      - name: Pack NuGet (artifact for smoke_netcore31)
+        run: |
+          dotnet pack QsNet/QsNet.csproj -c Release -p:ContinuousIntegrationBuild=true -p:IncludeSymbols=false -p:Version=0.0.0-ci -o $RUNNER_TEMP/nupkg
+      - name: Upload nupkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qsnet-nupkg
+          path: ${{ runner.temp }}/nupkg/*.nupkg
+          retention-days: 1
   test:
     name: Test ${{ matrix.dotnet }} on ${{ matrix.os }}
     needs: lint
@@ -254,6 +263,11 @@ jobs:
     continue-on-error: true
     steps:
       - uses: actions/checkout@v5
+      - name: Download nupkg
+        uses: actions/download-artifact@v4
+        with:
+          name: qsnet-nupkg
+          path: ./nupkg
       - name: Ensure git in container
         run: |
           set -eu
@@ -273,9 +287,10 @@ jobs:
               <TargetFramework>netcoreapp3.1</TargetFramework>
               <Nullable>enable</Nullable>
               <ImplicitUsings>false</ImplicitUsings>
+              <LangVersion>8.0</LangVersion>
             </PropertyGroup>
             <ItemGroup>
-              <ProjectReference Include="../QsNet/QsNet.csproj" />
+              <PackageReference Include="QsNet" Version="0.0.0-ci" />
             </ItemGroup>
           </Project>
           XML
@@ -297,9 +312,9 @@ jobs:
           }
           CS
       - name: Restore consumer
-        run: dotnet restore consumer-core31/consumer-core31.csproj
+        run: dotnet restore consumer-core31/consumer-core31.csproj --source ./nupkg --source https://api.nuget.org/v3/index.json
       - name: Build consumer (compile only)
-        run: dotnet build -c Release consumer-core31/consumer-core31.csproj --no-restore -p:EnableSourceControlManagerQueries=false -p:DeterministicSourcePaths=false -p:Deterministic=false -p:SourceLinkCreate=false -p:EnableSourceLink=false -p:UseSourceLink=false -p:PublishRepositoryUrl=false -p:EmbedUntrackedSources=false
+        run: dotnet build -c Release consumer-core31/consumer-core31.csproj --no-restore
   smoke_netfx:
     name: Consumer smoke (.NET Framework 4.6.1 & 4.8.1 on Windows)
     needs: lint
