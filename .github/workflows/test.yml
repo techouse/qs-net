@@ -153,7 +153,7 @@ jobs:
               <OutputType>Exe</OutputType>
               <TargetFrameworks>net5.0;net6.0;net8.0;net9.0</TargetFrameworks>
               <Nullable>enable</Nullable>
-              <ImplicitUsings>enable</ImplicitUsings>
+              <ImplicitUsings>false</ImplicitUsings>
             </PropertyGroup>
             <ItemGroup>
               <ProjectReference Include="../QsNet/QsNet.csproj" />
