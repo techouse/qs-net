@@ -14,6 +14,7 @@ Ported from [qs](https://www.npmjs.com/package/qs) for JavaScript.
 [![NuGet Downloads](https://img.shields.io/nuget/dt/QsNet)](https://www.nuget.org/packages/QsNet)
 [![Test](https://github.com/techouse/qs-net/actions/workflows/test.yml/badge.svg)](https://github.com/techouse/qs-net/actions/workflows/test.yml)
 [![codecov](https://codecov.io/gh/techouse/qs-net/graph/badge.svg?token=pmMJRph0Qm)](https://codecov.io/gh/techouse/qs-net)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/32d093a7035f461ab3829f3d8f11b824)](https://app.codacy.com/gh/techouse/qs-net/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 [![GitHub](https://img.shields.io/github/license/techouse/qs-net)](LICENSE)
 [![GitHub Repo stars](https://img.shields.io/github/stars/techouse/qs-net)](https://github.com/techouse/qs-net/stargazers)
 
