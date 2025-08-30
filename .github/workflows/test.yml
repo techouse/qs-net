@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ main ]
   workflow_call:
-    
+
 permissions:
   contents: read
 
@@ -40,23 +40,46 @@ jobs:
         run: dotnet format --verify-no-changes --verbosity minimal
       - name: Build (warnings -> errors)
         run: dotnet build --configuration Release -p:TreatWarningsAsErrors=true --no-restore
+      - name: Pack NuGet (artifact for smoke_netcore31)
+        run: |
+          dotnet pack QsNet/QsNet.csproj -c Release -p:ContinuousIntegrationBuild=true -p:IncludeSymbols=false -p:Version=0.0.0-ci -o $RUNNER_TEMP/nupkg
+      - name: Upload nupkg artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qsnet-nupkg
+          path: ${{ runner.temp }}/nupkg/*.nupkg
+          retention-days: 1
   test:
     name: Test ${{ matrix.dotnet }} on ${{ matrix.os }}
     needs: lint
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest ]
-        dotnet: 
-          - '8.0.x'
-          - '9.0.x'
+        include:
+          - os: ubuntu-latest
+            dotnet: '8.0.x'
+            experimental: false
+          - os: ubuntu-latest
+            dotnet: '9.0.x'
+            experimental: false
+          - os: ubuntu-latest
+            dotnet: '10.0.x'
+            experimental: true
     steps:
       - uses: actions/checkout@v5
-      - name: Setup .NET SDK
+      - name: Setup .NET SDK (stable)
+        if: ${{ matrix.dotnet != '10.0.x' }}
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.dotnet }}
+      - name: Setup .NET SDK (10 preview)
+        if: ${{ matrix.dotnet == '10.0.x' }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ matrix.dotnet }}
+          dotnet-quality: preview
       - name: Cache NuGet
         uses: actions/cache@v4
         with:
@@ -91,7 +114,6 @@ jobs:
     name: Ensure compatibility with qs (JS vs C#)
     needs: lint
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -130,12 +152,257 @@ jobs:
             node.out
             cs.out
             diff.out
+  smoke:
+    name: Consumer smoke (net5.0; net6.0; net7.0; net8.0; net9.0)
+    needs: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup .NET SDKs (5, 6, 7, 8, 9)
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            5.0.x
+            6.0.x
+            7.0.x
+            8.0.x
+            9.0.x
+      - name: Setup .NET 10 preview SDK (non-blocking)
+        continue-on-error: true
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+          dotnet-quality: preview
+      - name: Create consumer project (multi-target)
+        run: |
+          set -euo pipefail
+          mkdir -p consumer-smoke
+          cat > consumer-smoke/consumer-smoke.csproj <<'XML'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFrameworks>net5.0;net6.0;net7.0;net8.0;net9.0;net10.0</TargetFrameworks>
+              <Nullable>enable</Nullable>
+              <ImplicitUsings>false</ImplicitUsings>
+            </PropertyGroup>
+            <ItemGroup>
+              <ProjectReference Include="../QsNet/QsNet.csproj" />
+            </ItemGroup>
+          </Project>
+          XML
+          cat > consumer-smoke/Program.cs <<'CS'
+          using System;
+          using System.Collections.Generic;
+          using QsNet;
+          class P
+          {
+              static int Main()
+              {
+                  try
+                  {
+                      // Decode should not throw and should return a non-null object graph.
+                      var decoded = Qs.Decode("foo[bar]=baz&foo[list][]=a&foo[list][]=b");
+                      // Encode should produce a non-empty query string.
+                      var qs = Qs.Encode(new Dictionary<string, object?> {
+                          ["foo"] = new Dictionary<string, object?> { ["bar"] = "baz" }
+                      });
+                      if (string.IsNullOrEmpty(qs))
+                          throw new Exception("Encode returned empty string");
+                      Console.WriteLine("SMOKE OK");
+                      return 0;
+                  }
+                  catch (Exception ex)
+                  {
+                      Console.Error.WriteLine(ex);
+                      return 1;
+                  }
+              }
+          }
+          CS
+      - name: Restore consumer
+        run: dotnet restore consumer-smoke/consumer-smoke.csproj
+      - name: Build consumer (net6.0; net7.0; net8.0; net9.0)
+        run: |
+          set -euo pipefail
+          for f in net6.0 net7.0 net8.0 net9.0; do
+            echo "Building $f"
+            dotnet build -c Release -f "$f" consumer-smoke/consumer-smoke.csproj --no-restore
+          done
+      - name: Build consumer (net5.0 — non-blocking)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          dotnet build -c Release -f net5.0 consumer-smoke/consumer-smoke.csproj --no-restore
+      - name: Build consumer (net10.0 preview — non-blocking)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          dotnet build -c Release -f net10.0 consumer-smoke/consumer-smoke.csproj --no-restore
+      - name: Run smoke (net5.0 — non-blocking)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          dotnet run -c Release --framework net5.0 --project consumer-smoke/consumer-smoke.csproj --no-build
+      - name: Run smoke (net6.0; net7.0; net8.0; net9.0)
+        run: |
+          set -euo pipefail
+          for f in net6.0 net7.0 net8.0 net9.0; do
+            echo "Running smoke for $f"
+            dotnet run -c Release --framework "$f" --project consumer-smoke/consumer-smoke.csproj --no-build
+          done
+      - name: Run smoke (net10.0 preview — non-blocking)
+        continue-on-error: true
+        run: |
+          set -euo pipefail
+          dotnet run -c Release --framework net10.0 --project consumer-smoke/consumer-smoke.csproj --no-build
+  smoke_netcore31:
+    name: Consumer smoke (netcoreapp3.1 compile-only)
+    needs: lint
+    runs-on: ubuntu-latest
+    container:
+      image: mcr.microsoft.com/dotnet/sdk:3.1
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - name: Download nupkg
+        uses: actions/download-artifact@v4
+        with:
+          name: qsnet-nupkg
+          path: ./nupkg
+      - name: Verify local nupkg
+        run: |
+          set -eu
+          echo "Listing $GITHUB_WORKSPACE/nupkg";
+          ls -la "$GITHUB_WORKSPACE/nupkg" || { echo "nupkg directory missing"; exit 1; }
+      - name: Ensure git in container
+        run: |
+          set -eu
+          if ! command -v git >/dev/null 2>&1; then
+            apt-get update
+            apt-get install -y git ca-certificates
+            rm -rf /var/lib/apt/lists/*
+          fi
+      - name: Create consumer project (netcoreapp3.1)
+        run: |
+          set -eu
+          mkdir -p consumer-core31
+          cat > consumer-core31/consumer-core31.csproj <<'XML'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFramework>netcoreapp3.1</TargetFramework>
+              <Nullable>enable</Nullable>
+              <ImplicitUsings>false</ImplicitUsings>
+              <LangVersion>8.0</LangVersion>
+            </PropertyGroup>
+            <ItemGroup>
+              <PackageReference Include="QsNet" Version="0.0.0-ci" />
+            </ItemGroup>
+          </Project>
+          XML
+          cat > consumer-core31/Program.cs <<'CS'
+          using System;
+          using System.Collections.Generic;
+          using QsNet;
+          class P
+          {
+              static int Main()
+              {
+                  // compile-only smoke; not executed in CI
+                  var decoded = Qs.Decode("a[b]=c&x[]=1&x[]=2");
+                  var qs = Qs.Encode(new Dictionary<string, object?> {
+                      ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
+                  });
+                  return string.IsNullOrEmpty(qs) ? 1 : 0;
+              }
+          }
+          CS
+      - name: Restore consumer
+        run: dotnet restore consumer-core31/consumer-core31.csproj --source "$GITHUB_WORKSPACE/nupkg" --source https://api.nuget.org/v3/index.json
+      - name: Build consumer (compile only)
+        run: dotnet build -c Release consumer-core31/consumer-core31.csproj --no-restore
+  smoke_netfx:
+    name: Consumer smoke (.NET Framework 4.6.1 & 4.8.1 on Windows)
+    needs: lint
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Setup .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            8.0.x
+      - name: Create consumer project (net461 & net481)
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p consumer-netfx
+          cat > consumer-netfx/consumer-netfx.csproj <<'XML'
+          <Project Sdk="Microsoft.NET.Sdk">
+            <PropertyGroup>
+              <OutputType>Exe</OutputType>
+              <TargetFrameworks>net461;net481</TargetFrameworks>
+              <Nullable>enable</Nullable>
+              <ImplicitUsings>false</ImplicitUsings>
+              <LangVersion>8.0</LangVersion>
+            </PropertyGroup>
+            <ItemGroup>
+              <ProjectReference Include="../QsNet/QsNet.csproj" />
+              <PackageReference Include="NETStandard.Library" Version="2.0.3" />
+              <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
+            </ItemGroup>
+          </Project>
+          XML
+          cat > consumer-netfx/Program.cs <<'CS'
+          using System;
+          using System.Collections.Generic;
+          using QsNet;
+          class P
+          {
+              static int Main()
+              {
+                  try
+                  {
+                      var decoded = Qs.Decode("foo[bar]=baz&foo[list][]=a&foo[list][]=b");
+                      var qs = Qs.Encode(new Dictionary<string, object?> {
+                          ["foo"] = new Dictionary<string, object?> { ["bar"] = "baz" }
+                      });
+                      if (string.IsNullOrEmpty(qs))
+                          throw new Exception("Encode returned empty string");
+          #if NET461
+                      Console.WriteLine("SMOKE net461 OK");
+          #elif NET481
+                      Console.WriteLine("SMOKE net481 OK");
+          #else
+                      Console.WriteLine("SMOKE NETFX OK");
+          #endif
+                      return 0;
+                  }
+                  catch (Exception ex)
+                  {
+                      Console.Error.WriteLine(ex);
+                      return 1;
+                  }
+              }
+          }
+          CS
+      - name: Restore consumer
+        run: dotnet restore consumer-netfx/consumer-netfx.csproj
+      - name: Build consumer
+        run: dotnet build -c Release consumer-netfx/consumer-netfx.csproj --no-restore
+      - name: Run smoke (net461)
+        run: dotnet run -c Release --framework net461 --project consumer-netfx/consumer-netfx.csproj --no-build
+      - name: Run smoke (net481)
+        run: dotnet run -c Release --framework net481 --project consumer-netfx/consumer-netfx.csproj --no-build
   coverage:
     name: Coverage (merged)
     runs-on: ubuntu-latest
-    needs: 
+    needs:
       - test
       - ensure_compatibility
+      - smoke
+      - smoke_netcore31
+      - smoke_netfx
     steps:
       - uses: actions/checkout@v5
       - name: Setup .NET 8 SDK

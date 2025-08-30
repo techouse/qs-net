@@ -8,7 +8,7 @@ A query string encoding and decoding library for C#/.NET.
 
 Ported from [qs](https://www.npmjs.com/package/qs) for JavaScript.
 
-[![Targets](https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Fraw.githubusercontent.com%2Ftechouse%2Fqs-net%2Fmain%2FQsNet%2FQsNet.csproj&query=string(//TargetFrameworks|//TargetFramework)&label=targets&logo=dotnet&color=512BD4&labelColor=222222&logoColor=white&style=flat-square&link=https%3A%2F%2Fwww.nuget.org%2Fpackages%2FQsNet)]((https://www.nuget.org/packages/QsNet))
+[![Targets](https://img.shields.io/badge/dynamic/xml?url=https%3A%2F%2Fraw.githubusercontent.com%2Ftechouse%2Fqs-net%2Fmain%2FQsNet%2FQsNet.csproj&query=string(//TargetFrameworks%7C//TargetFramework)&label=targets&logo=dotnet&color=512BD4&labelColor=222222&logoColor=white&style=flat-square)](https://www.nuget.org/packages/QsNet)
 [![DocFX Docs](https://img.shields.io/badge/DocFX-docs-512BD4?logo=dotnet&logoColor=white&labelColor=222222&style=flat-square)](https://techouse.github.io/qs-net/)
 [![NuGet Version](https://img.shields.io/nuget/v/QsNet)](https://www.nuget.org/packages/QsNet)
 [![NuGet Downloads](https://img.shields.io/nuget/dt/QsNet)](https://www.nuget.org/packages/QsNet)
@@ -57,7 +57,21 @@ dotnet add package QsNet
 
 ## Requirements
 
-- **Targets:** `net8.0`, `netstandard2.0`
+- **Target frameworks (TFMs):** `net8.0`, `netstandard2.0`
+- **Supported runtimes (via the target frameworks above):**
+
+| Runtime        | Version      | CI Coverage                          | Status    |
+|----------------|--------------|--------------------------------------|-----------|
+| .NET           | 10 (preview) | Full CI (experimental; non-blocking) | Preview   |
+| .NET           | 9 (STS)      | Full CI                              | Supported |
+| .NET           | 8 (LTS)      | Full CI                              | Supported |
+| .NET           | 7            | Consumer smoke test                  | Supported |
+| .NET           | 6 (LTS)      | Consumer smoke test                  | Supported |
+| .NET           | 5            | Optional smoke (non-blocking)        | EOL       |
+| .NET Core      | 3.1          | Compile-only smoke                   | EOL       |
+| .NET Framework | 4.6.1+       | Smoke test (4.6.1, 4.8.1)            | Supported |
+
+- **Platforms:** Windows, Linux, macOS (cross-platform, no native dependencies)
 
 ---
 
