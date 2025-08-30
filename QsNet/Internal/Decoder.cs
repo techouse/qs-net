@@ -208,16 +208,12 @@ internal static partial class Decoder
                 key = options.DecodeKey(rawKey, charset) ?? string.Empty;
 #endif
                 hadExisting = obj.TryGetValue(key, out existingVal);
-                // Explicit currentLength logic: count a singleton non-list value as 1, null as 0
+                // Only count existing when combining; Last/First do not increase length.
                 var currentLength = 0;
-                if (hadExisting)
+                if (hadExisting && options.Duplicates == Duplicates.Combine)
                 {
-                    if (existingVal is IList<object?> list)
-                        currentLength = list.Count;
-                    else if (existingVal != null)
-                        // Treat a singleton existing value as one element so ListLimit applies correctly
-                        // when combining duplicates (e.g., "a=1&a=2").
-                        currentLength = 1;
+                    if (existingVal is IList<object?> l) currentLength = l.Count;
+                    else if (!Utils.IsEmpty(existingVal)) currentLength = 1;
                 }
 
 #if NETSTANDARD2_0
