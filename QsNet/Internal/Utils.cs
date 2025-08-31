@@ -501,7 +501,7 @@ internal static partial class Utils
         encoding ??= Encoding.UTF8;
         var strWithoutPlus = str?.Replace('+', ' ');
 
-        if (Equals(encoding, Encoding.GetEncoding("ISO-8859-1")))
+        if (encoding.CodePage == 28591) // ISO-8859-1 (Latin-1)
             try
             {
                 return MyRegex()
