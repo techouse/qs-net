@@ -415,7 +415,7 @@ internal static partial class Utils
         var len = s.Length;
 
         // Latin-1 (ISO-8859-1) path with fast skip when no %u-escapes are present
-        if (encoding.CodePage == 28591)
+        if (encoding.CodePage == 28591 || string.Equals(encoding.WebName, "iso-8859-1", StringComparison.OrdinalIgnoreCase))
         {
             var table = HexTable.Table;
 
