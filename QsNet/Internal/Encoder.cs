@@ -122,7 +122,8 @@ internal static class Encoder
         var cs = charset ?? Encoding.UTF8;
         var gen = generateArrayPrefix ?? ListFormat.Indices.GetGenerator();
 
-        var isCommaGen = gen == ListFormat.Comma.GetGenerator();
+        var commaGen = ListFormat.Comma.GetGenerator();
+        var isCommaGen = gen == commaGen;
         var crt = commaRoundTrip ?? isCommaGen;
 
         var keyPrefixStr = prefix ?? (addQueryPrefix ? "?" : "");
