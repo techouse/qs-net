@@ -399,7 +399,7 @@ internal static partial class Utils
             return string.Empty;
         var nonNullStr = str!;
 
-        if (Equals(encoding, Encoding.GetEncoding("ISO-8859-1")))
+        if (encoding.CodePage == 28591) // ISO-8859-1 (Latin-1)
         {
 #pragma warning disable CS0618 // Type or member is obsolete
             return MyRegex1()
@@ -419,86 +419,80 @@ internal static partial class Utils
 #pragma warning restore CS0618 // Type or member is obsolete
         }
 
-        var buffer = new StringBuilder();
-        var j = 0;
-
-        while (j < nonNullStr.Length)
+        // Single-pass UTF-8 encoder with lazy builder to avoid allocations for already-safe strings.
+        StringBuilder? sb = null;
+        var safeFrom = 0;
+        var i = 0;
+        while (i < nonNullStr.Length)
         {
-            // Take up to SegmentLimit characters, but never split a surrogate pair across the boundary.
-            var remaining = nonNullStr.Length - j;
-            var segmentLen = remaining >= SegmentLimit ? SegmentLimit : remaining;
+            int c = nonNullStr[i];
 
-            // If the last char of this segment is a high surrogate and the next char exists and is a low surrogate,
-            // shrink the segment by one so the pair is encoded together in the next iteration.
-            if (
-                segmentLen < remaining &&
-                char.IsHighSurrogate(nonNullStr[j + segmentLen - 1]) &&
-                char.IsLowSurrogate(nonNullStr[j + segmentLen])
-            )
-                segmentLen--; // keep the high surrogate with its low surrogate in the next chunk
-
-            var segment = nonNullStr.Substring(j, segmentLen);
-
-            var i = 0;
-            while (i < segment.Length)
+            // Allowed unreserved: - . _ ~, digits, letters, and RFC1738 parentheses
+            if (c is 0x2D or 0x2E or 0x5F or 0x7E
+                || c is >= 0x30 and <= 0x39
+                || c is >= 0x41 and <= 0x5A
+                || c is >= 0x61 and <= 0x7A
+                || (fmt == Format.Rfc1738 && c is 0x28 or 0x29))
             {
-                var c = (int)segment[i];
-
-                switch (c)
-                {
-                    case 0x2D or 0x2E or 0x5F or 0x7E:
-                    case >= 0x30 and <= 0x39:
-                    case >= 0x41 and <= 0x5A:
-                    case >= 0x61 and <= 0x7A:
-                    case 0x28 or 0x29 when fmt == Format.Rfc1738:
-                        buffer.Append(segment[i]);
-                        i++;
-                        continue;
-                    // ASCII
-                    case < 0x80:
-                        buffer.Append(HexTable.Table[c]);
-                        i++;
-                        continue;
-                    // 2 bytes
-                    case < 0x800:
-                        buffer.Append(HexTable.Table[0xC0 | (c >> 6)]);
-                        buffer.Append(HexTable.Table[0x80 | (c & 0x3F)]);
-                        i++;
-                        continue;
-                    case < 0xD800:
-                    // 3 bytes
-                    case >= 0xE000:
-                        buffer.Append(HexTable.Table[0xE0 | (c >> 12)]);
-                        buffer.Append(HexTable.Table[0x80 | ((c >> 6) & 0x3F)]);
-                        buffer.Append(HexTable.Table[0x80 | (c & 0x3F)]);
-                        i++;
-                        continue;
-                }
-
-                // 4 bytes (surrogate pair) – only if valid pair; otherwise treat as 3-byte fallback
-                if (i + 1 >= segment.Length || !char.IsSurrogatePair(segment[i], segment[i + 1]))
-                {
-                    // Fallback: percent-encode the single surrogate code unit to remain lossless
-                    buffer.Append(HexTable.Table[0xE0 | (c >> 12)]);
-                    buffer.Append(HexTable.Table[0x80 | ((c >> 6) & 0x3F)]);
-                    buffer.Append(HexTable.Table[0x80 | (c & 0x3F)]);
-                    i++;
-                    continue;
-                }
-
-                var nextC = segment[i + 1];
-                var codePoint = char.ConvertToUtf32((char)c, nextC);
-                buffer.Append(HexTable.Table[0xF0 | (codePoint >> 18)]);
-                buffer.Append(HexTable.Table[0x80 | ((codePoint >> 12) & 0x3F)]);
-                buffer.Append(HexTable.Table[0x80 | ((codePoint >> 6) & 0x3F)]);
-                buffer.Append(HexTable.Table[0x80 | (codePoint & 0x3F)]);
-                i += 2; // Skip the next character as it's part of the surrogate pair
+                i++;
+                continue;
             }
 
-            j += segment.Length; // advance by the actual processed count
+            // First time we need to encode: materialize the builder and copy the safe prefix
+            sb ??= new StringBuilder(nonNullStr.Length + (nonNullStr.Length >> 1));
+            if (i > safeFrom) sb.Append(nonNullStr, safeFrom, i - safeFrom);
+
+            switch (c)
+            {
+                case < 0x80:
+                    // ASCII but reserved -> %XX
+                    sb.Append(HexTable.Table[c]);
+                    i++;
+                    break;
+                case < 0x800:
+                    // 2-byte UTF-8 sequence
+                    sb.Append(HexTable.Table[0xC0 | (c >> 6)]);
+                    sb.Append(HexTable.Table[0x80 | (c & 0x3F)]);
+                    i++;
+                    break;
+                case < 0xD800 or >= 0xE000:
+                    // 3-byte UTF-8 sequence
+                    sb.Append(HexTable.Table[0xE0 | (c >> 12)]);
+                    sb.Append(HexTable.Table[0x80 | ((c >> 6) & 0x3F)]);
+                    sb.Append(HexTable.Table[0x80 | (c & 0x3F)]);
+                    i++;
+                    break;
+                default:
+                    {
+                        // Surrogate area
+                        if (i + 1 < nonNullStr.Length && char.IsSurrogatePair(nonNullStr[i], nonNullStr[i + 1]))
+                        {
+                            var codePoint = char.ConvertToUtf32(nonNullStr[i], nonNullStr[i + 1]);
+                            sb.Append(HexTable.Table[0xF0 | (codePoint >> 18)]);
+                            sb.Append(HexTable.Table[0x80 | ((codePoint >> 12) & 0x3F)]);
+                            sb.Append(HexTable.Table[0x80 | ((codePoint >> 6) & 0x3F)]);
+                            sb.Append(HexTable.Table[0x80 | (codePoint & 0x3F)]);
+                            i += 2;
+                        }
+                        else
+                        {
+                            // Lone surrogate -> encode the single code unit as 3-byte sequence, preserving data
+                            sb.Append(HexTable.Table[0xE0 | (c >> 12)]);
+                            sb.Append(HexTable.Table[0x80 | ((c >> 6) & 0x3F)]);
+                            sb.Append(HexTable.Table[0x80 | (c & 0x3F)]);
+                            i++;
+                        }
+
+                        break;
+                    }
+            }
+
+            safeFrom = i;
         }
 
-        return buffer.ToString();
+        return sb is null
+            ? nonNullStr
+            : sb.Append(nonNullStr, safeFrom, nonNullStr.Length - safeFrom).ToString();
     }
 
     /// <summary>
