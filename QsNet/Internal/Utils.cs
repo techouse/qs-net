@@ -23,11 +23,6 @@ internal static partial class Utils
 #endif
 {
     /// <summary>
-    ///     The maximum length of a segment to encode in a single pass.
-    /// </summary>
-    private const int SegmentLimit = 1024;
-
-    /// <summary>
     ///     A regex to match percent-encoded characters in the format %XX.
     /// </summary>
 #if NETSTANDARD2_0
