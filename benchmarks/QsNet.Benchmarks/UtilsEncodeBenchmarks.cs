@@ -32,7 +32,7 @@ public class UtilsEncodeBenchmarks
     [GlobalSetup]
     public void Setup()
     {
-        _enc = EncName == "Latin1" ? Encoding.Latin1 : new UTF8Encoding(false);
+        _enc = EncName == "Latin1" ? Encoding.GetEncoding("ISO-8859-1") : new UTF8Encoding(false);
 
         // note: () included to exercise RFC1738 paren allowance
         var asciiSafeBase  = "abcDEF-_.~0123456789() ";
