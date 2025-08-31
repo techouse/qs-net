@@ -422,8 +422,8 @@ internal static class Encoder
             }
 
             if (encoder == null) return $"{fmt(adjustedPrefixC)}={fmt(joinedC)}";
-            var keyPartC = encoder(adjustedPrefixC, null, null);
-            var valuePartC = encoder(joinedC, null, null);
+            var keyPartC = encoder(adjustedPrefixC, cs, format);
+            var valuePartC = encoder(joinedC, cs, format);
             return $"{fmt(keyPartC)}={fmt(valuePartC)}";
         }
 
