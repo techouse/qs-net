@@ -140,9 +140,8 @@ internal static class Encoder
             return $"{fmt(keyPart)}={fmt(valuePart)}";
         }
 
-        var values = new List<object?>();
         if (undefined)
-            return values;
+            return Array.Empty<object?>();
 
         // Detect sequence once and cache materialization for index access / counts
         var isSeq = false;
@@ -156,7 +155,9 @@ internal static class Encoder
         List<object?> objKeys;
         if (isCommaGen && obj is IEnumerable enumerable and not string and not IDictionary)
         {
-            List<string> strings = [];
+            var strings = enumerable is ICollection { Count: > 0 } coll0
+                ? new List<string>(coll0.Count)
+                : new List<string>();
             if (encodeValuesOnly && encoder != null)
                 foreach (var el in enumerable)
                     strings.Add(el is null ? "" : encoder(el.ToString(), null, null));
@@ -229,9 +230,17 @@ internal static class Encoder
                 objKeys.Sort(Comparer<object?>.Create(sort));
         }
 
-        values.Capacity = Math.Max(values.Capacity, objKeys.Count);
+        var values = new List<object?>(objKeys.Count);
 
-        var encodedPrefix = encodeDotInKeys ? keyPrefixStr.Replace(".", "%2E") : keyPrefixStr;
+#if NETSTANDARD2_0
+        var encodedPrefix = encodeDotInKeys && keyPrefixStr.IndexOf('.') >= 0
+            ? keyPrefixStr.Replace(".", "%2E")
+            : keyPrefixStr;
+#else
+        var encodedPrefix = encodeDotInKeys && keyPrefixStr.Contains('.', StringComparison.Ordinal)
+            ? keyPrefixStr.Replace(".", "%2E", StringComparison.Ordinal)
+            : keyPrefixStr;
+#endif
         var adjustedPrefix =
             crt && isSeq && seqList is { Count: 1 }
                 ? $"{encodedPrefix}[]"
@@ -336,8 +345,7 @@ internal static class Encoder
                             break;
                         }
 
-                    case IEnumerable ie
-                        and not string:
+                    case IEnumerable and not string:
                         {
                             var idx = key switch
                             {
@@ -345,7 +353,7 @@ internal static class Encoder
                                 IConvertible when int.TryParse(key.ToString(), out var parsed) => parsed,
                                 _ => -1
                             };
-                            var list2 = seqList ?? ie.Cast<object?>().ToList();
+                            var list2 = seqList!;
                             if ((uint)idx < (uint)list2.Count)
                             {
                                 value = list2[idx];
@@ -379,13 +387,13 @@ internal static class Encoder
 #endif
 
             var keyPrefix =
-                obj is IEnumerable and not string and not IDictionary
+                isSeq
                     ? gen(adjustedPrefix, encodedKey)
                     : allowDots
                         ? $"{adjustedPrefix}.{encodedKey}"
                         : $"{adjustedPrefix}[{encodedKey}]";
 
-            if (objKey is not null && obj is IDictionary or IEnumerable and not string)
+            if (objKey is not null && (obj is IDictionary || isSeq))
                 sideChannel.Set(objKey, step);
 
             var childSc = new SideChannelFrame(sideChannel);
@@ -418,7 +426,9 @@ internal static class Encoder
                 addQueryPrefix
             );
 
-            if (encoded is IEnumerable en and not string)
+            if (encoded is List<object?> enList)
+                values.AddRange(enList);
+            else if (encoded is IEnumerable en and not string)
                 foreach (var item in en)
                     values.Add(item);
             else
