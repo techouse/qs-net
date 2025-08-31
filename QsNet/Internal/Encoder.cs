@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Text;
 using QsNet.Enums;
 using QsNet.Models;
@@ -15,6 +17,109 @@ internal static class Encoder
 {
     private static readonly Formatter IdentityFormatter = s => s;
 
+    private static readonly char[] HexUpper = "0123456789ABCDEF".ToCharArray();
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsAsciiAlphaNum(char ch)
+    {
+        return ch is >= '0' and <= '9' or >= 'A' and <= 'Z' or >= 'a' and <= 'z';
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AppendPctEncodedByte(StringBuilder sb, byte b)
+    {
+        sb.Append('%');
+        sb.Append(HexUpper[b >> 4]);
+        sb.Append(HexUpper[b & 0xF]);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static string ToInvariantString(object? value)
+    {
+        if (value is null) return string.Empty;
+        return value switch
+        {
+            bool b => b ? "true" : "false",
+            sbyte v => v.ToString(CultureInfo.InvariantCulture),
+            byte v => v.ToString(CultureInfo.InvariantCulture),
+            short v => v.ToString(CultureInfo.InvariantCulture),
+            ushort v => v.ToString(CultureInfo.InvariantCulture),
+            int v => v.ToString(CultureInfo.InvariantCulture),
+            uint v => v.ToString(CultureInfo.InvariantCulture),
+            long v => v.ToString(CultureInfo.InvariantCulture),
+            ulong v => v.ToString(CultureInfo.InvariantCulture),
+            float v => v.ToString(CultureInfo.InvariantCulture),
+            double v => v.ToString(CultureInfo.InvariantCulture),
+            decimal v => v.ToString(CultureInfo.InvariantCulture),
+            char ch => ch.ToString(),
+            _ => value.ToString() ?? string.Empty
+        };
+    }
+
+    // Encode a single value for the comma-values-only fast path, without re-encoding the comma separators.
+    // RFC3986 by default; RFC1738 maps space to '+'. Commas inside values are percent-encoded as %2C.
+    private static void AppendCommaEncodedValue(StringBuilder sb, object? value, Encoding cs, Format format)
+    {
+        var s = ToInvariantString(value);
+
+        for (var i = 0; i < s.Length; i++)
+        {
+            var ch = s[i];
+
+            // ASCII fast-path
+            if (ch <= 0x7F)
+            {
+                // unreserved: ALPHA / DIGIT / '-' / '.' / '_' / '~'
+                if (IsAsciiAlphaNum(ch) || ch == '-' || ch == '_' || ch == '.' || ch == '~')
+                {
+                    sb.Append(ch);
+                    continue;
+                }
+
+                if (format == Format.Rfc1738 && ch == ' ')
+                {
+                    sb.Append('+');
+                    continue;
+                }
+
+                // Comma inside a value must be encoded (separators are appended by the caller)
+                if (ch == ',')
+                {
+                    sb.Append("%2C");
+                    continue;
+                }
+
+                AppendPctEncodedByte(sb, (byte)ch);
+                continue;
+            }
+
+            // Non-ASCII: encode using the provided charset (UTF-8 by default)
+            if (char.IsSurrogatePair(s, i))
+            {
+#if NETSTANDARD2_0
+                var bytes = cs.GetBytes(s.Substring(i, 2));
+#else
+                var bytes = cs.GetBytes(s, i, 2);
+#endif
+                foreach (var t in bytes)
+                    AppendPctEncodedByte(sb, t);
+
+                i++; // consumed the low surrogate as well
+            }
+            else
+            {
+#if NETSTANDARD2_0
+                var bytes = cs.GetBytes(s.Substring(i, 1));
+#else
+                var bytes = cs.GetBytes(s, i, 1);
+#endif
+                foreach (var t in bytes)
+                    AppendPctEncodedByte(sb, t);
+            }
+        }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool IsLeaf(object? v, bool skipNulls)
     {
         if (v is null) return skipNulls;
@@ -77,28 +182,32 @@ internal static class Encoder
 
         var keyPrefixStr = prefix ?? (addQueryPrefix ? "?" : "");
         var obj = data;
+        var dotsAndEncode = allowDots && encodeDotInKeys;
 
         var objKey = data; // identity key
         var tmpSc = sideChannel;
         var step = 0;
         var found = false;
 
-        while (!found)
-        {
-            tmpSc = tmpSc.Parent;
-            if (tmpSc is null)
-                break;
-            step++;
-            if (objKey is not null && tmpSc.TryGet(objKey, out var pos))
+        // Fast path (#3): skip cycle detection when the current value is a leaf.
+        // Leaves never recurse, so they can’t participate in cycles.
+        if (!IsLeaf(data, skipNulls))
+            while (!found)
             {
-                if (pos == step)
-                    throw new InvalidOperationException("Cyclic object value");
-                found = true;
-            }
+                tmpSc = tmpSc.Parent;
+                if (tmpSc is null)
+                    break;
+                step++;
+                if (objKey is not null && tmpSc.TryGet(objKey, out var pos))
+                {
+                    if (pos == step)
+                        throw new InvalidOperationException("Cyclic object value");
+                    found = true;
+                }
 
-            if (tmpSc.Parent is null)
-                step = 0;
-        }
+                if (tmpSc.Parent is null)
+                    step = 0;
+            }
 
         if (filter is FunctionFilter ff)
             obj = ff.Function(keyPrefixStr, obj);
@@ -133,11 +242,7 @@ internal static class Encoder
         {
             if (encoder == null)
             {
-                var s = obj switch
-                {
-                    bool b => b ? "true" : "false",
-                    _ => obj?.ToString() ?? ""
-                };
+                var s = ToInvariantString(obj);
                 return $"{fmt(keyPrefixStr)}={fmt(s)}";
             }
 
@@ -159,6 +264,217 @@ internal static class Encoder
                 seqList = already;
             else
                 seqList = seq0.Cast<object?>().ToList();
+        }
+
+        // Fast path (#1): when no sorting is requested, avoid building objKeys and
+        // iterate the structure directly to eliminate extra allocations and lookups.
+        if (sort == null && !(isCommaGen && obj is IEnumerable and not string and not IDictionary) &&
+            filter is not IterableFilter)
+        {
+#if NETSTANDARD2_0
+            var encodedPrefixFast = encodeDotInKeys && keyPrefixStr.IndexOf('.') >= 0
+                ? keyPrefixStr.Replace(".", "%2E")
+                : keyPrefixStr;
+#else
+            var encodedPrefixFast = encodeDotInKeys && keyPrefixStr.Contains('.', StringComparison.Ordinal)
+                ? keyPrefixStr.Replace(".", "%2E", StringComparison.Ordinal)
+                : keyPrefixStr;
+#endif
+            var adjustedPrefixFast =
+                crt && isSeq && seqList is { Count: 1 }
+                    ? $"{encodedPrefixFast}[]"
+                    : encodedPrefixFast;
+
+            if (allowEmptyLists && isSeq && seqList is { Count: 0 })
+                return $"{adjustedPrefixFast}[]";
+
+            // Fast path (#5): mark side-channel once per parent instead of per child
+            var markSideChannelFast = objKey is not null && (obj is IDictionary || isSeq);
+            if (markSideChannelFast)
+                sideChannel.Set(objKey!, step);
+
+            List<object?> valuesFast;
+
+            void AddKv(object? keyObj, object? val)
+            {
+                if (skipNulls && val is null)
+                    return;
+
+                var keyStr = keyObj?.ToString() ?? string.Empty;
+                var encodedKey = keyStr;
+#if NETSTANDARD2_0
+                if (dotsAndEncode && keyStr.IndexOf('.') >= 0)
+                    encodedKey = keyStr.Replace(".", "%2E");
+#else
+                if (dotsAndEncode && keyStr.Contains('.', StringComparison.Ordinal))
+                    encodedKey = keyStr.Replace(".", "%2E", StringComparison.Ordinal);
+#endif
+                var keyPrefixFast =
+                    isSeq
+                        ? gen(adjustedPrefixFast, encodedKey)
+                        : allowDots
+                            ? $"{adjustedPrefixFast}.{encodedKey}"
+                            : $"{adjustedPrefixFast}[{encodedKey}]";
+
+                // Removed per-iteration sideChannel.Set
+
+                var childSc = IsLeaf(val, skipNulls) ? sideChannel : new SideChannelFrame(sideChannel);
+
+                var encoded = Encode(
+                    val,
+                    false,
+                    childSc,
+                    keyPrefixFast,
+                    gen,
+                    crt,
+                    allowEmptyLists,
+                    strictNullHandling,
+                    skipNulls,
+                    encodeDotInKeys,
+                    encoder,
+                    serializeDate,
+                    sort,
+                    filter,
+                    allowDots,
+                    format,
+                    fmt,
+                    encodeValuesOnly,
+                    cs,
+                    addQueryPrefix
+                );
+
+                switch (encoded)
+                {
+                    case List<object?> enList:
+                        valuesFast.AddRange(enList);
+                        break;
+                    case IEnumerable en and not string:
+                        {
+                            foreach (var item in en)
+                                valuesFast.Add(item);
+                            break;
+                        }
+                    default:
+                        valuesFast.Add(encoded);
+                        break;
+                }
+            }
+
+            switch (obj)
+            {
+                case IDictionary<object, object?> dObj:
+                    valuesFast = new List<object?>(dObj.Count);
+                    foreach (var kv in dObj)
+                        AddKv(kv.Key, kv.Value);
+                    return valuesFast;
+                case IDictionary<string, object?> dStr:
+                    valuesFast = new List<object?>(dStr.Count);
+                    foreach (var kv in dStr)
+                        AddKv(kv.Key, kv.Value);
+                    return valuesFast;
+                case IDictionary map:
+                    valuesFast = new List<object?>(map.Count);
+                    foreach (DictionaryEntry de in map)
+                        AddKv(de.Key, de.Value);
+                    return valuesFast;
+                case Array arr:
+                    valuesFast = new List<object?>(arr.Length);
+                    for (var i = 0; i < arr.Length; i++)
+                        AddKv(i, arr.GetValue(i));
+                    return valuesFast;
+                case IList list:
+                    valuesFast = new List<object?>(list.Count);
+                    for (var i = 0; i < list.Count; i++)
+                        AddKv(i, list[i]);
+                    return valuesFast;
+                default:
+                    if (isSeq && seqList != null)
+                    {
+                        valuesFast = new List<object?>(seqList.Count);
+                        for (var i = 0; i < seqList.Count; i++)
+                            AddKv(i, seqList[i]);
+                        return valuesFast;
+                    }
+
+                    break;
+            }
+            // If we fall through (very uncommon), continue with the generic path below.
+        }
+
+        // Fast path (#2): comma-joined arrays -> build the joined value once and short-circuit the generic path.
+        if (isCommaGen && obj is IEnumerable enumerableC and not string and not IDictionary && sort == null &&
+            filter is not IterableFilter)
+        {
+#if NETSTANDARD2_0
+            var encodedPrefixC = encodeDotInKeys && keyPrefixStr.IndexOf('.') >= 0
+                ? keyPrefixStr.Replace(".", "%2E")
+                : keyPrefixStr;
+#else
+            var encodedPrefixC = encodeDotInKeys && keyPrefixStr.Contains('.', StringComparison.Ordinal)
+                ? keyPrefixStr.Replace(".", "%2E", StringComparison.Ordinal)
+                : keyPrefixStr;
+#endif
+            // Materialize once for count checks and iteration
+            var listC = seqList ?? enumerableC.Cast<object?>().ToList();
+            var adjustedPrefixC = crt && listC.Count == 1 ? $"{encodedPrefixC}[]" : encodedPrefixC;
+
+            // Honor empty list handling semantics
+            if (allowEmptyLists && listC.Count == 0)
+                return $"{adjustedPrefixC}[]";
+            if (listC.Count == 0)
+                return Array.Empty<object?>();
+
+            string joinedC;
+            if (encodeValuesOnly && encoder != null)
+            {
+                // Stream-encode each element and append literal commas between them.
+                var sbJoined = new StringBuilder(listC.Count * 8);
+                for (var i = 0; i < listC.Count; i++)
+                {
+                    if (i > 0) sbJoined.Append(','); // separator comma is never re-encoded
+                    AppendCommaEncodedValue(sbJoined, listC[i], cs, format);
+                }
+
+                joinedC = sbJoined.ToString();
+
+                // Match legacy semantics: if the joined value is empty, treat it like `null`.
+                if (!string.IsNullOrEmpty(joinedC)) return $"{fmt(adjustedPrefixC)}={fmt(joinedC)}";
+                if (skipNulls)
+                    return Array.Empty<object?>();
+
+                if (strictNullHandling)
+                    return !encodeValuesOnly
+                        ? fmt(encoder(adjustedPrefixC, cs, format))
+                        : adjustedPrefixC;
+                // not strict: fall through to return `key=` below
+
+                // In values-only mode we do not encode the key via `encoder`.
+                return $"{fmt(adjustedPrefixC)}={fmt(joinedC)}";
+            }
+
+            // Join raw string representations; apply encoder to the full result if provided.
+            var tmp = new List<string>(listC.Count);
+            foreach (var el in listC)
+                tmp.Add(ToInvariantString(el));
+            joinedC = string.Join(",", tmp);
+
+            // Match legacy semantics: if the joined value is empty, treat it like `null`.
+            if (string.IsNullOrEmpty(joinedC))
+            {
+                if (skipNulls)
+                    return Array.Empty<object?>();
+
+                if (strictNullHandling)
+                    return encoder != null && !encodeValuesOnly
+                        ? fmt(encoder(adjustedPrefixC, cs, format))
+                        : adjustedPrefixC;
+                // not strict: fall through to return `key=` below
+            }
+
+            if (encoder == null) return $"{fmt(adjustedPrefixC)}={fmt(joinedC)}";
+            var keyPartC = encoder(adjustedPrefixC, null, null);
+            var valuePartC = encoder(joinedC, null, null);
+            return $"{fmt(keyPartC)}={fmt(valuePartC)}";
         }
 
         List<object?> objKeys;
@@ -262,6 +578,18 @@ internal static class Encoder
 
         if (allowEmptyLists && isSeq && seqList is { Count: 0 })
             return $"{adjustedPrefix}[]";
+
+        // Fast path (#5): mark side-channel once per parent instead of per element
+        var markSideChannel = objKey is not null && (obj is IDictionary || isSeq);
+        if (markSideChannel)
+            sideChannel.Set(objKey!, step);
+
+        // Fast path (#4): hoist child-encoder decision out of the loop.
+        // For comma-joined arrays in values-only mode, do not re-encode children.
+        var childEncoderForElements =
+            isCommaGen && encodeValuesOnly && obj is IEnumerable and not string
+                ? null
+                : encoder;
 
         for (var i = 0; i < objKeys.Count; i++)
         {
@@ -393,10 +721,10 @@ internal static class Encoder
             var keyStr = key?.ToString() ?? "";
             var encodedKey = keyStr;
 #if NETSTANDARD2_0
-            if (allowDots && encodeDotInKeys && keyStr.IndexOf('.') >= 0)
+            if (dotsAndEncode && keyStr.IndexOf('.') >= 0)
                 encodedKey = keyStr.Replace(".", "%2E");
 #else
-            if (allowDots && encodeDotInKeys && keyStr.Contains('.', StringComparison.Ordinal))
+            if (dotsAndEncode && keyStr.Contains('.', StringComparison.Ordinal))
                 encodedKey = keyStr.Replace(".", "%2E", StringComparison.Ordinal);
 #endif
 
@@ -407,15 +735,9 @@ internal static class Encoder
                         ? $"{adjustedPrefix}.{encodedKey}"
                         : $"{adjustedPrefix}[{encodedKey}]";
 
-            if (objKey is not null && (obj is IDictionary || isSeq))
-                sideChannel.Set(objKey, step);
+            // Removed per-iteration sideChannel.Set
 
             var childSc = IsLeaf(value, skipNulls) ? sideChannel : new SideChannelFrame(sideChannel);
-
-            var childEncoder =
-                isCommaGen && encodeValuesOnly && obj is IEnumerable and not string
-                    ? null
-                    : encoder;
 
             var encoded = Encode(
                 value,
@@ -428,7 +750,7 @@ internal static class Encoder
                 strictNullHandling,
                 skipNulls,
                 encodeDotInKeys,
-                childEncoder,
+                childEncoderForElements,
                 serializeDate,
                 sort,
                 filter,
