@@ -58,65 +58,26 @@ internal static class Encoder
 
     // Encode a single value for the comma-values-only fast path, without re-encoding the comma separators.
     // RFC3986 by default; RFC1738 maps space to '+'. Commas inside values are percent-encoded as %2C.
-    private static void AppendCommaEncodedValue(StringBuilder sb, object? value, Encoding cs, Format format)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void AppendCommaEncodedValue(
+        StringBuilder sb,
+        object? value,
+        Encoding cs,
+        Format format,
+        ValueEncoder? encoder
+    )
     {
-        var s = ToInvariantString(value);
+        var encoded = encoder != null ? encoder(value, cs, format) : Utils.Encode(value, cs, format);
 
-        for (var i = 0; i < s.Length; i++)
-        {
-            var ch = s[i];
-
-            // ASCII fast-path
-            if (ch <= 0x7F)
-            {
-                // unreserved: ALPHA / DIGIT / '-' / '.' / '_' / '~'
-                if (IsAsciiAlphaNum(ch) || ch == '-' || ch == '_' || ch == '.' || ch == '~')
-                {
-                    sb.Append(ch);
-                    continue;
-                }
-
-                if (format == Format.Rfc1738 && ch == ' ')
-                {
-                    sb.Append('+');
-                    continue;
-                }
-
-                // Comma inside a value must be encoded (separators are appended by the caller)
-                if (ch == ',')
-                {
-                    sb.Append("%2C");
-                    continue;
-                }
-
-                AppendPctEncodedByte(sb, (byte)ch);
-                continue;
-            }
-
-            // Non-ASCII: encode using the provided charset (UTF-8 by default)
-            if (char.IsSurrogatePair(s, i))
-            {
 #if NETSTANDARD2_0
-                var bytes = cs.GetBytes(s.Substring(i, 2));
+        if (encoded.IndexOf(',') >= 0)
+            encoded = encoded.Replace(",", "%2C"); // commas inside values must be encoded
 #else
-                var bytes = cs.GetBytes(s, i, 2);
+        if (encoded.Contains(',', StringComparison.Ordinal))
+            encoded = encoded.Replace(",", "%2C", StringComparison.Ordinal);
 #endif
-                foreach (var t in bytes)
-                    AppendPctEncodedByte(sb, t);
 
-                i++; // consumed the low surrogate as well
-            }
-            else
-            {
-#if NETSTANDARD2_0
-                var bytes = cs.GetBytes(s.Substring(i, 1));
-#else
-                var bytes = cs.GetBytes(s, i, 1);
-#endif
-                foreach (var t in bytes)
-                    AppendPctEncodedByte(sb, t);
-            }
-        }
+        sb.Append(encoded);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -432,7 +393,7 @@ internal static class Encoder
                 for (var i = 0; i < listC.Count; i++)
                 {
                     if (i > 0) sbJoined.Append(','); // separator comma is never re-encoded
-                    AppendCommaEncodedValue(sbJoined, listC[i], cs, format);
+                    AppendCommaEncodedValue(sbJoined, listC[i], cs, format, encoder);
                 }
 
                 joinedC = sbJoined.ToString();
