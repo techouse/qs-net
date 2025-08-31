@@ -428,6 +428,7 @@ internal static class Encoder
         }
 
         List<object?> objKeys;
+        var commaElementsAlreadyEncoded = false;
         if (isCommaGen && obj is IEnumerable enumerable and not string and not IDictionary)
         {
             List<string> strings;
@@ -439,11 +440,16 @@ internal static class Encoder
                 strings = [];
 
             if (encodeValuesOnly && encoder != null)
+            {
                 foreach (var el in enumerable)
                     strings.Add(el is null ? "" : encoder(el, cs, format));
+                commaElementsAlreadyEncoded = true;
+            }
             else
+            {
                 foreach (var el in enumerable)
                     strings.Add(el?.ToString() ?? "");
+            }
 
             if (strings.Count != 0)
             {
@@ -537,8 +543,8 @@ internal static class Encoder
             sideChannel.Set(objKey!, step);
 
         // Fast path (#4): hoist child-encoder decision out of the loop.
-        // For comma-joined arrays in values-only mode, do not re-encode children.
-        var childEncoderForElements = encoder;
+        // For comma-joined arrays in values-only mode, do not re-encode the joined string.
+        var childEncoderForElements = commaElementsAlreadyEncoded ? null : encoder;
 
         for (var i = 0; i < objKeys.Count; i++)
         {
