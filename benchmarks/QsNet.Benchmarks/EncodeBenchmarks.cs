@@ -80,6 +80,8 @@ public class EncodeBenchmarks
         _data = new Dictionary<string, object?>
         {
             ["a"] = list,
+            ["a_empty"] = new List<object?>(),
+            ["a_nested"] = new List<object?> { new List<object?> { MakeValue(ValueLen, NeedsEscPercent, rnd) } },
             ["b"] = new Dictionary<string, object?>
             {
                 ["x.y"] = MakeValue(ValueLen, NeedsEscPercent, rnd),
