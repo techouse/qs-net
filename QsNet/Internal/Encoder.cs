@@ -538,10 +538,7 @@ internal static class Encoder
 
         // Fast path (#4): hoist child-encoder decision out of the loop.
         // For comma-joined arrays in values-only mode, do not re-encode children.
-        var childEncoderForElements =
-            isCommaGen && encodeValuesOnly && obj is IEnumerable and not string
-                ? null
-                : encoder;
+        var childEncoderForElements = encoder;
 
         for (var i = 0; i < objKeys.Count; i++)
         {
