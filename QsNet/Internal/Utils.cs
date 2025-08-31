@@ -38,21 +38,6 @@ internal static partial class Utils
 #endif
 
     /// <summary>
-    ///     A regex to match Unicode percent-encoded characters in the format %uXXXX.
-    /// </summary>
-#if NETSTANDARD2_0
-    private static readonly Regex MyRegex1Instance = new("%u[0-9a-f]{4}", RegexOptions.IgnoreCase);
-
-    private static Regex MyRegex1()
-    {
-        return MyRegex1Instance;
-    }
-#else
-    [GeneratedRegex("%u[0-9a-f]{4}", RegexOptions.IgnoreCase, "en-GB")]
-    private static partial Regex MyRegex1();
-#endif
-
-    /// <summary>
     ///     Merges two objects, where the source object overrides the target object. If the source is a
     ///     Dictionary, it will merge its entries into the target. If the source is an IEnumerable, it will append
     ///     its items to the target. If the source is a primitive, it will replace the target.
@@ -380,6 +365,26 @@ internal static partial class Utils
         return ch is '(' or ')' || IsUnreservedAscii3986(ch);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsSafeLatin1Ascii1738(char ch)
+    {
+        // Legacy Latin-1 encode behavior:
+        // - treat '+' as safe (do not encode)
+        // - treat '~' as unsafe (percent-encode)
+        // - RFC1738 adds '(' and ')'
+        return ch is '+' or '(' or ')' or '-' or '.' or '_' or >= '0' and <= '9' or >= 'A' and <= 'Z'
+            or >= 'a' and <= 'z';
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsSafeLatin1Ascii3986(char ch)
+    {
+        // Legacy Latin-1 encode behavior:
+        // - treat '+' as safe (do not encode)
+        // - treat '~' as unsafe (percent-encode)
+        return ch is '+' or '-' or '.' or '_' or >= '0' and <= '9' or >= 'A' and <= 'Z' or >= 'a' and <= 'z';
+    }
+
     /// <summary>
     ///     Encodes a value into a URL-encoded string.
     /// </summary>
@@ -407,35 +412,180 @@ internal static partial class Utils
         if (string.IsNullOrEmpty(str))
             return string.Empty;
         var s = str!;
+        var len = s.Length;
 
         // Latin-1 (ISO-8859-1) path with fast skip when no %u-escapes are present
         if (encoding.CodePage == 28591)
         {
-#pragma warning disable CS0618 // Escape is obsolete but intentional here
-            var escaped = Escape(s, fmt);
-#pragma warning restore CS0618
-#if NETSTANDARD2_0
-            if (escaped.IndexOf("%u", StringComparison.OrdinalIgnoreCase) < 0)
-                return escaped;
-#else
-            if (!escaped.Contains("%u", StringComparison.OrdinalIgnoreCase))
-                return escaped;
-#endif
-            return MyRegex1().Replace(escaped, m =>
+            var table = HexTable.Table;
+
+            if (fmt == Format.Rfc1738)
             {
-#if NETSTANDARD2_0
-                var code = int.Parse(m.Value.Substring(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-#else
-                var code = int.Parse(m.Value.AsSpan(2), NumberStyles.HexNumber, CultureInfo.InvariantCulture);
-#endif
-                return $"%26%23{code}%3B";
-            });
+                // Legacy behavior: in Latin-1 mode, treat '+' as safe (do not percent-encode)
+                // Scan to first unsafe ASCII (anything non-ASCII is unsafe for this pass)
+                var i = 0;
+                while (i < len && s[i] <= 0x7F && IsSafeLatin1Ascii1738(s[i])) i++;
+                if (i == len)
+                    return s; // all safe ASCII
+
+                // Sample to decide escape density
+                var sampleEnd = Math.Min(len, i + 64);
+                var unsafeCount = 0;
+                for (var k = i; k < sampleEnd; k++)
+                {
+                    var ch = s[k];
+                    if (ch > 0x7F || !IsSafeLatin1Ascii1738(ch))
+                        unsafeCount++;
+                }
+
+                var escapeHeavy = unsafeCount * 4 >= (sampleEnd - i) * 3; // ≥75% unsafe
+                var cap = escapeHeavy ? len >= int.MaxValue / 3 ? int.MaxValue : len * 3 : len + 16;
+                var sb = new StringBuilder(cap);
+
+                if (!escapeHeavy)
+                {
+                    var lastSafe = 0;
+                    for (var idx = 0; idx < len; idx++)
+                    {
+                        int c = s[idx];
+                        var safeAscii = c <= 0x7F && IsSafeLatin1Ascii1738((char)c);
+                        if (safeAscii)
+                            continue;
+
+                        // flush preceding safe run
+                        if (idx > lastSafe)
+                            sb.Append(s, lastSafe, idx - lastSafe);
+
+                        if (c <= 0xFF)
+                        {
+                            sb.Append(table[c]); // %XX for Latin-1 bytes
+                        }
+                        else
+                        {
+                            // For non-Latin1 code units, emit percent-encoded numeric entity: %26%23{code}%3B
+                            sb.Append("%26%23");
+                            sb.Append(c);
+                            sb.Append("%3B");
+                        }
+
+                        lastSafe = idx + 1;
+                    }
+
+                    if (lastSafe < len)
+                        sb.Append(s, lastSafe, len - lastSafe);
+                }
+                else
+                {
+                    // Escape-heavy mode: no run bookkeeping
+                    if (i > 0) sb.Append(s, 0, i);
+
+                    for (var j = i; j < len; j++)
+                    {
+                        int c = s[j];
+
+                        switch (c)
+                        {
+                            case <= 0x7F when IsSafeLatin1Ascii1738((char)c):
+                                sb.Append((char)c);
+                                continue;
+                            case <= 0xFF:
+                                sb.Append(table[c]);
+                                break;
+                            default:
+                                sb.Append("%26%23");
+                                sb.Append(c);
+                                sb.Append("%3B");
+                                break;
+                        }
+                    }
+                }
+
+                return sb.ToString();
+            }
+            else
+            {
+                // Legacy behavior: in Latin-1 mode, treat '+' as safe (do not percent-encode)
+                // RFC3986 path (no parentheses allowed)
+                var i = 0;
+                while (i < len && s[i] <= 0x7F && IsSafeLatin1Ascii3986(s[i])) i++;
+                if (i == len)
+                    return s; // all safe ASCII
+
+                var sampleEnd = Math.Min(len, i + 64);
+                var unsafeCount = 0;
+                for (var k = i; k < sampleEnd; k++)
+                {
+                    var ch = s[k];
+                    if (ch > 0x7F || !IsSafeLatin1Ascii3986(ch))
+                        unsafeCount++;
+                }
+
+                var escapeHeavy = unsafeCount * 4 >= (sampleEnd - i) * 3; // ≥75% unsafe
+                var cap = escapeHeavy ? len >= int.MaxValue / 3 ? int.MaxValue : len * 3 : len + 16;
+                var sb = new StringBuilder(cap);
+
+                if (!escapeHeavy)
+                {
+                    var lastSafe = 0;
+                    for (var idx = 0; idx < len; idx++)
+                    {
+                        int c = s[idx];
+                        var safeAscii = c <= 0x7F && IsSafeLatin1Ascii3986((char)c);
+                        if (safeAscii)
+                            continue;
+
+                        if (idx > lastSafe)
+                            sb.Append(s, lastSafe, idx - lastSafe);
+
+                        if (c <= 0xFF)
+                        {
+                            sb.Append(table[c]);
+                        }
+                        else
+                        {
+                            sb.Append("%26%23");
+                            sb.Append(c);
+                            sb.Append("%3B");
+                        }
+
+                        lastSafe = idx + 1;
+                    }
+
+                    if (lastSafe < len)
+                        sb.Append(s, lastSafe, len - lastSafe);
+                }
+                else
+                {
+                    if (i > 0) sb.Append(s, 0, i);
+
+                    for (var j = i; j < len; j++)
+                    {
+                        int c = s[j];
+
+                        switch (c)
+                        {
+                            case <= 0x7F when IsSafeLatin1Ascii3986((char)c):
+                                sb.Append((char)c);
+                                continue;
+                            case <= 0xFF:
+                                sb.Append(table[c]);
+                                break;
+                            default:
+                                sb.Append("%26%23");
+                                sb.Append(c);
+                                sb.Append("%3B");
+                                break;
+                        }
+                    }
+                }
+
+                return sb.ToString();
+            }
         }
 
         // UTF-8 path with two strategies:
         // 1) run-copy mode for mixed/mostly-safe inputs (lazy flush of safe runs)
         // 2) escape-heavy mode for mostly-unsafe inputs (big prealloc, simpler loop)
-        var len = s.Length;
 
         if (fmt == Format.Rfc1738)
         {
