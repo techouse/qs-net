@@ -15,6 +15,12 @@ internal static class Encoder
 {
     private static readonly Formatter IdentityFormatter = s => s;
 
+    private static bool IsLeaf(object? v, bool skipNulls)
+    {
+        if (v is null) return skipNulls;
+        return Utils.IsNonNullishPrimitive(v) || v is byte[];
+    }
+
     /// <summary>
     ///     Encodes the given data into a query string format.
     /// </summary>
@@ -66,7 +72,7 @@ internal static class Encoder
         var cs = charset ?? Encoding.UTF8;
         var gen = generateArrayPrefix ?? ListFormat.Indices.GetGenerator();
 
-        var isCommaGen = ReferenceEquals(gen, ListFormat.Comma.GetGenerator());
+        var isCommaGen = gen == ListFormat.Comma.GetGenerator();
         var crt = commaRoundTrip ?? isCommaGen;
 
         var keyPrefixStr = prefix ?? (addQueryPrefix ? "?" : "");
@@ -149,18 +155,26 @@ internal static class Encoder
         if (obj is IEnumerable seq0 and not string and not IDictionary)
         {
             isSeq = true;
-            seqList = seq0.Cast<object?>().ToList();
+            if (obj is List<object?> already)
+                seqList = already;
+            else
+                seqList = seq0.Cast<object?>().ToList();
         }
 
         List<object?> objKeys;
         if (isCommaGen && obj is IEnumerable enumerable and not string and not IDictionary)
         {
-            var strings = enumerable is ICollection { Count: > 0 } coll0
-                ? new List<string>(coll0.Count)
-                : new List<string>();
+            List<string> strings;
+            if (obj is List<object?> listObj)
+                strings = new List<string>(listObj.Count);
+            else if (enumerable is ICollection { Count: > 0 } coll0)
+                strings = new List<string>(coll0.Count);
+            else
+                strings = [];
+
             if (encodeValuesOnly && encoder != null)
                 foreach (var el in enumerable)
-                    strings.Add(el is null ? "" : encoder(el.ToString(), null, null));
+                    strings.Add(el is null ? "" : encoder(el, null, null));
             else
                 foreach (var el in enumerable)
                     strings.Add(el?.ToString() ?? "");
@@ -396,7 +410,7 @@ internal static class Encoder
             if (objKey is not null && (obj is IDictionary || isSeq))
                 sideChannel.Set(objKey, step);
 
-            var childSc = new SideChannelFrame(sideChannel);
+            var childSc = IsLeaf(value, skipNulls) ? sideChannel : new SideChannelFrame(sideChannel);
 
             var childEncoder =
                 isCommaGen && encodeValuesOnly && obj is IEnumerable and not string
