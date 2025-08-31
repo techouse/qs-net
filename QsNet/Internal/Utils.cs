@@ -367,14 +367,17 @@ internal static partial class Utils
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsUnreservedAscii(char ch, Format fmt)
+    private static bool IsUnreservedAscii3986(char ch)
     {
-        // -, ., _, ~, 0-9, A-Z, a-z (+ () for RFC1738)
-        return ch is '-' or '.' or '_' or '~'
-               || ch is >= '0' and <= '9'
-               || ch is >= 'A' and <= 'Z'
-               || ch is >= 'a' and <= 'z'
-               || (fmt == Format.Rfc1738 && ch is '(' or ')');
+        // -, ., _, ~, 0-9, A-Z, a-z
+        return ch is '-' or '.' or '_' or '~' or >= '0' and <= '9' or >= 'A' and <= 'Z' or >= 'a' and <= 'z';
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsUnreservedAscii1738(char ch)
+    {
+        // RFC1738 extends RFC3986 set with parentheses
+        return ch is '(' or ')' || IsUnreservedAscii3986(ch);
     }
 
     /// <summary>
@@ -432,148 +435,272 @@ internal static partial class Utils
         // UTF-8 path with two strategies:
         // 1) run-copy mode for mixed/mostly-safe inputs (lazy flush of safe runs)
         // 2) escape-heavy mode for mostly-unsafe inputs (big prealloc, simpler loop)
-#if NETSTANDARD2_0
         var len = s.Length;
-#else
-        ReadOnlySpan<char> src = s.AsSpan();
-        int len = src.Length;
-#endif
 
-        // Scan to first unsafe ASCII (anything non-ASCII is unsafe-by-definition for this pass)
-        var i = 0;
-        while (i < len && s[i] <= 0x7F && IsUnreservedAscii(s[i], fmt)) i++;
-        if (i == len)
-            return s; // all safe ASCII
-
-        // Sample up to 64 chars after first unsafe to decide whether it's escape-heavy
-        var sampleEnd = Math.Min(len, i + 64);
-        var unsafeCount = 0;
-        for (var k = i; k < sampleEnd; k++)
+        if (fmt == Format.Rfc1738)
         {
-            var ch = s[k];
-            if (ch > 0x7F || !IsUnreservedAscii(ch, fmt))
-                unsafeCount++;
-        }
+            // Scan to first unsafe ASCII (anything non-ASCII is unsafe-by-definition for this pass)
+            var i = 0;
+            while (i < len && s[i] <= 0x7F && IsUnreservedAscii1738(s[i])) i++;
+            if (i == len)
+                return s; // all safe ASCII
 
-        var escapeHeavy = unsafeCount * 4 >= (sampleEnd - i) * 3; // ≥75% unsafe
-
-        var cap = escapeHeavy
-            ? len >= int.MaxValue / 3 ? int.MaxValue : len * 3
-            : len + 16;
-
-        var sb = new StringBuilder(cap);
-        var table = HexTable.Table;
-
-        if (!escapeHeavy)
-        {
-            var lastSafe = 0;
-            for (var idx = 0; idx < len; idx++)
+            // Sample up to 64 chars after first unsafe to decide whether it's escape-heavy
+            var sampleEnd = Math.Min(len, i + 64);
+            var unsafeCount = 0;
+            for (var k = i; k < sampleEnd; k++)
             {
-                int c = s[idx];
-                var safeAscii = c <= 0x7F && IsUnreservedAscii((char)c, fmt);
-                if (safeAscii)
-                    continue;
-
-                // flush preceding safe run
-                if (idx > lastSafe)
-                    sb.Append(s, lastSafe, idx - lastSafe);
-
-                switch (c)
-                {
-                    case < 0x80:
-                        sb.Append(table[c]);
-                        break;
-                    case < 0x800:
-                        sb.Append(table[0xC0 | (c >> 6)]);
-                        sb.Append(table[0x80 | (c & 0x3F)]);
-                        break;
-                    case < 0xD800:
-                    case >= 0xE000:
-                        sb.Append(table[0xE0 | (c >> 12)]);
-                        sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
-                        sb.Append(table[0x80 | (c & 0x3F)]);
-                        break;
-                    default:
-                        {
-                            // surrogate handling
-                            if (idx + 1 < len && char.IsSurrogatePair(s[idx], s[idx + 1]))
-                            {
-                                var codePoint = char.ConvertToUtf32(s[idx], s[idx + 1]);
-                                sb.Append(table[0xF0 | (codePoint >> 18)]);
-                                sb.Append(table[0x80 | ((codePoint >> 12) & 0x3F)]);
-                                sb.Append(table[0x80 | ((codePoint >> 6) & 0x3F)]);
-                                sb.Append(table[0x80 | (codePoint & 0x3F)]);
-                                idx++; // consume low surrogate
-                            }
-                            else
-                            {
-                                sb.Append(table[0xE0 | (c >> 12)]);
-                                sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
-                                sb.Append(table[0x80 | (c & 0x3F)]);
-                            }
-
-                            break;
-                        }
-                }
-
-                lastSafe = idx + 1;
+                var ch = s[k];
+                if (ch > 0x7F || !IsUnreservedAscii1738(ch))
+                    unsafeCount++;
             }
 
-            if (lastSafe < len)
-                sb.Append(s, lastSafe, len - lastSafe);
+            var escapeHeavy = unsafeCount * 4 >= (sampleEnd - i) * 3; // ≥75% unsafe
+            var cap = escapeHeavy ? len >= int.MaxValue / 3 ? int.MaxValue : len * 3 : len + 16;
+            var sb = new StringBuilder(cap);
+            var table = HexTable.Table;
+
+            if (!escapeHeavy)
+            {
+                var lastSafe = 0;
+                for (var idx = 0; idx < len; idx++)
+                {
+                    int c = s[idx];
+                    var safeAscii = c <= 0x7F && IsUnreservedAscii1738((char)c);
+                    if (safeAscii)
+                        continue;
+
+                    // flush preceding safe run
+                    if (idx > lastSafe)
+                        sb.Append(s, lastSafe, idx - lastSafe);
+
+                    switch (c)
+                    {
+                        case < 0x80:
+                            sb.Append(table[c]);
+                            break;
+                        case < 0x800:
+                            sb.Append(table[0xC0 | (c >> 6)]);
+                            sb.Append(table[0x80 | (c & 0x3F)]);
+                            break;
+                        case < 0xD800:
+                        case >= 0xE000:
+                            sb.Append(table[0xE0 | (c >> 12)]);
+                            sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
+                            sb.Append(table[0x80 | (c & 0x3F)]);
+                            break;
+                        default:
+                            {
+                                // surrogate handling
+                                if (idx + 1 < len && char.IsSurrogatePair(s[idx], s[idx + 1]))
+                                {
+                                    var codePoint = char.ConvertToUtf32(s[idx], s[idx + 1]);
+                                    sb.Append(table[0xF0 | (codePoint >> 18)]);
+                                    sb.Append(table[0x80 | ((codePoint >> 12) & 0x3F)]);
+                                    sb.Append(table[0x80 | ((codePoint >> 6) & 0x3F)]);
+                                    sb.Append(table[0x80 | (codePoint & 0x3F)]);
+                                    idx++; // consume low surrogate
+                                }
+                                else
+                                {
+                                    sb.Append(table[0xE0 | (c >> 12)]);
+                                    sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
+                                    sb.Append(table[0x80 | (c & 0x3F)]);
+                                }
+
+                                break;
+                            }
+                    }
+
+                    lastSafe = idx + 1;
+                }
+
+                if (lastSafe < len)
+                    sb.Append(s, lastSafe, len - lastSafe);
+            }
+            else
+            {
+                // Escape-heavy mode: no run bookkeeping, big prealloc
+                if (i > 0) sb.Append(s, 0, i);
+
+                for (var j = i; j < len; j++)
+                {
+                    int c = s[j];
+
+                    switch (c)
+                    {
+                        case <= 0x7F when IsUnreservedAscii1738((char)c):
+                            sb.Append((char)c);
+                            continue;
+                        case < 0x80:
+                            sb.Append(table[c]);
+                            break;
+                        case < 0x800:
+                            sb.Append(table[0xC0 | (c >> 6)]);
+                            sb.Append(table[0x80 | (c & 0x3F)]);
+                            break;
+                        case < 0xD800:
+                        case >= 0xE000:
+                            sb.Append(table[0xE0 | (c >> 12)]);
+                            sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
+                            sb.Append(table[0x80 | (c & 0x3F)]);
+                            break;
+                        default:
+                            {
+                                if (j + 1 < len && char.IsSurrogatePair(s[j], s[j + 1]))
+                                {
+                                    var codePoint = char.ConvertToUtf32(s[j], s[j + 1]);
+                                    sb.Append(table[0xF0 | (codePoint >> 18)]);
+                                    sb.Append(table[0x80 | ((codePoint >> 12) & 0x3F)]);
+                                    sb.Append(table[0x80 | ((codePoint >> 6) & 0x3F)]);
+                                    sb.Append(table[0x80 | (codePoint & 0x3F)]);
+                                    j++;
+                                }
+                                else
+                                {
+                                    sb.Append(table[0xE0 | (c >> 12)]);
+                                    sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
+                                    sb.Append(table[0x80 | (c & 0x3F)]);
+                                }
+
+                                break;
+                            }
+                    }
+                }
+            }
+
+            return sb.ToString();
         }
         else
         {
-            // Escape-heavy mode: no run bookkeeping, big prealloc
-            if (i > 0) sb.Append(s, 0, i);
+            // RFC3986 path (no parentheses allowed)
+            var i = 0;
+            while (i < len && s[i] <= 0x7F && IsUnreservedAscii3986(s[i])) i++;
+            if (i == len)
+                return s;
 
-            for (var j = i; j < len; j++)
+            var sampleEnd = Math.Min(len, i + 64);
+            var unsafeCount = 0;
+            for (var k = i; k < sampleEnd; k++)
             {
-                int c = s[j];
+                var ch = s[k];
+                if (ch > 0x7F || !IsUnreservedAscii3986(ch))
+                    unsafeCount++;
+            }
 
-                switch (c)
+            var escapeHeavy = unsafeCount * 4 >= (sampleEnd - i) * 3; // ≥75% unsafe
+            var cap = escapeHeavy ? len >= int.MaxValue / 3 ? int.MaxValue : len * 3 : len + 16;
+            var sb = new StringBuilder(cap);
+            var table = HexTable.Table;
+
+            if (!escapeHeavy)
+            {
+                var lastSafe = 0;
+                for (var idx = 0; idx < len; idx++)
                 {
-                    case <= 0x7F when IsUnreservedAscii((char)c, fmt):
-                        sb.Append((char)c);
+                    int c = s[idx];
+                    var safeAscii = c <= 0x7F && IsUnreservedAscii3986((char)c);
+                    if (safeAscii)
                         continue;
-                    case < 0x80:
-                        sb.Append(table[c]);
-                        break;
-                    case < 0x800:
-                        sb.Append(table[0xC0 | (c >> 6)]);
-                        sb.Append(table[0x80 | (c & 0x3F)]);
-                        break;
-                    case < 0xD800:
-                    case >= 0xE000:
-                        sb.Append(table[0xE0 | (c >> 12)]);
-                        sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
-                        sb.Append(table[0x80 | (c & 0x3F)]);
-                        break;
-                    default:
-                        {
-                            if (j + 1 < len && char.IsSurrogatePair(s[j], s[j + 1]))
-                            {
-                                var codePoint = char.ConvertToUtf32(s[j], s[j + 1]);
-                                sb.Append(table[0xF0 | (codePoint >> 18)]);
-                                sb.Append(table[0x80 | ((codePoint >> 12) & 0x3F)]);
-                                sb.Append(table[0x80 | ((codePoint >> 6) & 0x3F)]);
-                                sb.Append(table[0x80 | (codePoint & 0x3F)]);
-                                j++;
-                            }
-                            else
-                            {
-                                sb.Append(table[0xE0 | (c >> 12)]);
-                                sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
-                                sb.Append(table[0x80 | (c & 0x3F)]);
-                            }
 
+                    if (idx > lastSafe)
+                        sb.Append(s, lastSafe, idx - lastSafe);
+
+                    switch (c)
+                    {
+                        case < 0x80:
+                            sb.Append(table[c]);
                             break;
-                        }
+                        case < 0x800:
+                            sb.Append(table[0xC0 | (c >> 6)]);
+                            sb.Append(table[0x80 | (c & 0x3F)]);
+                            break;
+                        case < 0xD800:
+                        case >= 0xE000:
+                            sb.Append(table[0xE0 | (c >> 12)]);
+                            sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
+                            sb.Append(table[0x80 | (c & 0x3F)]);
+                            break;
+                        default:
+                            {
+                                if (idx + 1 < len && char.IsSurrogatePair(s[idx], s[idx + 1]))
+                                {
+                                    var codePoint = char.ConvertToUtf32(s[idx], s[idx + 1]);
+                                    sb.Append(table[0xF0 | (codePoint >> 18)]);
+                                    sb.Append(table[0x80 | ((codePoint >> 12) & 0x3F)]);
+                                    sb.Append(table[0x80 | ((codePoint >> 6) & 0x3F)]);
+                                    sb.Append(table[0x80 | (codePoint & 0x3F)]);
+                                    idx++;
+                                }
+                                else
+                                {
+                                    sb.Append(table[0xE0 | (c >> 12)]);
+                                    sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
+                                    sb.Append(table[0x80 | (c & 0x3F)]);
+                                }
+
+                                break;
+                            }
+                    }
+
+                    lastSafe = idx + 1;
+                }
+
+                if (lastSafe < len)
+                    sb.Append(s, lastSafe, len - lastSafe);
+            }
+            else
+            {
+                if (i > 0) sb.Append(s, 0, i);
+
+                for (var j = i; j < len; j++)
+                {
+                    int c = s[j];
+
+                    switch (c)
+                    {
+                        case <= 0x7F when IsUnreservedAscii3986((char)c):
+                            sb.Append((char)c);
+                            continue;
+                        case < 0x80:
+                            sb.Append(table[c]);
+                            break;
+                        case < 0x800:
+                            sb.Append(table[0xC0 | (c >> 6)]);
+                            sb.Append(table[0x80 | (c & 0x3F)]);
+                            break;
+                        case < 0xD800:
+                        case >= 0xE000:
+                            sb.Append(table[0xE0 | (c >> 12)]);
+                            sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
+                            sb.Append(table[0x80 | (c & 0x3F)]);
+                            break;
+                        default:
+                            {
+                                if (j + 1 < len && char.IsSurrogatePair(s[j], s[j + 1]))
+                                {
+                                    var codePoint = char.ConvertToUtf32(s[j], s[j + 1]);
+                                    sb.Append(table[0xF0 | (codePoint >> 18)]);
+                                    sb.Append(table[0x80 | ((codePoint >> 12) & 0x3F)]);
+                                    sb.Append(table[0x80 | ((codePoint >> 6) & 0x3F)]);
+                                    sb.Append(table[0x80 | (codePoint & 0x3F)]);
+                                    j++;
+                                }
+                                else
+                                {
+                                    sb.Append(table[0xE0 | (c >> 12)]);
+                                    sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
+                                    sb.Append(table[0x80 | (c & 0x3F)]);
+                                }
+
+                                break;
+                            }
+                    }
                 }
             }
-        }
 
-        return sb.ToString();
+            return sb.ToString();
+        }
     }
 
     /// <summary>
