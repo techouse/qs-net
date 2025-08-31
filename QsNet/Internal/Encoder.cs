@@ -17,22 +17,6 @@ internal static class Encoder
 {
     private static readonly Formatter IdentityFormatter = s => s;
 
-    private static readonly char[] HexUpper = "0123456789ABCDEF".ToCharArray();
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsAsciiAlphaNum(char ch)
-    {
-        return ch is >= '0' and <= '9' or >= 'A' and <= 'Z' or >= 'a' and <= 'z';
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AppendPctEncodedByte(StringBuilder sb, byte b)
-    {
-        sb.Append('%');
-        sb.Append(HexUpper[b >> 4]);
-        sb.Append(HexUpper[b & 0xF]);
-    }
-
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string ToInvariantString(object? value)
     {
@@ -233,10 +217,12 @@ internal static class Encoder
             filter is not IterableFilter)
         {
 #if NETSTANDARD2_0
+            // Intentionally gate on encodeDotInKeys only to preserve legacy behavior when AllowDots = false
             var encodedPrefixFast = encodeDotInKeys && keyPrefixStr.IndexOf('.') >= 0
                 ? keyPrefixStr.Replace(".", "%2E")
                 : keyPrefixStr;
 #else
+            // Intentionally gate on encodeDotInKeys only to preserve legacy behavior when AllowDots = false
             var encodedPrefixFast = encodeDotInKeys && keyPrefixStr.Contains('.', StringComparison.Ordinal)
                 ? keyPrefixStr.Replace(".", "%2E", StringComparison.Ordinal)
                 : keyPrefixStr;
@@ -367,10 +353,12 @@ internal static class Encoder
             filter is not IterableFilter)
         {
 #if NETSTANDARD2_0
+            // Intentionally gate on encodeDotInKeys only to preserve legacy behavior when AllowDots = false
             var encodedPrefixC = encodeDotInKeys && keyPrefixStr.IndexOf('.') >= 0
                 ? keyPrefixStr.Replace(".", "%2E")
                 : keyPrefixStr;
 #else
+            // Intentionally gate on encodeDotInKeys only to preserve legacy behavior when AllowDots = false
             var encodedPrefixC = encodeDotInKeys && keyPrefixStr.Contains('.', StringComparison.Ordinal)
                 ? keyPrefixStr.Replace(".", "%2E", StringComparison.Ordinal)
                 : keyPrefixStr;
@@ -524,10 +512,12 @@ internal static class Encoder
         var values = new List<object?>(objKeys.Count);
 
 #if NETSTANDARD2_0
+        // Intentionally gate on encodeDotInKeys only to preserve legacy behavior when AllowDots = false
         var encodedPrefix = encodeDotInKeys && keyPrefixStr.IndexOf('.') >= 0
             ? keyPrefixStr.Replace(".", "%2E")
             : keyPrefixStr;
 #else
+        // Intentionally gate on encodeDotInKeys only to preserve legacy behavior when AllowDots = false
         var encodedPrefix = encodeDotInKeys && keyPrefixStr.Contains('.', StringComparison.Ordinal)
             ? keyPrefixStr.Replace(".", "%2E", StringComparison.Ordinal)
             : keyPrefixStr;
