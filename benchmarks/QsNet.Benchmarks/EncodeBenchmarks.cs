@@ -15,16 +15,22 @@ namespace QsNet.Benchmarks;
 [Orderer(SummaryOrderPolicy.FastestToSlowest)]
 public class EncodeBenchmarks
 {
+    public enum DotMode
+    {
+        None,               // AllowDots=false, EncodeDotInKeys=false
+        AllowDots,          // AllowDots=true,  EncodeDotInKeys=false
+        AllowDotsAndEncode  // AllowDots=true,  EncodeDotInKeys=true
+    }
+
     // Size & shape
     [Params(10, 100, 1000)] public int Count { get; set; }
     [Params(8, 40)] public int ValueLen { get; set; }
-    [Params(0, 1, 10, 50)] public int NeedsEscPercent { get; set; }
+    [Params(0, 50)] public int NeedsEscPercent { get; set; }
 
     // Option toggles that materially affect Encode()
     [Params(false, true)] public bool CommaLists { get; set; }
     [Params(false, true)] public bool EncodeValuesOnly { get; set; }
-    [Params(false, true)] public bool EncodeDotInKeys { get; set; }
-    [Params(false, true)] public bool AllowDots { get; set; }
+    [Params(DotMode.None, DotMode.AllowDots, DotMode.AllowDotsAndEncode)] public DotMode Dots { get; set; }
 
     private static string MakeValue(int len, int escPercent, Random rnd)
     {
@@ -90,8 +96,8 @@ public class EncodeBenchmarks
         {
             ListFormat = CommaLists ? ListFormat.Comma : ListFormat.Indices,
             EncodeValuesOnly = EncodeValuesOnly,
-            EncodeDotInKeys = EncodeDotInKeys,
-            AllowDots = AllowDots,
+            AllowDots = Dots != DotMode.None,
+            EncodeDotInKeys = Dots == DotMode.AllowDotsAndEncode,
             // Leave other toggles at defaults to mirror common usage.
         };
     }
