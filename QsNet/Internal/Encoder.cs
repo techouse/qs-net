@@ -440,7 +440,7 @@ internal static class Encoder
 
             if (encodeValuesOnly && encoder != null)
                 foreach (var el in enumerable)
-                    strings.Add(el is null ? "" : encoder(el, null, null));
+                    strings.Add(el is null ? "" : encoder(el, cs, format));
             else
                 foreach (var el in enumerable)
                     strings.Add(el?.ToString() ?? "");
