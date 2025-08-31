@@ -192,8 +192,8 @@ internal static class Encoder
                 return $"{fmt(keyPrefixStr)}={fmt(s)}";
             }
 
-            var keyPart = encodeValuesOnly ? keyPrefixStr : encoder(keyPrefixStr, null, null);
-            var valuePart = encoder(obj, null, null);
+            var keyPart = encodeValuesOnly ? keyPrefixStr : encoder(keyPrefixStr, cs, format);
+            var valuePart = encoder(obj, cs, format);
             return $"{fmt(keyPart)}={fmt(valuePart)}";
         }
 
