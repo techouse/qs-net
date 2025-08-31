@@ -1196,14 +1196,13 @@ internal static partial class Utils
 
                     if (j < n && str[j] == ';' && j > startDigits)
                     {
-                        int code;
 #if NETSTANDARD2_0
                         var digits = str.Substring(startDigits, j - startDigits);
                         var ok = int.TryParse(
                             digits,
                             hex ? NumberStyles.HexNumber : NumberStyles.Integer,
                             CultureInfo.InvariantCulture,
-                            out code
+                            out var code
                         );
 #else
                         var digits = str.AsSpan(startDigits, j - startDigits);
@@ -1211,7 +1210,7 @@ internal static partial class Utils
                             digits,
                             hex ? NumberStyles.HexNumber : NumberStyles.Integer,
                             CultureInfo.InvariantCulture,
-                            out code
+                            out var code
                         );
 #endif
                         if (!ok)
