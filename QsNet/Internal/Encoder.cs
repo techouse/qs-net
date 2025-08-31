@@ -68,7 +68,7 @@ internal static class Encoder
     private static bool IsLeaf(object? v, bool skipNulls)
     {
         if (v is null) return skipNulls;
-        return Utils.IsNonNullishPrimitive(v) || v is byte[];
+        return v is string || v is byte[] || Utils.IsNonNullishPrimitive(v, skipNulls);
     }
 
     /// <summary>
