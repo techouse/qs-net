@@ -653,9 +653,10 @@ internal static partial class Utils
                                 }
                                 else
                                 {
-                                    sb.Append(table[0xE0 | (c >> 12)]);
-                                    sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
-                                    sb.Append(table[0x80 | (c & 0x3F)]);
+                                    // Unpaired surrogate: emit U+FFFD (EF BF BD)
+                                    sb.Append(table[0xEF]);
+                                    sb.Append(table[0xBF]);
+                                    sb.Append(table[0xBD]);
                                 }
 
                                 break;
@@ -708,9 +709,10 @@ internal static partial class Utils
                                 }
                                 else
                                 {
-                                    sb.Append(table[0xE0 | (c >> 12)]);
-                                    sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
-                                    sb.Append(table[0x80 | (c & 0x3F)]);
+                                    // Unpaired surrogate: emit U+FFFD (EF BF BD)
+                                    sb.Append(table[0xEF]);
+                                    sb.Append(table[0xBF]);
+                                    sb.Append(table[0xBD]);
                                 }
 
                                 break;
@@ -784,9 +786,10 @@ internal static partial class Utils
                                 }
                                 else
                                 {
-                                    sb.Append(table[0xE0 | (c >> 12)]);
-                                    sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
-                                    sb.Append(table[0x80 | (c & 0x3F)]);
+                                    // Unpaired surrogate: emit U+FFFD (EF BF BD)
+                                    sb.Append(table[0xEF]);
+                                    sb.Append(table[0xBF]);
+                                    sb.Append(table[0xBD]);
                                 }
 
                                 break;
@@ -838,9 +841,10 @@ internal static partial class Utils
                                 }
                                 else
                                 {
-                                    sb.Append(table[0xE0 | (c >> 12)]);
-                                    sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
-                                    sb.Append(table[0x80 | (c & 0x3F)]);
+                                    // Unpaired surrogate: emit U+FFFD (EF BF BD)
+                                    sb.Append(table[0xEF]);
+                                    sb.Append(table[0xBF]);
+                                    sb.Append(table[0xBD]);
                                 }
 
                                 break;
