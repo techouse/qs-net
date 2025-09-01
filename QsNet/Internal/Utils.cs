@@ -351,64 +351,31 @@ internal static partial class Utils
         return sb.ToString();
     }
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsUnreservedAscii3986(char ch)
-    {
-        // -, ., _, ~, 0-9, A-Z, a-z
-        return ch is '-' or '.' or '_' or '~' or >= '0' and <= '9' or >= 'A' and <= 'Z' or >= 'a' and <= 'z';
-    }
+    // Precomputed ASCII membership tables for fast checks
+    // RFC 3986 unreserved: - . _ ~ 0-9 A-Z a-z
+    private static readonly bool[] UnreservedTable3986 =
+        CreateAsciiTable("-._~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsUnreservedAscii1738(char ch)
-    {
-        // RFC1738 extends RFC3986 set with parentheses
-        return ch is '(' or ')' || IsUnreservedAscii3986(ch);
-    }
+    // RFC 1738 extends RFC 3986 with '(' and ')'
+    private static readonly bool[] UnreservedTable1738 =
+        CreateAsciiTable("()-._~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsSafeLatin1Ascii1738(char ch)
-    {
-        // Legacy Latin-1 encode behavior:
-        // - treat '+' as safe (do not encode)
-        // - treat '~' as unsafe (percent-encode)
-        // - RFC1738 adds '(' and ')'
-        return ch is '+' or '(' or ')' or '-' or '.' or '_' or >= '0' and <= '9' or >= 'A' and <= 'Z'
-            or >= 'a' and <= 'z';
-    }
+    // Legacy Latin-1 safe sets:
+    //  - '+' is safe (NOT encoded)
+    //  - '~' is NOT safe (WILL be encoded)
+    // RFC3986 (no parentheses)
+    private static readonly bool[] Latin1SafeTable3986 =
+        CreateAsciiTable("+-._0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsSafeLatin1Ascii3986(char ch)
-    {
-        // Legacy Latin-1 encode behavior:
-        // - treat '+' as safe (do not encode)
-        // - treat '~' as unsafe (percent-encode)
-        return ch is '+' or '-' or '.' or '_' or >= '0' and <= '9' or >= 'A' and <= 'Z' or >= 'a' and <= 'z';
-    }
+    // RFC1738 adds '(' and ')'
+    private static readonly bool[] Latin1SafeTable1738 =
+        CreateAsciiTable("()+-._0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 
-    // Precomputed ASCII lookup tables to speed up the initial all-ASCII fast scan
-    private static readonly bool[] Unreserved3986Ascii = BuildUnreserved3986Ascii();
-    private static readonly bool[] Unreserved1738Ascii = BuildUnreserved1738Ascii();
-
-    private static bool[] BuildUnreserved3986Ascii()
+    private static bool[] CreateAsciiTable(string chars)
     {
         var t = new bool[128];
-        // RFC 3986 unreserved: ALPHA / DIGIT / "-" / "." / "_" / "~"
-        for (var c = (int)'0'; c <= '9'; c++) t[c] = true;
-        for (var c = (int)'A'; c <= 'Z'; c++) t[c] = true;
-        for (var c = (int)'a'; c <= 'z'; c++) t[c] = true;
-        t['-'] = true;
-        t['.'] = true;
-        t['_'] = true;
-        t['~'] = true;
-        return t;
-    }
-
-    private static bool[] BuildUnreserved1738Ascii()
-    {
-        // RFC1738 extends RFC3986's set with parentheses
-        var t = BuildUnreserved3986Ascii();
-        t['('] = true;
-        t[')'] = true;
+        foreach (var ch in chars)
+            t[ch] = true;
         return t;
     }
 
@@ -453,8 +420,9 @@ internal static partial class Utils
             {
                 // Legacy behavior: in Latin-1 mode, treat '+' as safe (do not percent-encode)
                 // Scan to first unsafe ASCII (anything non-ASCII is unsafe for this pass)
+                var asciiSafe = Latin1SafeTable1738;
                 var i = 0;
-                while (i < len && s[i] <= 0x7F && IsSafeLatin1Ascii1738(s[i])) i++;
+                while (i < len && s[i] <= 0x7F && asciiSafe[s[i]]) i++;
                 if (i == len)
                     return s; // all safe ASCII
 
@@ -464,7 +432,7 @@ internal static partial class Utils
                 for (var k = i; k < sampleEnd; k++)
                 {
                     var ch = s[k];
-                    if (ch > 0x7F || !IsSafeLatin1Ascii1738(ch))
+                    if (ch > 0x7F || !asciiSafe[ch])
                         unsafeCount++;
                 }
 
@@ -478,7 +446,7 @@ internal static partial class Utils
                     for (var idx = 0; idx < len; idx++)
                     {
                         int c = s[idx];
-                        var safeAscii = c <= 0x7F && IsSafeLatin1Ascii1738((char)c);
+                        var safeAscii = c <= 0x7F && asciiSafe[c];
                         if (safeAscii)
                             continue;
 
@@ -515,7 +483,7 @@ internal static partial class Utils
 
                         switch (c)
                         {
-                            case <= 0x7F when IsSafeLatin1Ascii1738((char)c):
+                            case <= 0x7F when asciiSafe[c]:
                                 sb.Append((char)c);
                                 continue;
                             case <= 0xFF:
@@ -536,8 +504,9 @@ internal static partial class Utils
             {
                 // Legacy behavior: in Latin-1 mode, treat '+' as safe (do not percent-encode)
                 // RFC3986 path (no parentheses allowed)
+                var asciiSafe = Latin1SafeTable3986;
                 var i = 0;
-                while (i < len && s[i] <= 0x7F && IsSafeLatin1Ascii3986(s[i])) i++;
+                while (i < len && s[i] <= 0x7F && asciiSafe[s[i]]) i++;
                 if (i == len)
                     return s; // all safe ASCII
 
@@ -546,7 +515,7 @@ internal static partial class Utils
                 for (var k = i; k < sampleEnd; k++)
                 {
                     var ch = s[k];
-                    if (ch > 0x7F || !IsSafeLatin1Ascii3986(ch))
+                    if (ch > 0x7F || !asciiSafe[ch])
                         unsafeCount++;
                 }
 
@@ -560,7 +529,7 @@ internal static partial class Utils
                     for (var idx = 0; idx < len; idx++)
                     {
                         int c = s[idx];
-                        var safeAscii = c <= 0x7F && IsSafeLatin1Ascii3986((char)c);
+                        var safeAscii = c <= 0x7F && asciiSafe[c];
                         if (safeAscii)
                             continue;
 
@@ -594,7 +563,7 @@ internal static partial class Utils
 
                         switch (c)
                         {
-                            case <= 0x7F when IsSafeLatin1Ascii3986((char)c):
+                            case <= 0x7F when asciiSafe[c]:
                                 sb.Append((char)c);
                                 continue;
                             case <= 0xFF:
@@ -619,15 +588,10 @@ internal static partial class Utils
 
         if (fmt == Format.Rfc1738)
         {
-            // Scan to first unsafe ASCII using precomputed table (fewer calls/bounds checks)
+            // Scan to first unsafe ASCII (anything non-ASCII is unsafe-by-definition for this pass)
+            var asciiUnreserved = UnreservedTable1738;
             var i = 0;
-            for (; i < len; i++)
-            {
-                var ch = s[i];
-                if ((uint)ch >= 128 || !Unreserved1738Ascii[ch])
-                    break;
-            }
-
+            while (i < len && s[i] <= 0x7F && asciiUnreserved[s[i]]) i++;
             if (i == len)
                 return s; // all safe ASCII
 
@@ -637,7 +601,7 @@ internal static partial class Utils
             for (var k = i; k < sampleEnd; k++)
             {
                 var ch = s[k];
-                if (ch > 0x7F || !IsUnreservedAscii1738(ch))
+                if (ch > 0x7F || !asciiUnreserved[ch])
                     unsafeCount++;
             }
 
@@ -652,7 +616,7 @@ internal static partial class Utils
                 for (var idx = 0; idx < len; idx++)
                 {
                     int c = s[idx];
-                    var safeAscii = c <= 0x7F && IsUnreservedAscii1738((char)c);
+                    var safeAscii = c <= 0x7F && asciiUnreserved[c];
                     if (safeAscii)
                         continue;
 
@@ -718,7 +682,7 @@ internal static partial class Utils
                     int c = s[j];
                     if ((uint)c < 0x80)
                     {
-                        if (IsUnreservedAscii1738((char)c))
+                        if (asciiUnreserved[c])
                         {
                             sb.Append((char)c);
                             continue;
@@ -768,15 +732,10 @@ internal static partial class Utils
         }
         else
         {
-            // RFC3986 path (no parentheses allowed) — faster ASCII run scan
+            // RFC3986 path (no parentheses allowed)
+            var asciiUnreserved = UnreservedTable3986;
             var i = 0;
-            for (; i < len; i++)
-            {
-                var ch = s[i];
-                if ((uint)ch >= 128 || !Unreserved3986Ascii[ch])
-                    break;
-            }
-
+            while (i < len && s[i] <= 0x7F && asciiUnreserved[s[i]]) i++;
             if (i == len)
                 return s;
 
@@ -785,7 +744,7 @@ internal static partial class Utils
             for (var k = i; k < sampleEnd; k++)
             {
                 var ch = s[k];
-                if (ch > 0x7F || !IsUnreservedAscii3986(ch))
+                if (ch > 0x7F || !asciiUnreserved[ch])
                     unsafeCount++;
             }
 
@@ -800,7 +759,7 @@ internal static partial class Utils
                 for (var idx = 0; idx < len; idx++)
                 {
                     int c = s[idx];
-                    var safeAscii = c <= 0x7F && IsUnreservedAscii3986((char)c);
+                    var safeAscii = c <= 0x7F && asciiUnreserved[c];
                     if (safeAscii)
                         continue;
 
@@ -864,7 +823,7 @@ internal static partial class Utils
                     int c = s[j];
                     if ((uint)c < 0x80)
                     {
-                        if (IsUnreservedAscii3986((char)c))
+                        if (asciiUnreserved[c])
                         {
                             sb.Append((char)c);
                             continue;
