@@ -462,7 +462,7 @@ internal static partial class Utils
                         {
                             // For non-Latin1 code units, emit percent-encoded numeric entity: %26%23{code}%3B
                             sb.Append("%26%23");
-                            sb.Append(c);
+                            sb.Append(c.ToString(CultureInfo.InvariantCulture));
                             sb.Append("%3B");
                         }
 
@@ -491,7 +491,7 @@ internal static partial class Utils
                                 break;
                             default:
                                 sb.Append("%26%23");
-                                sb.Append(c);
+                                sb.Append(c.ToString(CultureInfo.InvariantCulture));
                                 sb.Append("%3B");
                                 break;
                         }
@@ -543,7 +543,7 @@ internal static partial class Utils
                         else
                         {
                             sb.Append("%26%23");
-                            sb.Append(c);
+                            sb.Append(c.ToString(CultureInfo.InvariantCulture));
                             sb.Append("%3B");
                         }
 
@@ -571,7 +571,7 @@ internal static partial class Utils
                                 break;
                             default:
                                 sb.Append("%26%23");
-                                sb.Append(c);
+                                sb.Append(c.ToString(CultureInfo.InvariantCulture));
                                 sb.Append("%3B");
                                 break;
                         }
@@ -881,31 +881,52 @@ internal static partial class Utils
     /// <returns>The decoded string, or null if the input is null.</returns>
     public static string? Decode(string? str, Encoding? encoding = null)
     {
-        encoding ??= Encoding.UTF8;
-        var strWithoutPlus = str?.Replace('+', ' ');
+        {
+            encoding ??= Encoding.UTF8;
 
-        if (encoding.CodePage == 28591) // ISO-8859-1 (Latin-1)
+            if (str is null)
+                return null;
+
+            // Avoid allocating when there is no '+' to translate
+#if NETSTANDARD2_0
+            var hasPlus = str.IndexOf('+') >= 0;
+#else
+            var hasPlus = str.Contains('+');
+#endif
+            var strWithoutPlus = hasPlus ? str.Replace('+', ' ') : str;
+
+            // Fast path: if there is no percent, nothing to decode
+#if NETSTANDARD2_0
+            if (strWithoutPlus.IndexOf('%') == -1)
+                return strWithoutPlus;
+#else
+            if (!strWithoutPlus.Contains('%'))
+                return strWithoutPlus;
+#endif
+
+            if (encoding.CodePage == 28591) // ISO-8859-1 (Latin-1)
+                try
+                {
+                    return MyRegex()
+#pragma warning disable CS0618
+                        .Replace(strWithoutPlus,
+                            match => Unescape(match.Value)
+#pragma warning restore CS0618
+                        );
+                }
+                catch
+                {
+                    return strWithoutPlus;
+                }
+
             try
             {
-                return MyRegex()
-                    .Replace(strWithoutPlus ?? string.Empty,
-#pragma warning disable CS0618
-                        match => Unescape(match.Value)
-#pragma warning restore CS0618
-                    );
+                return HttpUtility.UrlDecode(strWithoutPlus, encoding);
             }
             catch
             {
                 return strWithoutPlus;
             }
-
-        try
-        {
-            return strWithoutPlus != null ? HttpUtility.UrlDecode(strWithoutPlus, encoding) : null;
-        }
-        catch
-        {
-            return strWithoutPlus;
         }
     }
 
