@@ -385,6 +385,33 @@ internal static partial class Utils
         return ch is '+' or '-' or '.' or '_' or >= '0' and <= '9' or >= 'A' and <= 'Z' or >= 'a' and <= 'z';
     }
 
+    // Precomputed ASCII lookup tables to speed up the initial all-ASCII fast scan
+    private static readonly bool[] Unreserved3986Ascii = BuildUnreserved3986Ascii();
+    private static readonly bool[] Unreserved1738Ascii = BuildUnreserved1738Ascii();
+
+    private static bool[] BuildUnreserved3986Ascii()
+    {
+        var t = new bool[128];
+        // RFC 3986 unreserved: ALPHA / DIGIT / "-" / "." / "_" / "~"
+        for (var c = (int)'0'; c <= '9'; c++) t[c] = true;
+        for (var c = (int)'A'; c <= 'Z'; c++) t[c] = true;
+        for (var c = (int)'a'; c <= 'z'; c++) t[c] = true;
+        t['-'] = true;
+        t['.'] = true;
+        t['_'] = true;
+        t['~'] = true;
+        return t;
+    }
+
+    private static bool[] BuildUnreserved1738Ascii()
+    {
+        // RFC1738 extends RFC3986's set with parentheses
+        var t = BuildUnreserved3986Ascii();
+        t['('] = true;
+        t[')'] = true;
+        return t;
+    }
+
     private const string Utf8ReplacementPercent = "%EF%BF%BD"; // percent-encoded UTF-8 for U+FFFD
 
     /// <summary>
@@ -592,9 +619,15 @@ internal static partial class Utils
 
         if (fmt == Format.Rfc1738)
         {
-            // Scan to first unsafe ASCII (anything non-ASCII is unsafe-by-definition for this pass)
+            // Scan to first unsafe ASCII using precomputed table (fewer calls/bounds checks)
             var i = 0;
-            while (i < len && s[i] <= 0x7F && IsUnreservedAscii1738(s[i])) i++;
+            for (; i < len; i++)
+            {
+                var ch = s[i];
+                if ((uint)ch >= 128 || !Unreserved1738Ascii[ch])
+                    break;
+            }
+
             if (i == len)
                 return s; // all safe ASCII
 
@@ -735,9 +768,15 @@ internal static partial class Utils
         }
         else
         {
-            // RFC3986 path (no parentheses allowed)
+            // RFC3986 path (no parentheses allowed) — faster ASCII run scan
             var i = 0;
-            while (i < len && s[i] <= 0x7F && IsUnreservedAscii3986(s[i])) i++;
+            for (; i < len; i++)
+            {
+                var ch = s[i];
+                if ((uint)ch >= 128 || !Unreserved3986Ascii[ch])
+                    break;
+            }
+
             if (i == len)
                 return s;
 
