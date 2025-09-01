@@ -385,6 +385,8 @@ internal static partial class Utils
         return ch is '+' or '-' or '.' or '_' or >= '0' and <= '9' or >= 'A' and <= 'Z' or >= 'a' and <= 'z';
     }
 
+    private const string Utf8ReplacementPercent = "%EF%BF%BD"; // percent-encoded UTF-8 for U+FFFD
+
     /// <summary>
     ///     Encodes a value into a URL-encoded string.
     /// </summary>
@@ -415,7 +417,8 @@ internal static partial class Utils
         var len = s.Length;
 
         // Latin-1 (ISO-8859-1) path with fast skip when no %u-escapes are present
-        if (encoding.CodePage == 28591 || string.Equals(encoding.WebName, "iso-8859-1", StringComparison.OrdinalIgnoreCase))
+        if (encoding.CodePage == 28591 ||
+            string.Equals(encoding.WebName, "iso-8859-1", StringComparison.OrdinalIgnoreCase))
         {
             var table = HexTable.Table;
 
@@ -624,43 +627,46 @@ internal static partial class Utils
                     if (idx > lastSafe)
                         sb.Append(s, lastSafe, idx - lastSafe);
 
-                    switch (c)
+                    // fast UTF-8 encode, surrogate-aware
+                    if ((uint)c < 0x80)
                     {
-                        case < 0x80:
-                            sb.Append(table[c]);
-                            break;
-                        case < 0x800:
-                            sb.Append(table[0xC0 | (c >> 6)]);
-                            sb.Append(table[0x80 | (c & 0x3F)]);
-                            break;
-                        case < 0xD800:
-                        case >= 0xE000:
-                            sb.Append(table[0xE0 | (c >> 12)]);
-                            sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
-                            sb.Append(table[0x80 | (c & 0x3F)]);
-                            break;
-                        default:
+                        sb.Append(table[c]);
+                    }
+                    else if (c < 0x800)
+                    {
+                        sb.Append(table[0xC0 | (c >> 6)]);
+                        sb.Append(table[0x80 | (c & 0x3F)]);
+                    }
+                    else if ((uint)(c - 0xD800) <= 0x07FF)
+                    {
+                        // Surrogates range
+                        if ((uint)(c - 0xD800) <= 0x03FF && idx + 1 < len)
+                        {
+                            int d = s[idx + 1];
+                            if ((uint)(d - 0xDC00) <= 0x03FF)
                             {
-                                // surrogate handling
-                                if (idx + 1 < len && char.IsSurrogatePair(s[idx], s[idx + 1]))
-                                {
-                                    var codePoint = char.ConvertToUtf32(s[idx], s[idx + 1]);
-                                    sb.Append(table[0xF0 | (codePoint >> 18)]);
-                                    sb.Append(table[0x80 | ((codePoint >> 12) & 0x3F)]);
-                                    sb.Append(table[0x80 | ((codePoint >> 6) & 0x3F)]);
-                                    sb.Append(table[0x80 | (codePoint & 0x3F)]);
-                                    idx++; // consume low surrogate
-                                }
-                                else
-                                {
-                                    // Unpaired surrogate: emit U+FFFD (EF BF BD)
-                                    sb.Append(table[0xEF]);
-                                    sb.Append(table[0xBF]);
-                                    sb.Append(table[0xBD]);
-                                }
-
-                                break;
+                                var codePoint = 0x10000 + (((c - 0xD800) << 10) | (d - 0xDC00));
+                                sb.Append(table[0xF0 | (codePoint >> 18)]);
+                                sb.Append(table[0x80 | ((codePoint >> 12) & 0x3F)]);
+                                sb.Append(table[0x80 | ((codePoint >> 6) & 0x3F)]);
+                                sb.Append(table[0x80 | (codePoint & 0x3F)]);
+                                idx++; // consume low surrogate
                             }
+                            else
+                            {
+                                sb.Append(Utf8ReplacementPercent); // unpaired high surrogate
+                            }
+                        }
+                        else
+                        {
+                            sb.Append(Utf8ReplacementPercent); // unpaired low surrogate
+                        }
+                    }
+                    else
+                    {
+                        sb.Append(table[0xE0 | (c >> 12)]);
+                        sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
+                        sb.Append(table[0x80 | (c & 0x3F)]);
                     }
 
                     lastSafe = idx + 1;
@@ -677,46 +683,50 @@ internal static partial class Utils
                 for (var j = i; j < len; j++)
                 {
                     int c = s[j];
-
-                    switch (c)
+                    if ((uint)c < 0x80)
                     {
-                        case <= 0x7F when IsUnreservedAscii1738((char)c):
+                        if (IsUnreservedAscii1738((char)c))
+                        {
                             sb.Append((char)c);
                             continue;
-                        case < 0x80:
-                            sb.Append(table[c]);
-                            break;
-                        case < 0x800:
-                            sb.Append(table[0xC0 | (c >> 6)]);
-                            sb.Append(table[0x80 | (c & 0x3F)]);
-                            break;
-                        case < 0xD800:
-                        case >= 0xE000:
-                            sb.Append(table[0xE0 | (c >> 12)]);
-                            sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
-                            sb.Append(table[0x80 | (c & 0x3F)]);
-                            break;
-                        default:
-                            {
-                                if (j + 1 < len && char.IsSurrogatePair(s[j], s[j + 1]))
-                                {
-                                    var codePoint = char.ConvertToUtf32(s[j], s[j + 1]);
-                                    sb.Append(table[0xF0 | (codePoint >> 18)]);
-                                    sb.Append(table[0x80 | ((codePoint >> 12) & 0x3F)]);
-                                    sb.Append(table[0x80 | ((codePoint >> 6) & 0x3F)]);
-                                    sb.Append(table[0x80 | (codePoint & 0x3F)]);
-                                    j++;
-                                }
-                                else
-                                {
-                                    // Unpaired surrogate: emit U+FFFD (EF BF BD)
-                                    sb.Append(table[0xEF]);
-                                    sb.Append(table[0xBF]);
-                                    sb.Append(table[0xBD]);
-                                }
+                        }
 
-                                break;
+                        sb.Append(table[c]);
+                    }
+                    else if (c < 0x800)
+                    {
+                        sb.Append(table[0xC0 | (c >> 6)]);
+                        sb.Append(table[0x80 | (c & 0x3F)]);
+                    }
+                    else if ((uint)(c - 0xD800) <= 0x07FF)
+                    {
+                        if ((uint)(c - 0xD800) <= 0x03FF && j + 1 < len)
+                        {
+                            int d = s[j + 1];
+                            if ((uint)(d - 0xDC00) <= 0x03FF)
+                            {
+                                var codePoint = 0x10000 + (((c - 0xD800) << 10) | (d - 0xDC00));
+                                sb.Append(table[0xF0 | (codePoint >> 18)]);
+                                sb.Append(table[0x80 | ((codePoint >> 12) & 0x3F)]);
+                                sb.Append(table[0x80 | ((codePoint >> 6) & 0x3F)]);
+                                sb.Append(table[0x80 | (codePoint & 0x3F)]);
+                                j++;
                             }
+                            else
+                            {
+                                sb.Append(Utf8ReplacementPercent);
+                            }
+                        }
+                        else
+                        {
+                            sb.Append(Utf8ReplacementPercent);
+                        }
+                    }
+                    else
+                    {
+                        sb.Append(table[0xE0 | (c >> 12)]);
+                        sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
+                        sb.Append(table[0x80 | (c & 0x3F)]);
                     }
                 }
             }
@@ -758,42 +768,46 @@ internal static partial class Utils
                     if (idx > lastSafe)
                         sb.Append(s, lastSafe, idx - lastSafe);
 
-                    switch (c)
+                    // fast UTF-8 encode, surrogate-aware
+                    if ((uint)c < 0x80)
                     {
-                        case < 0x80:
-                            sb.Append(table[c]);
-                            break;
-                        case < 0x800:
-                            sb.Append(table[0xC0 | (c >> 6)]);
-                            sb.Append(table[0x80 | (c & 0x3F)]);
-                            break;
-                        case < 0xD800:
-                        case >= 0xE000:
-                            sb.Append(table[0xE0 | (c >> 12)]);
-                            sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
-                            sb.Append(table[0x80 | (c & 0x3F)]);
-                            break;
-                        default:
+                        sb.Append(table[c]);
+                    }
+                    else if (c < 0x800)
+                    {
+                        sb.Append(table[0xC0 | (c >> 6)]);
+                        sb.Append(table[0x80 | (c & 0x3F)]);
+                    }
+                    else if ((uint)(c - 0xD800) <= 0x07FF)
+                    {
+                        // Surrogates range
+                        if ((uint)(c - 0xD800) <= 0x03FF && idx + 1 < len)
+                        {
+                            int d = s[idx + 1];
+                            if ((uint)(d - 0xDC00) <= 0x03FF)
                             {
-                                if (idx + 1 < len && char.IsSurrogatePair(s[idx], s[idx + 1]))
-                                {
-                                    var codePoint = char.ConvertToUtf32(s[idx], s[idx + 1]);
-                                    sb.Append(table[0xF0 | (codePoint >> 18)]);
-                                    sb.Append(table[0x80 | ((codePoint >> 12) & 0x3F)]);
-                                    sb.Append(table[0x80 | ((codePoint >> 6) & 0x3F)]);
-                                    sb.Append(table[0x80 | (codePoint & 0x3F)]);
-                                    idx++;
-                                }
-                                else
-                                {
-                                    // Unpaired surrogate: emit U+FFFD (EF BF BD)
-                                    sb.Append(table[0xEF]);
-                                    sb.Append(table[0xBF]);
-                                    sb.Append(table[0xBD]);
-                                }
-
-                                break;
+                                var codePoint = 0x10000 + (((c - 0xD800) << 10) | (d - 0xDC00));
+                                sb.Append(table[0xF0 | (codePoint >> 18)]);
+                                sb.Append(table[0x80 | ((codePoint >> 12) & 0x3F)]);
+                                sb.Append(table[0x80 | ((codePoint >> 6) & 0x3F)]);
+                                sb.Append(table[0x80 | (codePoint & 0x3F)]);
+                                idx++; // consume low surrogate
                             }
+                            else
+                            {
+                                sb.Append(Utf8ReplacementPercent); // unpaired high surrogate
+                            }
+                        }
+                        else
+                        {
+                            sb.Append(Utf8ReplacementPercent); // unpaired low surrogate
+                        }
+                    }
+                    else
+                    {
+                        sb.Append(table[0xE0 | (c >> 12)]);
+                        sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
+                        sb.Append(table[0x80 | (c & 0x3F)]);
                     }
 
                     lastSafe = idx + 1;
@@ -809,46 +823,50 @@ internal static partial class Utils
                 for (var j = i; j < len; j++)
                 {
                     int c = s[j];
-
-                    switch (c)
+                    if ((uint)c < 0x80)
                     {
-                        case <= 0x7F when IsUnreservedAscii3986((char)c):
+                        if (IsUnreservedAscii3986((char)c))
+                        {
                             sb.Append((char)c);
                             continue;
-                        case < 0x80:
-                            sb.Append(table[c]);
-                            break;
-                        case < 0x800:
-                            sb.Append(table[0xC0 | (c >> 6)]);
-                            sb.Append(table[0x80 | (c & 0x3F)]);
-                            break;
-                        case < 0xD800:
-                        case >= 0xE000:
-                            sb.Append(table[0xE0 | (c >> 12)]);
-                            sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
-                            sb.Append(table[0x80 | (c & 0x3F)]);
-                            break;
-                        default:
-                            {
-                                if (j + 1 < len && char.IsSurrogatePair(s[j], s[j + 1]))
-                                {
-                                    var codePoint = char.ConvertToUtf32(s[j], s[j + 1]);
-                                    sb.Append(table[0xF0 | (codePoint >> 18)]);
-                                    sb.Append(table[0x80 | ((codePoint >> 12) & 0x3F)]);
-                                    sb.Append(table[0x80 | ((codePoint >> 6) & 0x3F)]);
-                                    sb.Append(table[0x80 | (codePoint & 0x3F)]);
-                                    j++;
-                                }
-                                else
-                                {
-                                    // Unpaired surrogate: emit U+FFFD (EF BF BD)
-                                    sb.Append(table[0xEF]);
-                                    sb.Append(table[0xBF]);
-                                    sb.Append(table[0xBD]);
-                                }
+                        }
 
-                                break;
+                        sb.Append(table[c]);
+                    }
+                    else if (c < 0x800)
+                    {
+                        sb.Append(table[0xC0 | (c >> 6)]);
+                        sb.Append(table[0x80 | (c & 0x3F)]);
+                    }
+                    else if ((uint)(c - 0xD800) <= 0x07FF)
+                    {
+                        if ((uint)(c - 0xD800) <= 0x03FF && j + 1 < len)
+                        {
+                            int d = s[j + 1];
+                            if ((uint)(d - 0xDC00) <= 0x03FF)
+                            {
+                                var codePoint = 0x10000 + (((c - 0xD800) << 10) | (d - 0xDC00));
+                                sb.Append(table[0xF0 | (codePoint >> 18)]);
+                                sb.Append(table[0x80 | ((codePoint >> 12) & 0x3F)]);
+                                sb.Append(table[0x80 | ((codePoint >> 6) & 0x3F)]);
+                                sb.Append(table[0x80 | (codePoint & 0x3F)]);
+                                j++;
                             }
+                            else
+                            {
+                                sb.Append(Utf8ReplacementPercent);
+                            }
+                        }
+                        else
+                        {
+                            sb.Append(Utf8ReplacementPercent);
+                        }
+                    }
+                    else
+                    {
+                        sb.Append(table[0xE0 | (c >> 12)]);
+                        sb.Append(table[0x80 | ((c >> 6) & 0x3F)]);
+                        sb.Append(table[0x80 | (c & 0x3F)]);
                     }
                 }
             }
