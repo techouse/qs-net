@@ -13,10 +13,39 @@ namespace QsNet.Internal;
 /// <summary>
 ///     A helper class for encoding data into a query string format.
 /// </summary>
+/// <remarks>
+///     <para>
+///         <b>Performance notes</b>: This type sits on hot paths. It relies on <c>Utils.Encode</c> for percent-encoding.
+///         The UTF-8 encoder path uses precomputed ASCII lookup tables for RFC 3986/1738 unreserved sets to fast-scan
+///         ASCII and avoid per-char predicate cost. Latin-1 branches are intentionally left unchanged to preserve legacy
+///         behavior and measurements.
+///     </para>
+///     <para>
+///         <b>Semantics</b>: RFC3986 by default; RFC1738 only maps space to '+' (other bytes identical). When list
+///         format is <c>comma</c>, the separator comma between elements is written literally and never re-encoded; commas
+///         originating inside element values are encoded as "%2C". When <c>allowDots</c> and <c>encodeDotInKeys</c> are
+///         both true, '.' in keys is encoded as "%2E" to avoid ambiguity.
+///     </para>
+///     <para>
+///         <b>Safety</b>: The implementation avoids <c>unsafe</c> code. If an <c>unsafe</c> micro-optimization is
+///         considered in the future, only add it when dedicated benchmarks show a real win and all unit/compat tests pass.
+///         Encoding semantics must remain identical.
+///     </para>
+///     <para><b>Thread-safety</b>: Stateless; safe to use concurrently.</para>
+///     <para>
+///         <b>Benchmarks</b>: See <c>UtilsEncodeBenchmarks</c>. Any change here or in <c>Utils.Encode</c> should be
+///         validated against the UTF-8 and Latin-1 datasets (ascii-safe, latin1-fallback, reserved-heavy, utf8-mixed) to
+///         prevent regressions.
+///     </para>
+/// </remarks>
 internal static class Encoder
 {
     private static readonly Formatter IdentityFormatter = s => s;
 
+    /// <summary>
+    ///     Converts <paramref name="value" /> to a culture-invariant string.
+    ///     Booleans become "true"/"false"; numeric types use InvariantCulture; null becomes an empty string.
+    /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static string ToInvariantString(object? value)
     {
@@ -40,8 +69,11 @@ internal static class Encoder
         };
     }
 
-    // Encode a single value for the comma-values-only fast path, without re-encoding the comma separators.
-    // RFC3986 by default; RFC1738 maps space to '+'. Commas inside values are percent-encoded as %2C.
+    // Encodes a single element for the comma-join fast path.
+    // - Uses the provided encoder (or Utils.Encode) according to `format` and `cs`.
+    // - The comma separator between elements is appended by the caller and is never re‑encoded.
+    // - Any commas that originate *inside* a value are percent-encoded as "%2C" to preserve round‑trip semantics.
+    // - RFC3986 is the default; RFC1738 only changes space handling (space => '+').
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AppendCommaEncodedValue(
         StringBuilder sb,
@@ -72,29 +104,53 @@ internal static class Encoder
     }
 
     /// <summary>
-    ///     Encodes the given data into a query string format.
+    ///     Encodes <paramref name="data" /> into query-string fragments.
+    ///     Returns either a single "key=value" fragment (as a string), a sequence of fragments (as an IEnumerable boxed as
+    ///     object),
+    ///     or an empty array when nothing should be emitted. Callers are expected to flatten and join with '&amp;'.
     /// </summary>
-    /// <param name="data">The data to encode; can be any type.</param>
-    /// <param name="undefined">If true, will not encode undefined values.</param>
-    /// <param name="sideChannel">A dictionary for tracking cyclic references.</param>
-    /// <param name="prefix">An optional prefix for the encoded string.</param>
-    /// <param name="generateArrayPrefix">A generator for array prefixes.</param>
-    /// <param name="commaRoundTrip">If true, uses comma for array encoding.</param>
-    /// <param name="allowEmptyLists">If true, allows empty lists in the output.</param>
-    /// <param name="strictNullHandling">If true, handles nulls strictly.</param>
-    /// <param name="skipNulls">If true, skips null values in the output.</param>
-    /// <param name="encodeDotInKeys">If true, encodes dots in keys.</param>
-    /// <param name="encoder">An optional custom encoder function.</param>
-    /// <param name="serializeDate">An optional date serializer function.</param>
-    /// <param name="sort">An optional sorter for keys.</param>
-    /// <param name="filter">An optional filter to apply to the data.</param>
-    /// <param name="allowDots">If true, allows dots in keys.</param>
-    /// <param name="format">The format to use for encoding (default is RFC3986).</param>
-    /// <param name="formatter">A custom formatter function.</param>
-    /// <param name="encodeValuesOnly">If true, only encodes values without keys.</param>
-    /// <param name="charset">The character encoding to use (default is UTF-8).</param>
-    /// <param name="addQueryPrefix">If true, adds a '?' prefix to the output.</param>
-    /// <returns>The encoded result.</returns>
+    /// <param name="data">The value to encode; may be any object, dictionary, list/array, or primitive.</param>
+    /// <param name="undefined">If true, treats the current value as logically undefined (missing) and emits nothing.</param>
+    /// <param name="sideChannel">
+    ///     Cycle-detection frame used across recursion; pass the current frame to detect
+    ///     self-references.
+    /// </param>
+    /// <param name="prefix">Optional prefix for the current key path (e.g., an existing query or parent key).</param>
+    /// <param name="generateArrayPrefix">Function that produces the key for array elements (indices, brackets, or comma mode).</param>
+    /// <param name="commaRoundTrip">
+    ///     When using the comma list format, if true, appends "[]" to the key for single-element
+    ///     arrays to preserve round‑trip parsing.
+    /// </param>
+    /// <param name="allowEmptyLists">If true, encodes empty lists as "key[]"; otherwise, empty lists produce no output.</param>
+    /// <param name="strictNullHandling">If true, encodes null as the bare key (e.g., "k"); otherwise encodes as "k=".</param>
+    /// <param name="skipNulls">If true, omits pairs whose value is null; also enables a leaf fast-path for cycle detection.</param>
+    /// <param name="encodeDotInKeys">
+    ///     If true <em>and</em> <paramref name="allowDots" /> is true, encodes '.' in keys as "%2E"
+    ///     to avoid ambiguity.
+    /// </param>
+    /// <param name="encoder">Optional custom value encoder; when null, falls back to <c>Utils.Encode</c>.</param>
+    /// <param name="serializeDate">
+    ///     Optional serializer for <see cref="DateTime" /> values (ISO 8601 by default); applied to
+    ///     comma arrays as well.
+    /// </param>
+    /// <param name="sort">Optional key sort comparer; when null, a faster unsorted path is used.</param>
+    /// <param name="filter">
+    ///     Optional filter. If a <c>FunctionFilter</c>, it's applied to the current object/value; if an
+    ///     <c>IterableFilter</c>, its iterable provides the key set.
+    /// </param>
+    /// <param name="allowDots">
+    ///     If true, uses dotted notation for object navigation (e.g., "a.b"); otherwise uses bracket
+    ///     notation (e.g., "a[b]").
+    /// </param>
+    /// <param name="format">Target escaping rules (RFC3986 by default; RFC1738 maps spaces to '+').</param>
+    /// <param name="formatter">Post-processing applied to each emitted string fragment; default is identity.</param>
+    /// <param name="encodeValuesOnly">If true, values are encoded but keys are not passed to <paramref name="encoder" />.</param>
+    /// <param name="charset">Character encoding for the encoder (UTF-8 by default).</param>
+    /// <param name="addQueryPrefix">If true, prepends '?' to the very first fragment (useful for top-level calls).</param>
+    /// <returns>
+    ///     A string fragment, a sequence of fragments, or an empty array when no output is produced. The caller is responsible
+    ///     for joining with '&amp;'.
+    /// </returns>
     public static object Encode(
         object? data,
         bool undefined,
@@ -128,6 +184,7 @@ internal static class Encoder
 
         var keyPrefixStr = prefix ?? (addQueryPrefix ? "?" : "");
         var obj = data;
+        // Only encode '.' when both AllowDots and EncodeDotInKeys are true (preserves legacy behavior when AllowDots == false).
         var dotsAndEncode = allowDots && encodeDotInKeys;
 
         var objKey = data; // identity key
@@ -381,7 +438,9 @@ internal static class Encoder
                 var sbJoined = new StringBuilder(listC.Count * 8);
                 for (var i = 0; i < listC.Count; i++)
                 {
-                    if (i > 0) sbJoined.Append(','); // separator comma is never re-encoded
+                    if (i > 0)
+                        sbJoined.Append(
+                            ','); // The separator comma is literal and never re-encoded; only commas originating inside element values become "%2C".
                     AppendCommaEncodedValue(sbJoined, listC[i], cs, format, encoder);
                 }
 
