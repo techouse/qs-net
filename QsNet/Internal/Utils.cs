@@ -427,8 +427,7 @@ internal static partial class Utils
         //  - Code points > 0xFF are emitted as percent-encoded numeric entities ("%26%23{code}%3B"),
         //    which decode back to "&#{code};". Call InterpretNumericEntities(...) afterwards
         //    if you need those resolved to Unicode characters.
-        if (encoding.CodePage == 28591 ||
-            string.Equals(encoding.WebName, "iso-8859-1", StringComparison.OrdinalIgnoreCase))
+        if (encoding.CodePage == 28591)
         {
             var table = HexTable.Table;
 
