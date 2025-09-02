@@ -1,8 +1,6 @@
 # QsNet
 
-<p align="center">
-    <img src="https://raw.githubusercontent.com/techouse/qs-net/refs/heads/main/logo_cropped.png?raw=true" width="256" alt="QsNet" />
-</p>
+![QsNet](https://raw.githubusercontent.com/techouse/qs-net/refs/heads/main/logo_cropped.png?raw=true)
 
 A query string encoding and decoding library for C#/.NET.
 
