@@ -385,16 +385,26 @@ internal static partial class Utils
     ///     Encodes a value into a URL-encoded string.
     /// </summary>
     /// <param name="value">The value to encode.</param>
-    /// <param name="encoding">The character encoding to use for encoding. Defaults to UTF-8.</param>
+    /// <param name="encoding">
+    ///     The character encoding to use for encoding. Defaults to UTF-8. If set to ISO‑8859‑1 (Latin‑1),
+    ///     legacy rules apply (see remarks).
+    /// </param>
     /// <param name="format">The encoding format to use. Defaults to RFC 3986.</param>
     /// <returns>The encoded string.</returns>
+    /// <remarks>
+    ///     UTF‑8 mode uses precomputed ASCII lookups and a two‑strategy loop (copy runs of safe ASCII or escape‑heavy).
+    ///     Latin‑1 mode preserves legacy behavior: <c>'+'</c> is considered safe; <c>'~'</c> is not.
+    ///     Characters beyond 0xFF are emitted as percent‑encoded numeric entities (e.g., <c>%26%23{code}%3B</c>),
+    ///     which decode back to <c>&amp;#{code};</c>. Use <see cref="InterpretNumericEntities" /> after decoding
+    ///     if you need those entities resolved to Unicode.
+    /// </remarks>
     public static string Encode(object? value, Encoding? encoding = null, Format? format = null)
     {
         encoding ??= Encoding.UTF8;
         format ??= Format.Rfc3986;
         var fmt = format.GetValueOrDefault();
 
-        // These cannot be encoded
+        // Non-scalar inputs (maps/sequences/Undefined) are not encoded by design: return empty.
         if (value is IEnumerable and not string and not byte[] or IDictionary or Undefined)
             return string.Empty;
 
@@ -410,7 +420,13 @@ internal static partial class Utils
         var s = str!;
         var len = s.Length;
 
-        // Latin-1 (ISO-8859-1) path with fast skip when no %u-escapes are present
+        // Latin-1 (ISO-8859-1) path with an ASCII fast-path.
+        // Legacy rules in this mode:
+        //  - '+' is treated as safe (never percent-encoded).
+        //  - '~' is NOT safe.
+        //  - Code points > 0xFF are emitted as percent-encoded numeric entities ("%26%23{code}%3B"),
+        //    which decode back to "&#{code};". Call InterpretNumericEntities(...) afterwards
+        //    if you need those resolved to Unicode characters.
         if (encoding.CodePage == 28591 ||
             string.Equals(encoding.WebName, "iso-8859-1", StringComparison.OrdinalIgnoreCase))
         {
@@ -874,11 +890,17 @@ internal static partial class Utils
     }
 
     /// <summary>
-    ///     Decodes a URL-encoded string into its original form.
+    ///     Decodes a URL-encoded string.
     /// </summary>
     /// <param name="str">The URL-encoded string to decode.</param>
     /// <param name="encoding">The character encoding to use for decoding. Defaults to UTF-8.</param>
     /// <returns>The decoded string, or null if the input is null.</returns>
+    /// <remarks>
+    ///     In UTF‑8 mode this delegates to <see cref="System.Web.HttpUtility.UrlDecode(string, System.Text.Encoding)" />.
+    ///     In Latin‑1 mode it decodes <c>%XX</c> byte escapes and leaves characters beyond 0xFF as numeric entities
+    ///     (e.g., <c>&amp;#12345;</c>) if they were produced by <see cref="Encode" />. Call
+    ///     <see cref="InterpretNumericEntities" /> to convert those entities to Unicode code points if desired.
+    /// </remarks>
     public static string? Decode(string? str, Encoding? encoding = null)
     {
         encoding ??= Encoding.UTF8;
@@ -1122,7 +1144,10 @@ internal static partial class Utils
     ///     Checks if a value is a non-nullish primitive type.
     /// </summary>
     /// <param name="value">The value to check.</param>
-    /// <param name="skipNulls">If true, empty strings and URIs are not considered non-nullish.</param>
+    /// <param name="skipNulls">
+    ///     If true, empty strings and <see cref="Uri" /> values with an empty textual form are treated as
+    ///     nullish.
+    /// </param>
     /// <returns>True if the value is a non-nullish primitive, false otherwise.</returns>
     public static bool IsNonNullishPrimitive(object? value, bool skipNulls = false)
     {
