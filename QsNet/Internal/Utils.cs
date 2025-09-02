@@ -644,7 +644,11 @@ internal static partial class Utils
                         sb.Append(s, lastSafe, idx - lastSafe);
 
                     // fast UTF-8 encode, surrogate-aware
-                    if ((uint)c < 0x80)
+                    if (c == 0x20)
+                    {
+                        sb.Append('+'); // RFC1738 space
+                    }
+                    else if ((uint)c < 0x80)
                     {
                         sb.Append(table[c]);
                     }
