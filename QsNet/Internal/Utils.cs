@@ -469,16 +469,20 @@ internal static partial class Utils
                         if (idx > lastSafe)
                             sb.Append(s, lastSafe, idx - lastSafe);
 
-                        if (c <= 0xFF)
+                        switch (c)
                         {
-                            sb.Append(table[c]); // %XX for Latin-1 bytes
-                        }
-                        else
-                        {
-                            // For non-Latin1 code units, emit percent-encoded numeric entity: %26%23{code}%3B
-                            sb.Append("%26%23");
-                            sb.Append(c);
-                            sb.Append("%3B");
+                            case 0x20:
+                                sb.Append('+'); // RFC1738 space
+                                break;
+                            case <= 0xFF:
+                                sb.Append(table[c]); // %XX for Latin-1 bytes
+                                break;
+                            default:
+                                // For non-Latin1 code units, emit percent-encoded numeric entity: %26%23{code}%3B
+                                sb.Append("%26%23");
+                                sb.Append(c.ToString(CultureInfo.InvariantCulture));
+                                sb.Append("%3B");
+                                break;
                         }
 
                         lastSafe = idx + 1;
@@ -697,6 +701,11 @@ internal static partial class Utils
                     int c = s[j];
                     if ((uint)c < 0x80)
                     {
+                        if (c == 0x20)
+                        {
+                            sb.Append('+'); // RFC1738 space
+                            continue;
+                        }
                         if (asciiUnreserved[c])
                         {
                             sb.Append((char)c);
