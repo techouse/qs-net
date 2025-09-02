@@ -1,3 +1,7 @@
+## 1.0.11
+
+* [CHORE] optimize `Decoder.ParseQueryStringValues`
+
 ## 1.0.10
 
 * [CHORE] expanded CI with multi-target smoke tests (.NET 5–9, 10 preview), Windows .NET Framework smoke, and a compile-only .NET Core 3.1 check
