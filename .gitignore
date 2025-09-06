@@ -17,6 +17,7 @@ _ReSharper.Caches/
 *.DotSettings.user
 *.sln.DotSettings.user
 riderModule.iml
+.junie
 
 # User-specific/legacy
 *.user
