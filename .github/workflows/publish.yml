@@ -37,11 +37,13 @@ jobs:
         run: dotnet pack QsNet/QsNet.csproj -c Release -o ./artifacts
       - name: Push to NuGet
         run: dotnet nuget push ./artifacts/QsNet.$VERSION.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
-      - name: Upload .nupkg artefact
+      - name: Upload package artifacts
         uses: actions/upload-artifact@v4
         with:
           name: QsNet.${{ env.VERSION }}
-          path: ./artifacts/QsNet.${{ env.VERSION }}.nupkg
+          path: |
+            ./artifacts/QsNet.${{ env.VERSION }}.nupkg
+            ./artifacts/QsNet.${{ env.VERSION }}.snupkg
           retention-days: 7
   release:
     needs:
@@ -79,13 +81,16 @@ jobs:
           name: ${{ env.VERSION }}
           tag_name: v${{ env.VERSION }}
           body_path: ${{ env.CHANGELOG_PATH }}
-          files: ./artifacts/QsNet.${{ env.VERSION }}.nupkg
+          files: |
+            ./artifacts/QsNet.${{ env.VERSION }}.nupkg
+            ./artifacts/QsNet.${{ env.VERSION }}.snupkg
       - name: Clean up
         id: clean_up
         if: ${{ always() }}
         run: |
           rm -rf $CHANGELOG_PATH
           rm -rf ./artifacts/*.nupkg
+          rm -rf ./artifacts/*.snupkg
   docs:
     uses: ./.github/workflows/docs.yml
     secrets: inherit
