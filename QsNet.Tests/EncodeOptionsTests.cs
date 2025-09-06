@@ -177,7 +177,7 @@ public class EncodeOptionsTests
         seenFmt.Should().Be(Format.Rfc1738); // override provided format is passed
 
         // When null overrides supplied, it should pass options.Charset/Format
-        opts.GetEncoder("y z", null, null);
+        opts.GetEncoder("y z");
         seenEnc.Should().Be(Encoding.Latin1);
         seenFmt.Should().Be(Format.Rfc3986);
     }
@@ -187,7 +187,7 @@ public class EncodeOptionsTests
     {
         var opts = new EncodeOptions { Format = Format.Rfc1738 };
         // Utils.Encode returns %20; plus substitution happens later via Formatter, not in GetEncoder
-        opts.GetEncoder("a b", Encoding.UTF8, null).Should().Be("a%20b");
+        opts.GetEncoder("a b", Encoding.UTF8).Should().Be("a%20b");
     }
 
     [Fact]
@@ -238,7 +238,7 @@ public class EncodeOptionsTests
         copy.ListFormat.Should().Be(ListFormat.Indices);
 
         // Ensure functions are the new ones
-        copy.GetEncoder("val", null, null).Should().Be("x");
+        copy.GetEncoder("val").Should().Be("x");
         enc2Called.Should().BeTrue();
 
         copy.GetDateSerializer(DateTime.UtcNow).Should().Be("y");

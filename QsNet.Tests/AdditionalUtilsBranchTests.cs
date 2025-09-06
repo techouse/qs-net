@@ -9,36 +9,6 @@ namespace QsNet.Tests;
 
 public class AdditionalUtilsBranchTests
 {
-    private sealed class NonDisposableEmptyEnumerable : IEnumerable
-    {
-        public IEnumerator GetEnumerator() => new NonDisposableEmptyEnumerator();
-
-        private sealed class NonDisposableEmptyEnumerator : IEnumerator
-        {
-            public bool MoveNext() => false; // empty
-            public void Reset() { }
-            public object Current => null!;
-        }
-    }
-
-    private sealed class NonDisposableSingleEnumerable : IEnumerable
-    {
-        public IEnumerator GetEnumerator() => new NonDisposableSingleEnumerator();
-
-        private sealed class NonDisposableSingleEnumerator : IEnumerator
-        {
-            private int _state;
-            public bool MoveNext()
-            {
-                if (_state != 0) return false;
-                _state = 1;
-                return true; // one item
-            }
-            public void Reset() => _state = 0;
-            public object Current => 123; // any value
-        }
-    }
-
     [Fact]
     public void IsEmpty_ReturnsTrueForNullAndUndefined_AndHandlesStrings()
     {
@@ -69,13 +39,65 @@ public class AdditionalUtilsBranchTests
         result.Should().BeSameAs(input);
     }
 
-    private sealed class CustomType { }
-
     [Fact]
     public void IsNonNullishPrimitive_DefaultBranch_ReturnsTrueForCustomType()
     {
         // Not string/number/bool/enum/DateTime/Uri/IEnumerable/IDictionary/Undefined/null
         // Should match the default case and return true
         Utils.IsNonNullishPrimitive(new CustomType()).Should().BeTrue();
+    }
+
+    private sealed class NonDisposableEmptyEnumerable : IEnumerable
+    {
+        public IEnumerator GetEnumerator()
+        {
+            return new NonDisposableEmptyEnumerator();
+        }
+
+        private sealed class NonDisposableEmptyEnumerator : IEnumerator
+        {
+            public bool MoveNext()
+            {
+                return false;
+                // empty
+            }
+
+            public void Reset()
+            {
+            }
+
+            public object Current => null!;
+        }
+    }
+
+    private sealed class NonDisposableSingleEnumerable : IEnumerable
+    {
+        public IEnumerator GetEnumerator()
+        {
+            return new NonDisposableSingleEnumerator();
+        }
+
+        private sealed class NonDisposableSingleEnumerator : IEnumerator
+        {
+            private int _state;
+
+            public bool MoveNext()
+            {
+                if (_state != 0) return false;
+                _state = 1;
+                return true; // one item
+            }
+
+            public void Reset()
+            {
+                _state = 0;
+            }
+
+            public object Current => 123; // any value
+        }
+    }
+
+    private sealed class CustomType
+    {
     }
 }
