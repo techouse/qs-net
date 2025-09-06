@@ -1627,7 +1627,11 @@ public class UtilsTests
     [Fact]
     public void EnsureAstralCharactersAtSegmentLimitMinus1OrSegmentLimitEncodeAs4ByteSequences()
     {
-        const int segmentLimit = 1024;
+        var segField = typeof(Utils).GetField("SegmentLimit",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        var segmentLimit = segField is null
+            ? 1024 // fallback to current default to avoid breaking if refactoring hides the field
+            : (int)(segField.IsLiteral ? segField.GetRawConstantValue()! : segField.GetValue(null)!);
         // Ensure astral characters at SegmentLimit-1/SegmentLimit encode as 4-byte sequences
         var s = new string('a', segmentLimit - 1) + "\U0001F600" + "b";
         var encoded = Utils.Encode(s, Encoding.UTF8, Format.Rfc3986);
@@ -1637,7 +1641,11 @@ public class UtilsTests
     [Fact]
     public void EnsureAstralCharactersAtSegmentLimitEncodeAs4ByteSequences()
     {
-        const int segmentLimit = 1024;
+        var segField = typeof(Utils).GetField("SegmentLimit",
+            BindingFlags.NonPublic | BindingFlags.Static);
+        var segmentLimit = segField is null
+            ? 1024
+            : (int)(segField.IsLiteral ? segField.GetRawConstantValue()! : segField.GetValue(null)!);
         // Astral character starts exactly at the chunk boundary (index == SegmentLimit)
         var s = new string('a', segmentLimit) + "\U0001F600" + "b";
         var encoded = Utils.Encode(s, Encoding.UTF8, Format.Rfc3986);
