@@ -217,4 +217,52 @@ public class DecodeOptionsTests
         copy3.DecodeValue("v", Encoding.UTF8).Should().Be("K2:Value:v");
         copy3.DecodeKey("k", Encoding.UTF8).Should().Be("K2:Key:k");
     }
+
+    [Fact]
+    public void AllowDots_IsImpliedTrue_When_DecodeDotInKeys_True_And_NotExplicit()
+    {
+        var opts = new DecodeOptions { DecodeDotInKeys = true };
+        opts.AllowDots.Should().BeTrue();
+    }
+
+    [Fact]
+    public void AllowDots_ExplicitFalse_Wins_Even_When_DecodeDotInKeys_True()
+    {
+        var opts = new DecodeOptions { AllowDots = false, DecodeDotInKeys = true };
+        opts.AllowDots.Should().BeFalse();
+    }
+
+    [Fact]
+    public void DecodeKey_Throws_When_CustomKindAwareDecoder_Returns_NonString()
+    {
+        var opts = new DecodeOptions
+        {
+            DecoderWithKind = (_, _, kind) => kind == DecodeKind.Key ? 123 : "ok"
+        };
+
+        Action act = () => opts.DecodeKey("abc", Encoding.UTF8);
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*Key decoder must return a string or null*Int32*");
+    }
+
+    [Fact]
+    public void CopyWith_Overrides_StrictDepth_ThrowOnLimitExceeded_AllowSparseLists()
+    {
+        var original = new DecodeOptions
+        {
+            StrictDepth = false,
+            ThrowOnLimitExceeded = false,
+            AllowSparseLists = false
+        };
+
+        var copy = original.CopyWith(strictDepth: true, throwOnLimitExceeded: true, allowSparseLists: true);
+
+        copy.StrictDepth.Should().BeTrue();
+        copy.ThrowOnLimitExceeded.Should().BeTrue();
+        copy.AllowSparseLists.Should().BeTrue();
+
+        // Unchanged properties remain the same by default
+        copy.AllowEmptyLists.Should().Be(original.AllowEmptyLists);
+        copy.ListLimit.Should().Be(original.ListLimit);
+    }
 }

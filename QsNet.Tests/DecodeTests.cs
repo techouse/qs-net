@@ -4168,6 +4168,24 @@ public class DecodeTest
         inner.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
     }
 
+    #region Nested brackets
+
+    [Fact]
+    public void NestedBrackets_AreParsedCorrectly()
+    {
+        Qs.Decode("a[b[]]=c", new DecodeOptions())
+            .Should().BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new Dictionary<string, object?>
+                    {
+                        ["b[]"] = "c"
+                    }
+                });
+    }
+
+    #endregion
+
     #region Encoded dot behavior in keys (%2E / %2e)
 
     [Fact]
@@ -4762,24 +4780,6 @@ public class DecodeTest
         // Existing N=2, incoming M=4; N+M = 6 > limit and ThrowOnLimitExceeded = true → throws
         Action act = () => Qs.Decode("a=1,2&a=3,4,5,6", opts);
         act.Should().Throw<InvalidOperationException>();
-    }
-
-    #endregion
-
-    #region Nested brackets
-
-    [Fact]
-    public void NestedBrackets_AreParsedCorrectly()
-    {
-        Qs.Decode("a[b[]]=c", new DecodeOptions())
-            .Should().BeEquivalentTo(
-           new Dictionary<string, object?>
-           {
-               ["a"] = new Dictionary<string, object?>
-               {
-                   ["b[]"] = "c"
-               }
-           });
     }
 
     #endregion

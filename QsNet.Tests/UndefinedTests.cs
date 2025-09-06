@@ -7,35 +7,28 @@ namespace QsNet.Tests;
 public class UndefinedTests
 {
     [Fact]
-    public void Undefined_CreatesEquivalentInstances()
+    public void Instance_IsSingleton_And_ToString_IsExpected()
     {
-        // Arrange & Act
-        var undefined1 = Undefined.Create();
-        var undefined2 = Undefined.Create();
+        var inst1 = Undefined.Instance;
+        var inst2 = Undefined.Instance;
 
-        // Assert
-        undefined2.Should().Be(undefined1);
+        inst1.Should().NotBeNull();
+        ReferenceEquals(inst1, inst2).Should().BeTrue("Undefined.Instance should be a singleton");
+        inst1.ToString().Should().Be("Undefined");
     }
 
     [Fact]
-    public void Undefined_StaticInstanceIsEquivalent()
+    public void Create_Returns_Same_Instance_As_Instance_Property()
     {
-        // Arrange & Act
-        var undefined1 = Undefined.Instance;
-        var undefined2 = Undefined.Create();
-
-        // Assert
-        undefined2.Should().Be(undefined1);
+        var created = Undefined.Create();
+        ReferenceEquals(created, Undefined.Instance).Should().BeTrue();
     }
 
     [Fact]
-    public void Undefined_CreateMethodReturnsEquivalentInstance()
+    public void Multiple_Calls_To_Create_Return_Same_Singleton()
     {
-        // Arrange & Act
-        var undefined1 = Undefined.Create();
-        var undefined2 = Undefined.Create();
-
-        // Assert
-        undefined2.Should().Be(undefined1);
+        var a = Undefined.Create();
+        var b = Undefined.Create();
+        ReferenceEquals(a, b).Should().BeTrue();
     }
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
@@ -4148,6 +4149,477 @@ public class EncodeTests
             .Should()
             .Be("a%5B%5D%5Bb%5D%5Bc%5D%5B%5D=1");
     }
+
+    #region Additional Encoder tests
+
+    [Fact]
+    public void CyclicObject_Throws_InvalidOperation()
+    {
+        var dict = new Dictionary<string, object?>();
+        dict["self"] = dict; // cycle
+
+        Action act = () => Qs.Encode(dict, new EncodeOptions());
+        act.Should().Throw<InvalidOperationException>().WithMessage("*Cyclic object value*");
+    }
+
+    [Fact]
+    public void AllowEmptyLists_Produces_EmptyBrackets()
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["a"] = new List<object?>()
+        };
+
+        var qs = Qs.Encode(data, new EncodeOptions
+        {
+            AllowEmptyLists = true,
+            // Keep default indices list format
+            Encode = false // easier assertion without percent-encoding
+        });
+
+        qs.Should().Be("a[]");
+    }
+
+    [Fact]
+    public void EncodeDotInKeys_TopLevelDotNotEncoded_When_AllowDots_False_PrimitivePath()
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["a.b"] = "x"
+        };
+
+        var qs = Qs.Encode(data, new EncodeOptions
+        {
+            EncodeDotInKeys = true,
+            AllowDots = false
+        });
+
+        // Top-level primitive path does not apply encodeDotInKeys to the keyPrefix
+        qs.Should().Be("a.b=x");
+    }
+
+    [Fact]
+    public void EncodeDotInKeys_With_AllowDots_Encodes_Child_Key_Dots()
+    {
+        var inner = new Dictionary<string, object?> { ["b.c"] = "x" };
+        var data = new Dictionary<string, object?> { ["a"] = inner };
+
+        var qs = Qs.Encode(data, new EncodeOptions
+        {
+            AllowDots = true,
+            EncodeDotInKeys = true
+        });
+
+        // When keys are percent-encoded, the "%" in "%2E" is itself encoded to "%25"
+        qs.Should().Be("a.b%252Ec=x");
+    }
+
+    [Fact]
+    public void Comma_List_With_EncodeValuesOnly_Sets_ChildEncoder_Null_Path()
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["letters"] = new[] { "a", "b" }
+        };
+
+        var qs = Qs.Encode(data, new EncodeOptions
+        {
+            ListFormat = ListFormat.Comma,
+            EncodeValuesOnly = true,
+            // Supply a benign encoder to exercise the (isCommaGen && encodeValuesOnly) path
+            Encoder = (v, _, _) => v?.ToString() ?? string.Empty,
+            Encode = true
+        });
+
+        // Expect simple join with comma under the key
+        qs.Should().Be("letters=a,b");
+    }
+
+    [Fact]
+    public void IterableFilter_With_DictionaryObjectKeys_Skips_Missing_Keys()
+    {
+        var data = new Dictionary<string, object?> { ["x"] = 1 };
+
+        var qs = Qs.Encode(data, new EncodeOptions
+        {
+            Filter = new IterableFilter(new object?[] { "x", "y" }),
+            Encode = false // easier assertion
+        });
+
+        // Only "x" exists; "y" is missing -> treated as undefined and omitted
+        qs.Should().Be("x=1");
+    }
+
+    [Fact]
+    public void ByteArray_Is_Treated_As_Primitive_And_Encoded_With_Default_Encoder()
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["b"] = Encoding.UTF8.GetBytes("hi")
+        };
+
+        var qs = Qs.Encode(data, new EncodeOptions());
+        qs.Should().Be("b=hi");
+    }
+
+    [Fact]
+    public void IEnumerable_Indexing_With_IterableFilter_Uses_String_Indices_And_Skips_OutOfRange()
+    {
+        var data = new List<string> { "x", "y" };
+
+        // Ask for indices "1" and "2" (string form): 1 exists -> y, 2 is OOR -> omitted
+        var qs = Qs.Encode(data, new EncodeOptions
+        {
+            Filter = new IterableFilter(new object?[] { "1", "2" }),
+            Encode = false
+        });
+
+        qs.Should().Be("1=y");
+    }
+
+    private static string[] Parts(object encoded)
+    {
+        if (encoded is IEnumerable en and not string)
+            return en.Cast<object?>().Where(p => p is string { Length: > 0 }).Select(p => p!.ToString()!).ToArray();
+        return encoded is string { Length: > 0 } s ? [s] : [];
+    }
+
+    [Fact]
+    public void StrictNullHandling_Returns_BareKey_When_NoCustomEncoder()
+    {
+        var data = new Dictionary<string, object?> { ["a"] = null };
+
+        var qs = Qs.Encode(data, new EncodeOptions
+        {
+            StrictNullHandling = true,
+            Encode = false // easier to assert bare key
+        });
+
+        qs.Should().Be("a");
+    }
+
+    [Fact]
+    public void StrictNullHandling_With_CustomEncoder_Encodes_KeyPrefix()
+    {
+        var data = new Dictionary<string, object?> { ["a"] = null };
+
+        var qs = Qs.Encode(data, new EncodeOptions
+        {
+            StrictNullHandling = true,
+            EncodeValuesOnly = false,
+            Encoder = (v, _, _) => v?.ToString() == "a" ? "KEY" : v?.ToString() ?? string.Empty,
+            // Keep encoding enabled so our custom encoder is used
+            Encode = true
+        });
+
+        // The branch should return the encoded key only, without '='
+        qs.Should().Be("KEY");
+    }
+
+    [Fact]
+    public void SkipNulls_Skips_Null_Values_And_Keeps_Others()
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["a"] = null,
+            ["b"] = "x"
+        };
+
+        var qs = Qs.Encode(data, new EncodeOptions { SkipNulls = true });
+        qs.Should().Be("b=x");
+    }
+
+    [Fact]
+    public void AllowDots_Nested_Object_Uses_Dots_Vs_Brackets()
+    {
+        var inner = new Dictionary<string, object?> { ["b"] = 1 };
+        var data = new Dictionary<string, object?> { ["a"] = inner };
+
+        var withDots = Qs.Encode(data, new EncodeOptions { AllowDots = true });
+        withDots.Should().Be("a.b=1");
+
+        var withoutDots = Qs.Encode(data, new EncodeOptions { AllowDots = false });
+        withoutDots.Should().Be("a%5Bb%5D=1");
+    }
+
+    [Fact]
+    public void DateTimeOffset_Normalized_In_Comma_List()
+    {
+        var dto = new DateTimeOffset(2020, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var data = new Dictionary<string, object?> { ["d"] = new[] { dto } };
+
+        var qs = Qs.Encode(data, new EncodeOptions
+        {
+            ListFormat = ListFormat.Comma,
+            Encode = false // to see ISO text directly
+        });
+
+        qs.Should().Be("d=2020-01-01T00:00:00.0000000+00:00");
+    }
+
+    [Fact]
+    public void FunctionFilter_Can_Replace_Inner_Value()
+    {
+        var inner = new Dictionary<string, object?> { ["inner"] = 5 };
+        var data = new Dictionary<string, object?> { ["a"] = inner };
+
+        var qs = Qs.Encode(data, new EncodeOptions
+        {
+            // Replace value when we hit the inner key prefix
+            Filter = new FunctionFilter((key, value) =>
+            {
+                // for bracket style, this will be "a[inner]"; for dot style, "a.inner"
+                if (key.EndsWith("[inner]") || key.EndsWith(".inner"))
+                    return 7;
+                return value;
+            })
+        });
+
+        // default is bracket style since AllowDots=false by default
+        qs.Should().Be("a%5Binner%5D=7");
+    }
+
+    [Fact]
+    public void IDictionary_Object_Generic_FastPath_With_IterableFilter()
+    {
+        var obj = new Dictionary<object, object?> { ["x"] = 1 };
+        var res = Encoder.Encode(
+            obj,
+            false,
+            new SideChannelFrame(),
+            "a",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            new IterableFilter(new object?[] { "x", "y" }),
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().Equal("a[x]=1");
+    }
+
+    [Fact]
+    public void IDictionary_String_Generic_FastPath_Missing_Key_Omitted()
+    {
+        var obj = new Dictionary<string, object?> { ["x"] = 2 };
+        var res = Encoder.Encode(
+            obj,
+            false,
+            new SideChannelFrame(),
+            "a",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            new IterableFilter(new object?[] { "x", "z" }),
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().Equal("a[x]=2");
+    }
+
+    [Fact]
+    public void IDictionary_NonGeneric_DefaultContainsPath_With_Missing()
+    {
+        IDictionary map = new Hashtable { ["x"] = 3 };
+        var res = Encoder.Encode(
+            map,
+            false,
+            new SideChannelFrame(),
+            "a",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            new IterableFilter(new object?[] { "x", "missing" }),
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().Equal("a[x]=3");
+    }
+
+    [Fact]
+    public void Array_IndexOutOfRange_Omitted()
+    {
+        var arr = new object?[] { "v" };
+        var res = Encoder.Encode(
+            arr,
+            false,
+            new SideChannelFrame(),
+            "a",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            new IterableFilter(new object?[] { 0, 1 }),
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().Equal("a[0]=v");
+    }
+
+    [Fact]
+    public void IList_StringIndexParsing_And_OutOfRange()
+    {
+        var list = new List<string> { "x", "y" };
+        var res = Encoder.Encode(
+            list,
+            false,
+            new SideChannelFrame(),
+            "a",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            new IterableFilter(new object?[] { "01", "2" }),
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().Equal("a[01]=y");
+    }
+
+    [Fact]
+    public void IEnumerable_NonList_Indexing_With_OutOfRange()
+    {
+        var en = new YieldEnumerable();
+        var res = Encoder.Encode(
+            en,
+            false,
+            new SideChannelFrame(),
+            "a",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            new IterableFilter(new object?[] { 1, 5 }),
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().Equal("a[1]=n");
+    }
+
+    [Fact]
+    public void AddQueryPrefix_IsUsed_When_No_Prefix_And_StrictNullHandling()
+    {
+        var res = Encoder.Encode(
+            null,
+            false,
+            new SideChannelFrame(),
+            null,
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            true,
+            false,
+            false,
+            null,
+            null,
+            null,
+            null,
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8,
+            true
+        );
+
+        Parts(res).Should().Equal("?");
+    }
+
+    [Fact]
+    public void Primitive_With_EncodeValuesOnly_Uses_RawKey_And_EncodedValue()
+    {
+        var res = Encoder.Encode(
+            "val",
+            false,
+            new SideChannelFrame(),
+            "k",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            (v, _, _) => v?.ToString()?.ToUpperInvariant() ?? string.Empty,
+            null,
+            null,
+            null,
+            false,
+            Format.Rfc3986,
+            s => s,
+            true,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().Equal("k=VAL");
+    }
+
+    private sealed class YieldEnumerable : IEnumerable
+    {
+        public IEnumerator GetEnumerator()
+        {
+            yield return "m";
+            yield return "n";
+        }
+    }
+
+    #endregion
 }
 
 // Custom object class for testing
