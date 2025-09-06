@@ -212,22 +212,22 @@ public class EncodeOptionsTests
         var baseOpts = new EncodeOptions
         {
             Indices = true,
-            Sort = (a, b) => 0,
-            Encoder = (v, e, f) => "base",
-            DateSerializer = d => "base"
+            Sort = (_, _) => 0,
+            Encoder = (_, _, _) => "base",
+            DateSerializer = _ => "base"
         };
 
         var enc2Called = false;
         var ds2Called = false;
         var copy = baseOpts.CopyWith(
             indices: false,
-            sort: (a, b) => 1,
-            encoder: (v, e, f) =>
+            sort: (_, _) => 1,
+            encoder: (_, _, _) =>
             {
                 enc2Called = true;
                 return "x";
             },
-            dateSerializer: d =>
+            dateSerializer: _ =>
             {
                 ds2Called = true;
                 return "y";
