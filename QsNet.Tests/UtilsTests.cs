@@ -1912,10 +1912,15 @@ public class UtilsTests
         };
         IDictionary src = new Hashtable { ["lst"] = list };
 
-        var converted = typeof(Utils)
-            .GetMethod("ConvertNestedDictionary", BindingFlags.NonPublic | BindingFlags.Static, null,
-                [typeof(IDictionary)], null)!
-            .Invoke(null, [src]) as Dictionary<string, object?>;
+        var method = typeof(Utils)
+            .GetMethod(
+                "ConvertNestedDictionary",
+                BindingFlags.NonPublic | BindingFlags.Static,
+                null,
+                [typeof(IDictionary), typeof(ISet<object>)],
+                null
+            )!;
+        var converted = method.Invoke(null, [src, new HashSet<object>()]) as Dictionary<string, object?>;
 
         converted.Should().NotBeNull();
         var outListObj = converted["lst"];
