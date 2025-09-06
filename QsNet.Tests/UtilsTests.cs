@@ -1627,9 +1627,9 @@ public class UtilsTests
     [Fact]
     public void EnsureAstralCharactersAtSegmentLimitMinus1OrSegmentLimitEncodeAs4ByteSequences()
     {
-        const int SegmentLimit = 1024;
+        const int segmentLimit = 1024;
         // Ensure astral characters at SegmentLimit-1/SegmentLimit encode as 4-byte sequences
-        var s = new string('a', SegmentLimit - 1) + "\U0001F600" + "b";
+        var s = new string('a', segmentLimit - 1) + "\U0001F600" + "b";
         var encoded = Utils.Encode(s, Encoding.UTF8, Format.Rfc3986);
         Assert.Contains("%F0%9F%98%80", encoded);
     }
@@ -1637,12 +1637,31 @@ public class UtilsTests
     [Fact]
     public void EnsureAstralCharactersAtSegmentLimitEncodeAs4ByteSequences()
     {
-        const int SegmentLimit = 1024;
+        const int segmentLimit = 1024;
         // Astral character starts exactly at the chunk boundary (index == SegmentLimit)
-        var s = new string('a', SegmentLimit) + "\U0001F600" + "b";
+        var s = new string('a', segmentLimit) + "\U0001F600" + "b";
         var encoded = Utils.Encode(s, Encoding.UTF8, Format.Rfc3986);
         Assert.Contains("%F0%9F%98%80", encoded);
     }
+
+    #region To Dictionary tests
+
+    [Fact]
+    public void ToDictionary_Converts_From_NonGeneric_IDictionary_To_ObjectKeyed_Copy()
+    {
+        IDictionary src = new Hashtable { ["a"] = 1, [2] = "b" };
+
+        var method = typeof(Utils).GetMethod("ToDictionary", BindingFlags.NonPublic | BindingFlags.Static)!;
+        var result = method.Invoke(null, [src]);
+
+        result.Should().BeOfType<Dictionary<object, object?>>();
+        var dict = (Dictionary<object, object?>)result;
+        dict.Should().Contain(new KeyValuePair<object, object?>("a", 1));
+        dict.Should().Contain(new KeyValuePair<object, object?>(2, "b"));
+        ReferenceEquals(result, src).Should().BeFalse();
+    }
+
+    #endregion
 
     #region Branch tests
 
@@ -1736,6 +1755,291 @@ public class UtilsTests
 
     private sealed class CustomType
     {
+    }
+
+    #endregion
+
+    #region Compact tests
+
+    [Fact]
+    public void Compact_Removes_Undefined_From_ObjectKeyed_Dictionary()
+    {
+        var root = new Dictionary<object, object?>
+        {
+            ["a"] = Undefined.Instance,
+            ["b"] = 1
+        };
+
+        var res = Utils.Compact(root);
+
+        res.Should().ContainKey("b").And.NotContainKey("a");
+        res["b"].Should().Be(1);
+    }
+
+    [Fact]
+    public void Compact_Walks_Mixed_StringKeyed_And_ObjectKeyed_Maps()
+    {
+        var innerStringMap = new Dictionary<string, object?>
+        {
+            ["x"] = Undefined.Instance,
+            ["y"] = 2
+        };
+        var root = new Dictionary<object, object?>
+        {
+            ["m"] = innerStringMap,
+            ["k"] = 5
+        };
+
+        var res = Utils.Compact(root);
+
+        // inner undefined key removed
+        ((Dictionary<string, object?>)res["m"]!).Should().NotContainKey("x");
+        ((Dictionary<string, object?>)res["m"]!)["y"].Should().Be(2);
+        res["k"].Should().Be(5);
+    }
+
+    [Fact]
+    public void Compact_Converts_NonGeneric_IDictionary_Inside_Dictionary_And_List()
+    {
+        // Two distinct non-generic maps to ensure both conversion branches execute
+        IDictionary nonGenericForMap = new Hashtable
+        {
+            ["drop"] = Undefined.Instance,
+            ["keep"] = 10
+        };
+        IDictionary nonGenericForList = new Hashtable
+        {
+            ["drop"] = Undefined.Instance,
+            ["keep"] = 20
+        };
+
+        var list = new List<object?>
+        {
+            Undefined.Instance,
+            nonGenericForList
+        };
+
+        var root = new Dictionary<object, object?>
+        {
+            ["list"] = list,
+            ["map"] = nonGenericForMap
+        };
+
+        // allowSparseLists: false -> first Undefined removed from list
+        var compacted = Utils.Compact(root);
+
+        // map was converted to object-keyed dictionary and undefined removed
+        var convertedMap = (Dictionary<object, object?>)compacted["map"]!;
+        convertedMap.Should().NotContainKey("drop");
+        convertedMap["keep"].Should().Be(10);
+
+        var compactedList = (List<object?>)compacted["list"]!;
+        compactedList.Should().HaveCount(1);
+        var convertedInList = (Dictionary<object, object?>)compactedList[0]!;
+        convertedInList.Should().ContainKey("keep").And.NotContainKey("drop");
+        convertedInList["keep"].Should().Be(20);
+
+        // Now with allowSparseLists: true -> Undefined becomes null slot
+        var nonGeneric2 = new Hashtable { ["drop"] = Undefined.Instance, ["keep"] = 1 };
+        var list2 = new List<object?> { Undefined.Instance, nonGeneric2 };
+        var root2 = new Dictionary<object, object?> { ["list"] = list2 };
+        var compacted2 = Utils.Compact(root2, true);
+        var list2Result = (List<object?>)compacted2["list"]!;
+        list2Result.Should().HaveCount(2);
+        list2Result[0].Should().BeNull(); // sparse preserved as null
+        var converted2 = (Dictionary<object, object?>)list2Result[1]!;
+        converted2.Should().ContainKey("keep").And.NotContainKey("drop");
+    }
+
+    [Fact]
+    public void Compact_Respects_Visited_Set_To_Avoid_Cycles()
+    {
+        var a = new Dictionary<object, object?>();
+        var b = new Dictionary<object, object?>();
+        a["b"] = b;
+        b["a"] = a;
+        a["u"] = Undefined.Instance;
+        b["u"] = Undefined.Instance;
+
+        var res = Utils.Compact(a);
+
+        // Undefined keys removed
+        res.Should().NotContainKey("u");
+        var bRes = (Dictionary<object, object?>)res["b"]!;
+        bRes.Should().NotContainKey("u");
+        // cycle preserved without infinite recursion
+        ((Dictionary<object, object?>)bRes["a"]!).Should().BeSameAs(res);
+    }
+
+    #endregion
+
+    #region Deep Conversion Identity tests
+
+    [Fact]
+    public void ToStringKeyDeepNonRecursive_Handles_Cycle_And_Preserves_Identity()
+    {
+        // root -> child (IDictionary) -> back to root
+        IDictionary root = new Hashtable();
+        IDictionary child = new Hashtable();
+        root["child"] = child;
+        child["parent"] = root;
+
+        var result = Utils.ToStringKeyDeepNonRecursive(root);
+
+        result.Should().ContainKey("child");
+        var childOut = result["child"] as Dictionary<string, object?>;
+        childOut.Should().NotBeNull();
+        // The child's "parent" should reference the top result dictionary
+        ReferenceEquals(childOut["parent"], result).Should().BeTrue();
+    }
+
+    [Fact]
+    public void ConvertNestedDictionary_Keeps_StringKeyed_Children_In_List_AsIs()
+    {
+        var stringKeyedChild = new Dictionary<string, object?> { ["a"] = 1 };
+        IList list = new ArrayList
+        {
+            stringKeyedChild,
+            new Hashtable { ["b"] = 2 }
+        };
+        IDictionary src = new Hashtable { ["lst"] = list };
+
+        var converted = typeof(Utils)
+            .GetMethod("ConvertNestedDictionary", BindingFlags.NonPublic | BindingFlags.Static, null,
+                [typeof(IDictionary)], null)!
+            .Invoke(null, [src]) as Dictionary<string, object?>;
+
+        converted.Should().NotBeNull();
+        var outListObj = converted["lst"];
+        outListObj.Should().BeAssignableTo<IList>();
+        var outList = (IList)outListObj;
+        // The original IList instance is preserved
+        ReferenceEquals(outList, list).Should().BeTrue();
+        // First element should be the exact same instance
+        ReferenceEquals(outList[0], stringKeyedChild).Should().BeTrue();
+        // Second element should be converted to a string-keyed dictionary
+        outList[1].Should().BeOfType<Dictionary<string, object?>>();
+        ((Dictionary<string, object?>)outList[1]!).Should().ContainKey("b");
+    }
+
+    #endregion
+
+    #region Normalize tests
+
+    [Fact]
+    public void Merge_NullTarget_With_SelfReferencing_NonGenericMap_Returns_Same_Instance()
+    {
+        IDictionary map = new Hashtable();
+        map["self"] = map; // self-reference
+
+        var result = Utils.Merge(null, map);
+
+        // NormalizeForTarget should detect self-reference and return the same instance
+        ReferenceEquals(result, map).Should().BeTrue();
+    }
+
+    [Fact]
+    public void ConvertNestedValues_Sequence_Enumerable_Is_Materialized_To_List_And_Children_Converted()
+    {
+        var seq = new YieldingEnumerable();
+        var obj = new Dictionary<string, object?> { ["seq"] = seq };
+
+        // ConvertNestedValues returns an object-keyed IDictionary for dictionaries
+        var converted = Utils.ConvertNestedValues(obj) as IDictionary;
+        converted.Should().NotBeNull();
+        var list = converted["seq"] as List<object?>;
+        list.Should().NotBeNull();
+        list.Count.Should().Be(2);
+        // First element (a Hashtable) is normalized to an object-keyed IDictionary
+        list[0].Should().BeAssignableTo<IDictionary>();
+        var firstMap = (IDictionary)list[0]!;
+        firstMap.Contains("k").Should().BeTrue();
+        list[1].Should().Be(2);
+    }
+
+    private sealed class YieldingEnumerable : IEnumerable
+    {
+        public IEnumerator GetEnumerator()
+        {
+            yield return new Hashtable { ["k"] = 1 };
+            yield return 2;
+        }
+    }
+
+    #endregion
+
+    #region Normalize and Decode Null tests
+
+    [Fact]
+    public void Merge_NullTarget_With_NonGenericMap_Returns_ObjectKeyed_Copy()
+    {
+        IDictionary src = new Hashtable { ["a"] = 1, ["b"] = 2 };
+
+        var result = Utils.Merge(null, src);
+
+        result.Should().BeOfType<Dictionary<object, object?>>();
+        var dict = (Dictionary<object, object?>)result;
+        dict.Should().Contain(new KeyValuePair<object, object?>("a", 1));
+        dict.Should().Contain(new KeyValuePair<object, object?>("b", 2));
+    }
+
+    [Fact]
+    public void Merge_NullTarget_With_ObjectKeyedMap_Returns_Same_Instance()
+    {
+        var src = new Dictionary<object, object?> { ["x"] = 1 };
+
+        var result = Utils.Merge(null, src);
+
+        // NormalizeForTarget returns the same instance when already object-keyed
+        ReferenceEquals(result, src).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Decode_Returns_Null_For_Null_Input()
+    {
+        Utils.Decode(null).Should().BeNull();
+    }
+
+    #endregion
+
+    #region String Key Preservation tests
+
+    [Fact]
+    public void ToStringKeyDeepNonRecursive_Preserves_StringKeyed_Child_Map_Identity()
+    {
+        var child = new Dictionary<string, object?> { ["a"] = 1 };
+        IDictionary root = new Hashtable { ["child"] = child };
+
+        var result = Utils.ToStringKeyDeepNonRecursive(root);
+
+        result.Should().ContainKey("child");
+        ReferenceEquals(result["child"], child).Should().BeTrue();
+    }
+
+    [Fact]
+    public void ToStringKeyDeepNonRecursive_Preserves_StringKeyed_Map_Inside_List()
+    {
+        var child = new Dictionary<string, object?> { ["a"] = 1 };
+        IList list = new ArrayList { child };
+        IDictionary root = new Hashtable { ["lst"] = list };
+
+        var result = Utils.ToStringKeyDeepNonRecursive(root);
+        var outList = result["lst"] as List<object?>;
+        outList.Should().NotBeNull();
+        ReferenceEquals(outList[0], child).Should().BeTrue();
+    }
+
+    [Fact]
+    public void ConvertDictionaryToStringKeyed_Converts_NonGeneric_Keys_To_Strings()
+    {
+        IDictionary src = new Hashtable
+        {
+            [1] = "x",
+            ["y"] = 2
+        };
+
+        var res = Utils.ConvertDictionaryToStringKeyed(src);
+        res.Should().Equal(new Dictionary<string, object?> { ["1"] = "x", ["y"] = 2 });
     }
 
     #endregion
