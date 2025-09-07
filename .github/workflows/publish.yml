@@ -28,7 +28,7 @@ jobs:
           VERSION=$(awk -F'[<>]' '/^[[:space:]]*<Version>/ {print $3}' QsNet/QsNet.csproj)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
       - name: Restore
