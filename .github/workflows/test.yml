@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Setup .NET 8 SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
       - name: Cache NuGet
@@ -71,12 +71,12 @@ jobs:
       - uses: actions/checkout@v5
       - name: Setup .NET SDK (stable)
         if: ${{ matrix.dotnet != '10.0.x' }}
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ matrix.dotnet }}
       - name: Setup .NET SDK (10 preview)
         if: ${{ matrix.dotnet == '10.0.x' }}
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ matrix.dotnet }}
           dotnet-quality: preview
@@ -122,7 +122,7 @@ jobs:
         with:
           node-version: '20'
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
       - name: Install JS dependencies
@@ -159,7 +159,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Setup .NET SDKs (5, 6, 7, 8, 9)
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: |
             5.0.x
@@ -169,7 +169,7 @@ jobs:
             9.0.x
       - name: Setup .NET 10 preview SDK (non-blocking)
         continue-on-error: true
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: 10.0.x
           dotnet-quality: preview
@@ -328,7 +328,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Setup .NET SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: |
             8.0.x
@@ -406,7 +406,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Setup .NET 8 SDK
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
       - name: Restore
