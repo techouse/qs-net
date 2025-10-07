@@ -200,6 +200,48 @@ public class EncodeTests
     }
 
     [Fact]
+    public void Encode_PrimitiveBoolWithoutEncoder_UsesLiteralValues()
+    {
+        var options = new EncodeOptions { Encode = false };
+        var result = Qs.Encode(new Dictionary<string, object?> { { "flag", true } }, options);
+        result.Should().Be("flag=true");
+    }
+
+    [Fact]
+    public void Encode_NonListEnumerableMaterializesIndices()
+    {
+        var queue = new Queue<string>(new[] { "a", "b" });
+        var result = Qs.Encode(new Dictionary<string, object?> { { "queue", queue } }, new EncodeOptions { Encode = false });
+        result.Should().Be("queue[0]=a&queue[1]=b");
+    }
+
+    [Fact]
+    public void Encode_IterableFilterAllowsConvertibleIndices()
+    {
+        var list = new List<object?> { "zero", "one", "two" };
+        var encoded = Encoder.Encode(
+            list,
+            undefined: false,
+            sideChannel: new SideChannelFrame(),
+            prefix: "items",
+            filter: new IterableFilter(new object[] { "1", "missing" })
+        );
+
+        encoded.Should().BeOfType<List<object?>>();
+        var parts = ((List<object?>)encoded).Select(v => v?.ToString()).Where(s => !string.IsNullOrEmpty(s)).ToList();
+        parts.Should().Contain("items[1]=one");
+        parts.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public void Encode_AcceptsNonGenericDictionary()
+    {
+        var map = new Hashtable { { "a", "b" }, { 1, "one" } };
+        var result = Qs.Encode(map, new EncodeOptions { Encode = false });
+        result.Split('&').Should().BeEquivalentTo(new[] { "a=b", "1=one" });
+    }
+
+    [Fact]
     public void Encode_EncodesLongs()
     {
         var three = 3L;
