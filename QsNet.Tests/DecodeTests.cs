@@ -47,6 +47,13 @@ public class DecodeTest
     }
 
     [Fact]
+    public void SplitKeyIntoSegments_AppendsTrailingSegmentWhenNotStrict()
+    {
+        var segments = InternalDecoder.SplitKeyIntoSegments("a[b]c", false, 2, false);
+        segments.Should().Contain("[c]");
+    }
+
+    [Fact]
     public void ParseKeys_ConvertsHashtableLeafToObjectKeyedDictionary()
     {
         var hashtable = new Hashtable { ["inner"] = "value" };
