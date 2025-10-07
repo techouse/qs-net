@@ -2141,6 +2141,37 @@ public class UtilsTests
         Utils.InterpretNumericEntities(input).Should().Be(input);
     }
 
+    private sealed class ThrowingEncoding : Encoding
+    {
+        private sealed class ThrowingDecoder : System.Text.Decoder
+        {
+            public override int GetCharCount(byte[] bytes, int index, int count) =>
+                throw new InvalidOperationException("decoder failure");
+
+            public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex) =>
+                throw new InvalidOperationException("decoder failure");
+        }
+
+        public override string EncodingName => "ThrowingEncoding";
+        public override int GetByteCount(char[] chars, int index, int count) => throw new NotSupportedException();
+        public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex) =>
+            throw new NotSupportedException();
+        public override int GetCharCount(byte[] bytes, int index, int count) => throw new InvalidOperationException();
+        public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex) =>
+            throw new InvalidOperationException();
+        public override int GetMaxByteCount(int charCount) => charCount * 2;
+        public override int GetMaxCharCount(int byteCount) => byteCount;
+        public override System.Text.Decoder GetDecoder() => new ThrowingDecoder();
+        public override byte[] GetPreamble() => [];
+    }
+
+    [Fact]
+    public void Decode_ReturnsOriginalWhenUrlDecodeThrows()
+    {
+        const string encoded = "%41";
+        Utils.Decode(encoded, new ThrowingEncoding()).Should().Be(encoded);
+    }
+
     [Fact]
     public void ToStringKeyDeepNonRecursive_ThrowsForNonDictionaryRoot()
     {
@@ -2185,6 +2216,55 @@ public class UtilsTests
 
         var converted = compacted["outer"].Should().BeOfType<Dictionary<string, object?>>().Which;
         converted["inner"].Should().BeOfType<Dictionary<object, object?>>();
+    }
+
+    [Fact]
+    public void Compact_TrimsUndefinedAcrossMixedStructures()
+    {
+        var nestedObjectDict = new Dictionary<object, object?>();
+        var nestedStringDict = new Dictionary<string, object?> { ["keep"] = "value" };
+        var nestedList = new List<object?> { "item" };
+        var oddMap = new Hashtable { ["k"] = "v" };
+
+        var stringDict = new Dictionary<string, object?>
+        {
+            ["undef"] = Undefined.Create(),
+            ["objectDict"] = nestedObjectDict,
+            ["stringDict"] = nestedStringDict,
+            ["list"] = nestedList,
+            ["odd"] = oddMap
+        };
+
+        var list = new List<object?>
+        {
+            Undefined.Create(),
+            nestedObjectDict,
+            nestedStringDict,
+            nestedList,
+            new Hashtable { ["z"] = "w" }
+        };
+
+        var root = new Dictionary<object, object?>
+        {
+            ["map"] = stringDict,
+            ["list"] = list
+        };
+
+        var compacted = Utils.Compact(root);
+
+        var compactedDict = compacted["map"].Should().BeOfType<Dictionary<string, object?>>().Which;
+        compactedDict.Should().NotContainKey("undef");
+        compactedDict["objectDict"].Should().BeOfType<Dictionary<object, object?>>().Which.Should().BeEmpty();
+        compactedDict["stringDict"].Should().BeSameAs(nestedStringDict);
+        compactedDict["list"].Should().BeSameAs(nestedList);
+        compactedDict["odd"].Should().BeOfType<Dictionary<object, object?>>();
+
+        var compactedList = compacted["list"].Should().BeOfType<List<object?>>().Which;
+        compactedList.Should().HaveCount(4);
+        compactedList[0].Should().BeSameAs(nestedObjectDict);
+        compactedList[1].Should().BeSameAs(nestedStringDict);
+        compactedList[2].Should().BeSameAs(nestedList);
+        compactedList[3].Should().BeOfType<Dictionary<object, object?>>();
     }
 
     [Fact]
