@@ -17,7 +17,7 @@ _ReSharper.Caches/
 *.DotSettings.user
 *.sln.DotSettings.user
 riderModule.iml
-.junie
+.history/
 
 # User-specific/legacy
 *.user
@@ -36,3 +36,7 @@ Thumbs.db
 # docfx
 docs/_site/
 docs/api/
+
+# AI related
+.junie
+AGENTS.md
