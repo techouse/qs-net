@@ -2055,5 +2055,131 @@ public class UtilsTests
         res.Should().Equal(new Dictionary<string, object?> { ["1"] = "x", ["y"] = 2 });
     }
 
+    [Fact]
+    public void Merge_ReturnsTargetWhenSourceIsNull()
+    {
+        var target = new Dictionary<string, object?> { ["a"] = "b" };
+        var result = Utils.Merge(target, null);
+        result.Should().BeSameAs(target);
+    }
+
+    [Fact]
+    public void Merge_RemovesUndefinedEntriesWhenListsAreDisabled()
+    {
+        var undefined = Undefined.Create();
+        var target = new List<object?> { undefined, "keep" };
+        var options = new DecodeOptions { ParseLists = false };
+
+        var result = Utils.Merge(target, Undefined.Create(), options);
+
+        result.Should().BeEquivalentTo(new List<object?> { "keep" });
+    }
+
+    [Fact]
+    public void Encode_UnpairedSurrogateFallsBackToThreeByteSequence()
+    {
+        var highSurrogate = "\uD83D"; // lone high surrogate, invalid pair
+        var encoded = Utils.Encode(highSurrogate);
+        encoded.Should().Be("%ED%A0%BD");
+    }
+
+    [Fact]
+    public void Compact_ConvertsNestedNonGenericDictionariesInsideStringMaps()
+    {
+        var inner = new Hashtable { ["x"] = 1 };
+        var stringKeyed = new Dictionary<string, object?> { ["inner"] = inner, ["skip"] = Undefined.Create() };
+        var root = new Dictionary<object, object?> { ["root"] = stringKeyed };
+
+        var compacted = Utils.Compact(root);
+
+        compacted.Should().ContainKey("root");
+        var converted = compacted["root"].Should().BeOfType<Dictionary<string, object?>>().Which;
+        converted.Should().NotContainKey("skip");
+        converted["inner"].Should().BeOfType<Dictionary<object, object?>>();
+    }
+
+    [Fact]
+    public void ConvertNestedDictionary_HandlesCyclicReferencesWithoutReentry()
+    {
+        IDictionary first = new Hashtable();
+        IDictionary second = new Hashtable();
+        first["next"] = second;
+        second["back"] = first;
+
+        var converted = Utils.ConvertNestedDictionary(first);
+
+        converted.Should().ContainKey("next");
+        var next = converted["next"].Should().BeOfType<Dictionary<string, object?>>().Which;
+        next.Should().ContainKey("back");
+        var back = next["back"].Should().BeOfType<Dictionary<string, object?>>().Which;
+        back.Should().ContainKey("next");
+        back["next"].Should().BeAssignableTo<IDictionary>();
+    }
+
+    [Fact]
+    public void Decode_InvalidPercentEncodingFallsBackToOriginal()
+    {
+        var original = "%E0%A4";
+        var strictEncoding = Encoding.GetEncoding(
+            "utf-8",
+            new EncoderExceptionFallback(),
+            new DecoderExceptionFallback()
+        );
+
+        Utils.Decode(original, strictEncoding).Should().Be(original);
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_InvalidDigitsLeaveSequenceUntouched()
+    {
+        var input = "&#xyz;";
+        Utils.InterpretNumericEntities(input).Should().Be(input);
+    }
+
+    [Fact]
+    public void ToStringKeyDeepNonRecursive_ThrowsForNonDictionaryRoot()
+    {
+        Action act = () => Utils.ToStringKeyDeepNonRecursive(new object());
+        act.Should().Throw<ArgumentException>().WithMessage("*Root must be an IDictionary*");
+    }
+
+    [Fact]
+    public void ConvertNestedDictionary_PreservesSelfReferencesAndStringKeyedMaps()
+    {
+        IDictionary parent = new Hashtable();
+        parent["self"] = parent;
+        var stringChild = new Dictionary<string, object?> { ["x"] = 1 };
+        parent["string"] = stringChild;
+
+        var converted = Utils.ConvertNestedDictionary(parent);
+
+        converted["self"].Should().BeSameAs(parent);
+        converted["string"].Should().BeSameAs(stringChild);
+    }
+
+    [Fact]
+    public void ToStringKeyDeepNonRecursive_ReusesVisitedNodesInLists()
+    {
+        IDictionary shared = new Hashtable { ["v"] = 1 };
+        IList list = new ArrayList { shared, shared };
+        IDictionary root = new Hashtable { ["list"] = list };
+
+        var result = Utils.ToStringKeyDeepNonRecursive(root);
+        var convertedList = result["list"].Should().BeOfType<List<object?>>().Which;
+        convertedList[0].Should().BeSameAs(convertedList[1]);
+    }
+
+    [Fact]
+    public void ToStringKeyDeepNonRecursive_SupportsSelfReferentialLists()
+    {
+        IList inner = new ArrayList();
+        inner.Add(inner);
+        IDictionary root = new Hashtable { ["loop"] = inner };
+
+        var result = Utils.ToStringKeyDeepNonRecursive(root);
+        var convertedList = result["loop"].Should().BeOfType<List<object?>>().Which;
+        convertedList[0].Should().BeSameAs(convertedList);
+    }
+
     #endregion
 }
