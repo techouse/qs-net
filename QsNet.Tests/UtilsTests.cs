@@ -2137,6 +2137,13 @@ public class UtilsTests
     }
 
     [Fact]
+    public void InterpretNumericEntities_OverflowDigitsAreLeftAlone()
+    {
+        var input = "&#99999999999999;";
+        Utils.InterpretNumericEntities(input).Should().Be(input);
+    }
+
+    [Fact]
     public void ToStringKeyDeepNonRecursive_ThrowsForNonDictionaryRoot()
     {
         Action act = () => Utils.ToStringKeyDeepNonRecursive(new object());
@@ -2158,6 +2165,31 @@ public class UtilsTests
     }
 
     [Fact]
+    public void Compact_VisitsStringKeyedDictionaries()
+    {
+        var child = new Dictionary<string, object?> { ["value"] = 1 };
+        var root = new Dictionary<object, object?> { ["child"] = child };
+
+        var result = Utils.Compact(root);
+
+        result.Should().ContainKey("child");
+        result["child"].Should().BeOfType<Dictionary<string, object?>>().Which.Should().ContainKey("value");
+    }
+
+    [Fact]
+    public void Compact_ConvertsNestedNonGenericDictionaryWithinStringDictionary()
+    {
+        var inner = new Hashtable { ["x"] = 1 };
+        var map = new Dictionary<string, object?> { ["inner"] = inner };
+        var root = new Dictionary<object, object?> { ["outer"] = map };
+
+        var compacted = Utils.Compact(root);
+
+        var converted = compacted["outer"].Should().BeOfType<Dictionary<string, object?>>().Which;
+        converted["inner"].Should().BeOfType<Dictionary<object, object?>>();
+    }
+
+    [Fact]
     public void ToStringKeyDeepNonRecursive_ReusesVisitedNodesInLists()
     {
         IDictionary shared = new Hashtable { ["v"] = 1 };
@@ -2170,6 +2202,18 @@ public class UtilsTests
     }
 
     [Fact]
+    public void ToStringKeyDeepNonRecursive_ReusesListsReferencedMultipleTimes()
+    {
+        IList shared = new ArrayList { 1 };
+        IDictionary root = new Hashtable { ["a"] = shared, ["b"] = shared };
+
+        var result = Utils.ToStringKeyDeepNonRecursive(root);
+        var first = result["a"].Should().BeOfType<List<object?>>().Which;
+        var second = result["b"].Should().BeOfType<List<object?>>().Which;
+        second.Should().BeSameAs(first);
+    }
+
+    [Fact]
     public void ToStringKeyDeepNonRecursive_SupportsSelfReferentialLists()
     {
         IList inner = new ArrayList();
@@ -2179,6 +2223,30 @@ public class UtilsTests
         var result = Utils.ToStringKeyDeepNonRecursive(root);
         var convertedList = result["loop"].Should().BeOfType<List<object?>>().Which;
         convertedList[0].Should().BeSameAs(convertedList);
+    }
+
+    [Fact]
+    public void ConvertNestedDictionary_ReturnsExistingStringKeyedInstanceWhenVisited()
+    {
+        var method = typeof(Utils)
+            .GetMethod(
+                "ConvertNestedDictionary",
+                BindingFlags.NonPublic | BindingFlags.Static,
+                null,
+                new[] { typeof(IDictionary), typeof(ISet<object>) },
+                null
+            );
+        method.Should().NotBeNull();
+
+        var convert = method!;
+
+        var dictionary = new Dictionary<string, object?> { ["x"] = 1 };
+        IDictionary raw = dictionary;
+        var visited = new HashSet<object>(QsNet.Internal.ReferenceEqualityComparer.Instance);
+        visited.Add(raw);
+
+        var result = (Dictionary<string, object?>)convert.Invoke(null, new object[] { raw, visited })!;
+        result.Should().BeSameAs(dictionary);
     }
 
     #endregion
