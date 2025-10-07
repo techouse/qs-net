@@ -348,7 +348,7 @@ public class UtilsTests
     [Fact]
     public void Escape_HandlesNullCharacter()
     {
-        Utils.Escape("\u0000").Should().Be("%00");
+        Utils.Escape("\0").Should().Be("%00");
     }
 
     [Fact]
@@ -1196,9 +1196,9 @@ public class UtilsTests
     [Fact]
     public void Combine_OneListOneNonList()
     {
-        var aN = 1;
+        const int aN = 1;
         var a = new List<int> { aN };
-        var bN = 2;
+        const int bN = 2;
         var b = new List<int> { bN };
 
         var combinedAnB = Utils.Combine<int>(aN, b);
@@ -1213,8 +1213,8 @@ public class UtilsTests
     [Fact]
     public void Combine_NeitherIsList()
     {
-        var a = 1;
-        var b = 2;
+        const int a = 1;
+        const int b = 2;
         var combined = Utils.Combine<int>(a, b);
 
         combined.Should().BeEquivalentTo(new List<int> { 1, 2 });
@@ -1250,8 +1250,8 @@ public class UtilsTests
     [Fact]
     public void InterpretNumericEntities_DecodesMultipleEntitiesInASentence()
     {
-        var input = "Hello &#87;&#111;&#114;&#108;&#100;!";
-        var expected = "Hello World!";
+        const string input = "Hello &#87;&#111;&#114;&#108;&#100;!";
+        const string expected = "Hello World!";
         Utils.InterpretNumericEntities(input).Should().Be(expected);
     }
 
@@ -1761,9 +1761,7 @@ public class UtilsTests
         }
     }
 
-    private sealed class CustomType
-    {
-    }
+    private sealed class CustomType;
 
     #endregion
 
@@ -2078,7 +2076,7 @@ public class UtilsTests
     [Fact]
     public void Encode_UnpairedSurrogateFallsBackToThreeByteSequence()
     {
-        var highSurrogate = "\uD83D"; // lone high surrogate, invalid pair
+        const string highSurrogate = "\uD83D"; // lone high surrogate, invalid pair
         var encoded = Utils.Encode(highSurrogate);
         encoded.Should().Be("%ED%A0%BD");
     }
@@ -2119,7 +2117,7 @@ public class UtilsTests
     [Fact]
     public void Decode_InvalidPercentEncodingFallsBackToOriginal()
     {
-        var original = "%E0%A4";
+        const string original = "%E0%A4";
         var strictEncoding = Encoding.GetEncoding(
             "utf-8",
             new EncoderExceptionFallback(),
@@ -2132,14 +2130,14 @@ public class UtilsTests
     [Fact]
     public void InterpretNumericEntities_InvalidDigitsLeaveSequenceUntouched()
     {
-        var input = "&#xyz;";
+        const string input = "&#xyz;";
         Utils.InterpretNumericEntities(input).Should().Be(input);
     }
 
     [Fact]
     public void InterpretNumericEntities_OverflowDigitsAreLeftAlone()
     {
-        var input = "&#99999999999999;";
+        const string input = "&#99999999999999;";
         Utils.InterpretNumericEntities(input).Should().Be(input);
     }
 
@@ -2216,7 +2214,7 @@ public class UtilsTests
     [Fact]
     public void ToStringKeyDeepNonRecursive_SupportsSelfReferentialLists()
     {
-        IList inner = new ArrayList();
+        var inner = new ArrayList();
         inner.Add(inner);
         IDictionary root = new Hashtable { ["loop"] = inner };
 
@@ -2233,19 +2231,16 @@ public class UtilsTests
                 "ConvertNestedDictionary",
                 BindingFlags.NonPublic | BindingFlags.Static,
                 null,
-                new[] { typeof(IDictionary), typeof(ISet<object>) },
+                [typeof(IDictionary), typeof(ISet<object>)],
                 null
             );
         method.Should().NotBeNull();
 
-        var convert = method!;
-
         var dictionary = new Dictionary<string, object?> { ["x"] = 1 };
         IDictionary raw = dictionary;
-        var visited = new HashSet<object>(QsNet.Internal.ReferenceEqualityComparer.Instance);
-        visited.Add(raw);
+        var visited = new HashSet<object>(Internal.ReferenceEqualityComparer.Instance) { raw };
 
-        var result = (Dictionary<string, object?>)convert.Invoke(null, new object[] { raw, visited })!;
+        var result = (Dictionary<string, object?>)method.Invoke(null, [raw, visited])!;
         result.Should().BeSameAs(dictionary);
     }
 
