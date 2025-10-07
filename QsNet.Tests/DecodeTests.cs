@@ -28,6 +28,38 @@ public class DecodeTest
     }
 
     [Fact]
+    public void Decode_StrictDepthOverflowThrows()
+    {
+        var options = new DecodeOptions { Depth = 1, StrictDepth = true };
+        Action act = () => Qs.Decode("a[b][c]=1", options);
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("Input depth exceeded depth option of 1 and strictDepth is true");
+    }
+
+    [Fact]
+    public void SplitKeyIntoSegments_StrictDepthThrowsOnTrailingText()
+    {
+        Action act = () => InternalDecoder.SplitKeyIntoSegments("a[b]c", false, 1, true);
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("Input depth exceeded depth option of 1 and strictDepth is true");
+    }
+
+    [Fact]
+    public void ParseKeys_ConvertsHashtableLeafToObjectKeyedDictionary()
+    {
+        var hashtable = new Hashtable { ["inner"] = "value" };
+        var result = InternalDecoder.ParseKeys("root", hashtable, new DecodeOptions(), false);
+
+        result.Should().BeOfType<Dictionary<object, object?>>();
+        var dict = (Dictionary<object, object?>)result!;
+        dict.Should().ContainKey("root");
+        dict["root"].Should().BeOfType<Dictionary<object, object?>>()
+            .Which.Should().ContainKey("inner").WhoseValue.Should().Be("value");
+    }
+
+    [Fact]
     public void Decode_NestedListHandling_InParseObjectMethod()
     {
         // This test targets nested list handling in the parseObject method
