@@ -18,6 +18,12 @@ namespace QsNet.Tests;
 [TestSubject(typeof(Encoder))]
 public class EncodeTests
 {
+    private static readonly string[] Value = ["b", "c"];
+    private static readonly string[] ValueArray = ["b", "c"];
+    private static readonly string[] ValueArray0 = ["b"];
+    private static readonly string[] Iterable = ["a"];
+    private static readonly string[] Value1 = ["b"];
+
     [Fact]
     public void Encode_DefaultParameterInitializationsInEncodeMethod()
     {
@@ -36,7 +42,7 @@ public class EncodeTests
 
         // Try another approach with a list to trigger the generateArrayPrefix default
         var result2 = Qs.Encode(
-            new Dictionary<string, object?> { { "a", new[] { "b", "c" } } },
+            new Dictionary<string, object?> { { "a", Value } },
             new EncodeOptions
             {
                 // Force the code to use the default initializations
@@ -48,7 +54,7 @@ public class EncodeTests
 
         // Try with comma format to trigger the commaRoundTrip default
         var result3 = Qs.Encode(
-            new Dictionary<string, object?> { { "a", new[] { "b", "c" } } },
+            new Dictionary<string, object?> { { "a", ValueArray } },
             new EncodeOptions { ListFormat = ListFormat.Comma, CommaRoundTrip = null }
         );
         result3.Should().Be("a=b%2Cc");
@@ -159,7 +165,7 @@ public class EncodeTests
         var customOptions = new EncodeOptions { ListFormat = ListFormat.Comma, Encode = false };
 
         // This should use the default commaRoundTrip value (false)
-        Qs.Encode(new Dictionary<string, object?> { { "a", new[] { "b" } } }, customOptions)
+        Qs.Encode(new Dictionary<string, object?> { { "a", ValueArray0 } }, customOptions)
             .Should()
             .Be("a=b");
 
@@ -173,7 +179,7 @@ public class EncodeTests
 
         // This should append [] to single-item lists
         Qs.Encode(
-                new Dictionary<string, object?> { { "a", new[] { "b" } } },
+                new Dictionary<string, object?> { { "a", Value1 } },
                 customOptionsWithCommaRoundTrip
             )
             .Should()
@@ -210,7 +216,7 @@ public class EncodeTests
     [Fact]
     public void Encode_NonListEnumerableMaterializesIndices()
     {
-        var queue = new Queue<string>(new[] { "a", "b" });
+        var queue = new Queue<string>(["a", "b"]);
         var result = Qs.Encode(new Dictionary<string, object?> { { "queue", queue } }, new EncodeOptions { Encode = false });
         result.Should().Be("queue[0]=a&queue[1]=b");
     }
@@ -238,7 +244,7 @@ public class EncodeTests
     {
         var map = new Hashtable { { "a", "b" }, { 1, "one" } };
         var result = Qs.Encode(map, new EncodeOptions { Encode = false });
-        result.Split('&').Should().BeEquivalentTo(new[] { "a=b", "1=one" });
+        result.Split('&').Should().BeEquivalentTo("a=b", "1=one");
     }
 
     [Fact]
@@ -258,11 +264,7 @@ public class EncodeTests
         var options = new EncodeOptions
         {
             Encode = false,
-            Filter = new FunctionFilter((key, value) =>
-            {
-                if (key.Length == 0) throw new InvalidOperationException();
-                return value;
-            })
+            Filter = new FunctionFilter((key, value) => key.Length == 0 ? throw new InvalidOperationException() : value)
         };
 
         Qs.Encode(data, options).Should().Be("a=1");
@@ -303,13 +305,7 @@ public class EncodeTests
     [Fact]
     public void Encode_EncodesLongs()
     {
-        var three = 3L;
-
-        string EncodeWithN(object? value, Encoding? encoding, Format? format)
-        {
-            var result = Utils.Encode(value, format: format);
-            return value is long ? $"{result}n" : result;
-        }
+        const long three = 3L;
 
         Qs.Encode(three).Should().Be("");
         Qs.Encode(new List<long> { three }).Should().Be("0=3");
@@ -352,6 +348,13 @@ public class EncodeTests
             )
             .Should()
             .Be("a[]=3n");
+        return;
+
+        string EncodeWithN(object? value, Encoding? encoding, Format? format)
+        {
+            var result = Utils.Encode(value, format: format);
+            return value is long ? $"{result}n" : result;
+        }
     }
 
     [Fact]
@@ -1856,7 +1859,7 @@ public class EncodeTests
     [Fact]
     public void Encode_EncodesBufferValues()
     {
-        Qs.Encode(new Dictionary<string, object?> { { "a", Encoding.UTF8.GetBytes("test") } })
+        Qs.Encode(new Dictionary<string, object?> { { "a", "test"u8.ToArray() } })
             .Should()
             .Be("a=test");
 
@@ -1865,7 +1868,7 @@ public class EncodeTests
                 {
                     {
                         "a",
-                        new Dictionary<string, object?> { { "b", Encoding.UTF8.GetBytes("test") } }
+                        new Dictionary<string, object?> { { "b", "test"u8.ToArray() } }
                     }
                 }
             )
@@ -1975,7 +1978,7 @@ public class EncodeTests
     {
         Qs.Encode(
                 new Dictionary<string, object?> { { "a", "b" } },
-                new EncodeOptions { Filter = new IterableFilter(new[] { "a" }) }
+                new EncodeOptions { Filter = new IterableFilter(Iterable) }
             )
             .Should()
             .Be("a=b");
@@ -2137,11 +2140,6 @@ public class EncodeTests
     [Fact]
     public void Encode_CanSortTheKeys()
     {
-        int Sort(object? a, object? b)
-        {
-            return string.Compare(a?.ToString(), b?.ToString(), StringComparison.Ordinal);
-        }
-
         Qs.Encode(
                 new Dictionary<string, object?>
                 {
@@ -2168,16 +2166,17 @@ public class EncodeTests
             )
             .Should()
             .Be("a=c&b=f&z%5Bi%5D=b&z%5Bj%5D=a");
+        return;
+
+        int Sort(object? a, object? b)
+        {
+            return string.Compare(a?.ToString(), b?.ToString(), StringComparison.Ordinal);
+        }
     }
 
     [Fact]
     public void Encode_CanSortTheKeysAtDepth3OrMoreToo()
     {
-        int Sort(object? a, object? b)
-        {
-            return string.Compare(a?.ToString(), b?.ToString(), StringComparison.Ordinal);
-        }
-
         Qs.Encode(
                 new Dictionary<string, object?>
                 {
@@ -2243,6 +2242,12 @@ public class EncodeTests
             )
             .Should()
             .Be("a=a&z[zj][zjb]=zjb&z[zj][zja]=zja&z[zi][zib]=zib&z[zi][zia]=zia&b=b");
+        return;
+
+        int Sort(object? a, object? b)
+        {
+            return string.Compare(a?.ToString(), b?.ToString(), StringComparison.Ordinal);
+        }
     }
 
     [Fact]
@@ -2311,7 +2316,7 @@ public class EncodeTests
             .Should()
             .Be("a=b");
 
-        var bufferWithText = Encoding.UTF8.GetBytes("a b");
+        var bufferWithText = "a b"u8.ToArray();
 
         Qs.Encode(
                 new Dictionary<string, object?> { { "a", bufferWithText } },
@@ -2420,7 +2425,7 @@ public class EncodeTests
             .Be("a+b=c+d");
 
         Qs.Encode(
-                new Dictionary<string, object?> { { "a b", Encoding.UTF8.GetBytes("a b") } },
+                new Dictionary<string, object?> { { "a b", "a b"u8.ToArray() } },
                 new EncodeOptions { Format = Format.Rfc1738 }
             )
             .Should()
@@ -2452,7 +2457,7 @@ public class EncodeTests
             .Be("a%20b=c%20d");
 
         Qs.Encode(
-                new Dictionary<string, object?> { { "a b", Encoding.UTF8.GetBytes("a b") } },
+                new Dictionary<string, object?> { { "a b", "a b"u8.ToArray() } },
                 new EncodeOptions { Format = Format.Rfc3986 }
             )
             .Should()
@@ -2464,7 +2469,7 @@ public class EncodeTests
     {
         Qs.Encode(new Dictionary<string, object?> { { "a", "b c" } }).Should().Be("a=b%20c");
 
-        Qs.Encode(new Dictionary<string, object?> { { "a b", Encoding.UTF8.GetBytes("a b") } })
+        Qs.Encode(new Dictionary<string, object?> { { "a b", "a b"u8.ToArray() } })
             .Should()
             .Be("a%20b=a%20b");
     }
@@ -3243,7 +3248,7 @@ public class EncodeTests
     [Fact]
     public void Encode_EncodesBufferValue()
     {
-        Qs.Encode(new Dictionary<string, object?> { { "a", Encoding.UTF8.GetBytes("test") } })
+        Qs.Encode(new Dictionary<string, object?> { { "a", "test"u8.ToArray() } })
             .Should()
             .Be("a=test");
     }
@@ -3564,7 +3569,7 @@ public class EncodeTests
     [Fact]
     public void Encode_CommaListWithSingleElementAndRoundTripDisabledOmitsArrayBrackets()
     {
-        var only = "v";
+        const string only = "v";
 
         var result = Qs.Encode(
             new Dictionary<string, object?>
@@ -4356,7 +4361,7 @@ public class EncodeTests
     {
         var data = new Dictionary<string, object?>
         {
-            ["b"] = Encoding.UTF8.GetBytes("hi")
+            ["b"] = "hi"u8.ToArray()
         };
 
         var qs = Qs.Encode(data, new EncodeOptions());
