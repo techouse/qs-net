@@ -32,7 +32,7 @@ public class SentinelExtensionsTests
     [Fact]
     public void GetValue_Throws_ForInvalidEnum()
     {
-        var invalid = (Sentinel)999;
+        const Sentinel invalid = (Sentinel)999;
         Action act = () => invalid.GetValue();
         act.Should().Throw<ArgumentOutOfRangeException>();
     }
