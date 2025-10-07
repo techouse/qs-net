@@ -242,6 +242,65 @@ public class EncodeTests
     }
 
     [Fact]
+    public void Encode_CopiesGenericInterfaceDictionary()
+    {
+        IDictionary<string, object?> sorted = new SortedList<string, object?> { ["b"] = 2, ["a"] = 1 };
+
+        var encoded = Qs.Encode(sorted, new EncodeOptions { Encode = false });
+
+        encoded.Should().Be("a=1&b=2");
+    }
+
+    [Fact]
+    public void Encode_FilterExceptionsAreIgnored()
+    {
+        var data = new Dictionary<string, object?> { ["a"] = 1 };
+        var options = new EncodeOptions
+        {
+            Encode = false,
+            Filter = new FunctionFilter((key, value) =>
+            {
+                if (key.Length == 0) throw new InvalidOperationException();
+                return value;
+            })
+        };
+
+        Qs.Encode(data, options).Should().Be("a=1");
+    }
+
+    [Fact]
+    public void Encode_SkipNullsSkipsMissingFilteredKeys()
+    {
+        var data = new Dictionary<string, object?> { ["present"] = "value" };
+        var options = new EncodeOptions
+        {
+            Encode = false,
+            SkipNulls = true,
+            Filter = new IterableFilter(new object[] { "present", "missing" })
+        };
+
+        Qs.Encode(data, options).Should().Be("present=value");
+    }
+
+    [Fact]
+    public void Encoder_TreatsOutOfRangeIterableIndicesAsUndefined()
+    {
+        var list = new List<object?> { "zero", "one" };
+        var encoded = Encoder.Encode(
+            list,
+            undefined: false,
+            sideChannel: new SideChannelFrame(),
+            prefix: "items",
+            filter: new IterableFilter(new object[] { "0", "5" })
+        );
+
+        encoded.Should().BeOfType<List<object?>>();
+        var parts = ((List<object?>)encoded).Select(x => x?.ToString()).ToList();
+        parts.Should().Contain("items[0]=zero");
+        parts.Should().NotContain(s => s != null && s.Contains("items[5]"));
+    }
+
+    [Fact]
     public void Encode_EncodesLongs()
     {
         var three = 3L;
