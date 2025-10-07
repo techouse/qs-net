@@ -16,7 +16,7 @@ using InternalDecoder = QsNet.Internal.Decoder;
 
 namespace QsNet.Tests;
 
-public class DecodeTest
+public partial class DecodeTest
 {
     [Fact]
     public void Decode_ThrowsArgumentException_WhenParameterLimitIsNotPositive()
@@ -25,6 +25,45 @@ public class DecodeTest
             Qs.Decode("a=b&c=d", new DecodeOptions { ParameterLimit = 0 })
         );
         exception.Message.Should().Contain("Parameter limit must be a positive integer.");
+    }
+
+    [Fact]
+    public void Decode_StrictDepthOverflowThrows()
+    {
+        var options = new DecodeOptions { Depth = 1, StrictDepth = true };
+        Action act = () => Qs.Decode("a[b][c]=1", options);
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("Input depth exceeded depth option of 1 and strictDepth is true");
+    }
+
+    [Fact]
+    public void SplitKeyIntoSegments_StrictDepthThrowsOnTrailingText()
+    {
+        Action act = () => InternalDecoder.SplitKeyIntoSegments("a[b]c", false, 1, true);
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("Input depth exceeded depth option of 1 and strictDepth is true");
+    }
+
+    [Fact]
+    public void SplitKeyIntoSegments_AppendsTrailingSegmentWhenNotStrict()
+    {
+        var segments = InternalDecoder.SplitKeyIntoSegments("a[b]c", false, 2, false);
+        segments.Should().Contain("[c]");
+    }
+
+    [Fact]
+    public void ParseKeys_ConvertsHashtableLeafToObjectKeyedDictionary()
+    {
+        var hashtable = new Hashtable { ["inner"] = "value" };
+        var result = InternalDecoder.ParseKeys("root", hashtable, new DecodeOptions(), false);
+
+        result.Should().BeOfType<Dictionary<object, object?>>();
+        var dict = (Dictionary<object, object?>)result;
+        dict.Should().ContainKey("root");
+        dict["root"].Should().BeOfType<Dictionary<object, object?>>()
+            .Which.Should().ContainKey("inner").WhoseValue.Should().Be("value");
     }
 
     [Fact]
@@ -62,7 +101,7 @@ public class DecodeTest
 
         // Try a more complex approach that should trigger the specific code path
         // First, create a query string that will create a list with a nested list
-        var queryString3 = "a[0][]=first&a[0][]=second";
+        const string queryString3 = "a[0][]=first&a[0][]=second";
 
         // Now decode it, which should create a list with a nested list
         var result3 = Qs.Decode(queryString3);
@@ -78,7 +117,7 @@ public class DecodeTest
         result3.Should().BeEquivalentTo(expected3);
 
         // Now try to add to the existing list
-        var queryString4 = "a[0][2]=third";
+        const string queryString4 = "a[0][2]=third";
 
         // Decode it with the existing result as the input
         var result4 = Qs.Decode(queryString4);
@@ -1395,8 +1434,7 @@ public class DecodeTest
     [Fact]
     public void Decode_ParsesJqueryParamStrings()
     {
-        var encoded =
-            "filter%5B0%5D%5B%5D=int1&filter%5B0%5D%5B%5D=%3D&filter%5B0%5D%5B%5D=77&filter%5B%5D=and&filter%5B2%5D%5B%5D=int2&filter%5B2%5D%5B%5D=%3D&filter%5B2%5D%5B%5D=8";
+        const string encoded = "filter%5B0%5D%5B%5D=int1&filter%5B0%5D%5B%5D=%3D&filter%5B0%5D%5B%5D=77&filter%5B%5D=and&filter%5B2%5D%5B%5D=int2&filter%5B2%5D%5B%5D=%3D&filter%5B2%5D%5B%5D=8";
         var expected = new Dictionary<string, object?>
         {
             ["filter"] = new List<object?>
@@ -1451,7 +1489,7 @@ public class DecodeTest
     [Fact]
     public void Decode_ParsesStringWithAlternativeRegexDelimiter()
     {
-        Qs.Decode("a=b; c=d", new DecodeOptions { Delimiter = new RegexDelimiter(@"[;,] *") })
+        Qs.Decode("a=b; c=d", new DecodeOptions { Delimiter = new RegexDelimiter("[;,] *") })
             .Should()
             .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "b", ["c"] = "d" });
     }
@@ -1919,7 +1957,7 @@ public class DecodeTest
     [Fact]
     public void Decode_ParsesRegularExpressionsCorrectly()
     {
-        var re = new Regex("^test$");
+        var re = MyRegex();
         Qs.Decode(new Dictionary<string, object?> { ["a"] = re })
             .Should()
             .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = re });
@@ -1995,13 +2033,14 @@ public class DecodeTest
     {
         var expected = new Dictionary<string, object?> { ["県"] = "大阪府" };
 
+        var options = new DecodeOptions { Decoder = CustomDecoder };
+        Qs.Decode("%8c%a7=%91%e5%8d%e3%95%7b", options).Should().BeEquivalentTo(expected);
+        return;
+
         string? CustomDecoder(string? str, Encoding? charset)
         {
             return str?.Replace("%8c%a7", "県").Replace("%91%e5%8d%e3%95%7b", "大阪府");
         }
-
-        var options = new DecodeOptions { Decoder = CustomDecoder };
-        Qs.Decode("%8c%a7=%91%e5%8d%e3%95%7b", options).Should().BeEquivalentTo(expected);
     }
 
     [Fact]
@@ -2135,11 +2174,6 @@ public class DecodeTest
     {
         const string urlEncodedNumSmiley = "%26%239786%3B";
 
-        string? CustomDecoder(string? str, Encoding? charset)
-        {
-            return !string.IsNullOrEmpty(str) ? Utils.Decode(str, charset) : null;
-        }
-
         var options = new DecodeOptions
         {
             Charset = Encoding.Latin1,
@@ -2150,6 +2184,12 @@ public class DecodeTest
         Qs.Decode($"foo=&bar={urlEncodedNumSmiley}", options)
             .Should()
             .BeEquivalentTo(new Dictionary<string, object?> { ["foo"] = null, ["bar"] = "☺" });
+        return;
+
+        string? CustomDecoder(string? str, Encoding? charset)
+        {
+            return !string.IsNullOrEmpty(str) ? Utils.Decode(str, charset) : null;
+        }
     }
 
     [Fact]
@@ -3817,12 +3857,7 @@ public class DecodeTest
     {
         var options = new DecodeOptions
         {
-            Decoder = (value, _) =>
-            {
-                if (int.TryParse(value, out var intValue))
-                    return $"[{intValue}]";
-                return value;
-            }
+            Decoder = (value, _) => int.TryParse(value, out var intValue) ? $"[{intValue}]" : value
         };
 
         Qs.Decode("foo=1", options)
@@ -4781,6 +4816,9 @@ public class DecodeTest
         Action act = () => Qs.Decode("a=1,2&a=3,4,5,6", opts);
         act.Should().Throw<InvalidOperationException>();
     }
+
+    [GeneratedRegex("^test$")]
+    private static partial Regex MyRegex();
 
     #endregion
 }

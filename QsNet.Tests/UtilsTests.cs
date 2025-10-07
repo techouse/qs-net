@@ -348,7 +348,7 @@ public class UtilsTests
     [Fact]
     public void Escape_HandlesNullCharacter()
     {
-        Utils.Escape("\u0000").Should().Be("%00");
+        Utils.Escape("\0").Should().Be("%00");
     }
 
     [Fact]
@@ -1196,9 +1196,9 @@ public class UtilsTests
     [Fact]
     public void Combine_OneListOneNonList()
     {
-        var aN = 1;
+        const int aN = 1;
         var a = new List<int> { aN };
-        var bN = 2;
+        const int bN = 2;
         var b = new List<int> { bN };
 
         var combinedAnB = Utils.Combine<int>(aN, b);
@@ -1213,8 +1213,8 @@ public class UtilsTests
     [Fact]
     public void Combine_NeitherIsList()
     {
-        var a = 1;
-        var b = 2;
+        const int a = 1;
+        const int b = 2;
         var combined = Utils.Combine<int>(a, b);
 
         combined.Should().BeEquivalentTo(new List<int> { 1, 2 });
@@ -1250,8 +1250,8 @@ public class UtilsTests
     [Fact]
     public void InterpretNumericEntities_DecodesMultipleEntitiesInASentence()
     {
-        var input = "Hello &#87;&#111;&#114;&#108;&#100;!";
-        var expected = "Hello World!";
+        const string input = "Hello &#87;&#111;&#114;&#108;&#100;!";
+        const string expected = "Hello World!";
         Utils.InterpretNumericEntities(input).Should().Be(expected);
     }
 
@@ -1761,9 +1761,7 @@ public class UtilsTests
         }
     }
 
-    private sealed class CustomType
-    {
-    }
+    private sealed class CustomType;
 
     #endregion
 
@@ -2053,6 +2051,277 @@ public class UtilsTests
 
         var res = Utils.ConvertDictionaryToStringKeyed(src);
         res.Should().Equal(new Dictionary<string, object?> { ["1"] = "x", ["y"] = 2 });
+    }
+
+    [Fact]
+    public void Merge_ReturnsTargetWhenSourceIsNull()
+    {
+        var target = new Dictionary<string, object?> { ["a"] = "b" };
+        var result = Utils.Merge(target, null);
+        result.Should().BeSameAs(target);
+    }
+
+    [Fact]
+    public void Merge_RemovesUndefinedEntriesWhenListsAreDisabled()
+    {
+        var undefined = Undefined.Create();
+        var target = new List<object?> { undefined, "keep" };
+        var options = new DecodeOptions { ParseLists = false };
+
+        var result = Utils.Merge(target, Undefined.Create(), options);
+
+        result.Should().BeEquivalentTo(new List<object?> { "keep" });
+    }
+
+    [Fact]
+    public void Encode_UnpairedSurrogateFallsBackToThreeByteSequence()
+    {
+        const string highSurrogate = "\uD83D"; // lone high surrogate, invalid pair
+        var encoded = Utils.Encode(highSurrogate);
+        encoded.Should().Be("%ED%A0%BD");
+    }
+
+    [Fact]
+    public void Compact_ConvertsNestedNonGenericDictionariesInsideStringMaps()
+    {
+        var inner = new Hashtable { ["x"] = 1 };
+        var stringKeyed = new Dictionary<string, object?> { ["inner"] = inner, ["skip"] = Undefined.Create() };
+        var root = new Dictionary<object, object?> { ["root"] = stringKeyed };
+
+        var compacted = Utils.Compact(root);
+
+        compacted.Should().ContainKey("root");
+        var converted = compacted["root"].Should().BeOfType<Dictionary<string, object?>>().Which;
+        converted.Should().NotContainKey("skip");
+        converted["inner"].Should().BeOfType<Dictionary<object, object?>>();
+    }
+
+    [Fact]
+    public void ConvertNestedDictionary_HandlesCyclicReferencesWithoutReentry()
+    {
+        IDictionary first = new Hashtable();
+        IDictionary second = new Hashtable();
+        first["next"] = second;
+        second["back"] = first;
+
+        var converted = Utils.ConvertNestedDictionary(first);
+
+        converted.Should().ContainKey("next");
+        var next = converted["next"].Should().BeOfType<Dictionary<string, object?>>().Which;
+        next.Should().ContainKey("back");
+        var back = next["back"].Should().BeOfType<Dictionary<string, object?>>().Which;
+        back.Should().ContainKey("next");
+        back["next"].Should().BeAssignableTo<IDictionary>();
+    }
+
+    [Fact]
+    public void Decode_InvalidPercentEncodingFallsBackToOriginal()
+    {
+        const string original = "%E0%A4";
+        var strictEncoding = Encoding.GetEncoding(
+            "utf-8",
+            new EncoderExceptionFallback(),
+            new DecoderExceptionFallback()
+        );
+
+        Utils.Decode(original, strictEncoding).Should().Be(original);
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_InvalidDigitsLeaveSequenceUntouched()
+    {
+        const string input = "&#xyz;";
+        Utils.InterpretNumericEntities(input).Should().Be(input);
+    }
+
+    [Fact]
+    public void InterpretNumericEntities_OverflowDigitsAreLeftAlone()
+    {
+        const string input = "&#99999999999999;";
+        Utils.InterpretNumericEntities(input).Should().Be(input);
+    }
+
+    private sealed class ThrowingEncoding : Encoding
+    {
+        private sealed class ThrowingDecoder : System.Text.Decoder
+        {
+            public override int GetCharCount(byte[] bytes, int index, int count) =>
+                throw new InvalidOperationException("decoder failure");
+
+            public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex) =>
+                throw new InvalidOperationException("decoder failure");
+        }
+
+        public override string EncodingName => "ThrowingEncoding";
+        public override int GetByteCount(char[] chars, int index, int count) => throw new NotSupportedException();
+        public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex) =>
+            throw new NotSupportedException();
+        public override int GetCharCount(byte[] bytes, int index, int count) => throw new InvalidOperationException();
+        public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex) =>
+            throw new InvalidOperationException();
+        public override int GetMaxByteCount(int charCount) => charCount * 2;
+        public override int GetMaxCharCount(int byteCount) => byteCount;
+        public override System.Text.Decoder GetDecoder() => new ThrowingDecoder();
+        public override byte[] GetPreamble() => [];
+    }
+
+    [Fact]
+    public void Decode_ReturnsOriginalWhenUrlDecodeThrows()
+    {
+        const string encoded = "%41";
+        Utils.Decode(encoded, new ThrowingEncoding()).Should().Be(encoded);
+    }
+
+    [Fact]
+    public void ToStringKeyDeepNonRecursive_ThrowsForNonDictionaryRoot()
+    {
+        Action act = () => Utils.ToStringKeyDeepNonRecursive(new object());
+        act.Should().Throw<ArgumentException>().WithMessage("*Root must be an IDictionary*");
+    }
+
+    [Fact]
+    public void ConvertNestedDictionary_PreservesSelfReferencesAndStringKeyedMaps()
+    {
+        IDictionary parent = new Hashtable();
+        parent["self"] = parent;
+        var stringChild = new Dictionary<string, object?> { ["x"] = 1 };
+        parent["string"] = stringChild;
+
+        var converted = Utils.ConvertNestedDictionary(parent);
+
+        converted["self"].Should().BeSameAs(parent);
+        converted["string"].Should().BeSameAs(stringChild);
+    }
+
+    [Fact]
+    public void Compact_VisitsStringKeyedDictionaries()
+    {
+        var child = new Dictionary<string, object?> { ["value"] = 1 };
+        var root = new Dictionary<object, object?> { ["child"] = child };
+
+        var result = Utils.Compact(root);
+
+        result.Should().ContainKey("child");
+        result["child"].Should().BeOfType<Dictionary<string, object?>>().Which.Should().ContainKey("value");
+    }
+
+    [Fact]
+    public void Compact_ConvertsNestedNonGenericDictionaryWithinStringDictionary()
+    {
+        var inner = new Hashtable { ["x"] = 1 };
+        var map = new Dictionary<string, object?> { ["inner"] = inner };
+        var root = new Dictionary<object, object?> { ["outer"] = map };
+
+        var compacted = Utils.Compact(root);
+
+        var converted = compacted["outer"].Should().BeOfType<Dictionary<string, object?>>().Which;
+        converted["inner"].Should().BeOfType<Dictionary<object, object?>>();
+    }
+
+    [Fact]
+    public void Compact_TrimsUndefinedAcrossMixedStructures()
+    {
+        var nestedObjectDict = new Dictionary<object, object?>();
+        var nestedStringDict = new Dictionary<string, object?> { ["keep"] = "value" };
+        var nestedList = new List<object?> { "item" };
+        var oddMap = new Hashtable { ["k"] = "v" };
+
+        var stringDict = new Dictionary<string, object?>
+        {
+            ["undef"] = Undefined.Create(),
+            ["objectDict"] = nestedObjectDict,
+            ["stringDict"] = nestedStringDict,
+            ["list"] = nestedList,
+            ["odd"] = oddMap
+        };
+
+        var list = new List<object?>
+        {
+            Undefined.Create(),
+            nestedObjectDict,
+            nestedStringDict,
+            nestedList,
+            new Hashtable { ["z"] = "w" }
+        };
+
+        var root = new Dictionary<object, object?>
+        {
+            ["map"] = stringDict,
+            ["list"] = list
+        };
+
+        var compacted = Utils.Compact(root);
+
+        var compactedDict = compacted["map"].Should().BeOfType<Dictionary<string, object?>>().Which;
+        compactedDict.Should().NotContainKey("undef");
+        compactedDict["objectDict"].Should().BeOfType<Dictionary<object, object?>>().Which.Should().BeEmpty();
+        compactedDict["stringDict"].Should().BeSameAs(nestedStringDict);
+        compactedDict["list"].Should().BeSameAs(nestedList);
+        compactedDict["odd"].Should().BeOfType<Dictionary<object, object?>>();
+
+        var compactedList = compacted["list"].Should().BeOfType<List<object?>>().Which;
+        compactedList.Should().HaveCount(4);
+        compactedList[0].Should().BeSameAs(nestedObjectDict);
+        compactedList[1].Should().BeSameAs(nestedStringDict);
+        compactedList[2].Should().BeSameAs(nestedList);
+        compactedList[3].Should().BeOfType<Dictionary<object, object?>>();
+    }
+
+    [Fact]
+    public void ToStringKeyDeepNonRecursive_ReusesVisitedNodesInLists()
+    {
+        IDictionary shared = new Hashtable { ["v"] = 1 };
+        IList list = new ArrayList { shared, shared };
+        IDictionary root = new Hashtable { ["list"] = list };
+
+        var result = Utils.ToStringKeyDeepNonRecursive(root);
+        var convertedList = result["list"].Should().BeOfType<List<object?>>().Which;
+        convertedList[0].Should().BeSameAs(convertedList[1]);
+    }
+
+    [Fact]
+    public void ToStringKeyDeepNonRecursive_ReusesListsReferencedMultipleTimes()
+    {
+        IList shared = new ArrayList { 1 };
+        IDictionary root = new Hashtable { ["a"] = shared, ["b"] = shared };
+
+        var result = Utils.ToStringKeyDeepNonRecursive(root);
+        var first = result["a"].Should().BeOfType<List<object?>>().Which;
+        var second = result["b"].Should().BeOfType<List<object?>>().Which;
+        second.Should().BeSameAs(first);
+    }
+
+    [Fact]
+    public void ToStringKeyDeepNonRecursive_SupportsSelfReferentialLists()
+    {
+        var inner = new ArrayList();
+        inner.Add(inner);
+        IDictionary root = new Hashtable { ["loop"] = inner };
+
+        var result = Utils.ToStringKeyDeepNonRecursive(root);
+        var convertedList = result["loop"].Should().BeOfType<List<object?>>().Which;
+        convertedList[0].Should().BeSameAs(convertedList);
+    }
+
+    [Fact]
+    public void ConvertNestedDictionary_ReturnsExistingStringKeyedInstanceWhenVisited()
+    {
+        var method = typeof(Utils)
+            .GetMethod(
+                "ConvertNestedDictionary",
+                BindingFlags.NonPublic | BindingFlags.Static,
+                null,
+                [typeof(IDictionary), typeof(ISet<object>)],
+                null
+            );
+        method.Should().NotBeNull();
+
+        var dictionary = new Dictionary<string, object?> { ["x"] = 1 };
+        IDictionary raw = dictionary;
+        var visited = new HashSet<object>(Internal.ReferenceEqualityComparer.Instance) { raw };
+
+        var result = (Dictionary<string, object?>)method.Invoke(null, [raw, visited])!;
+        result.Should().BeSameAs(dictionary);
     }
 
     #endregion
