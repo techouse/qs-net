@@ -285,6 +285,19 @@ public class EncodeTests
     }
 
     [Fact]
+    public void Encode_FilterReturningHashtableIsConverted()
+    {
+        var data = new Dictionary<string, object?> { ["ignored"] = "value" };
+        var options = new EncodeOptions
+        {
+            Encode = false,
+            Filter = new FunctionFilter((key, value) => key.Length == 0 ? new Hashtable { ["x"] = "y" } : value)
+        };
+
+        Qs.Encode(data, options).Should().Be("x=y");
+    }
+
+    [Fact]
     public void Encoder_TreatsOutOfRangeIterableIndicesAsUndefined()
     {
         var list = new List<object?> { "zero", "one" };
