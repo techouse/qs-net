@@ -44,7 +44,7 @@ jobs:
         run: |
           dotnet pack QsNet/QsNet.csproj -c Release -p:ContinuousIntegrationBuild=true -p:IncludeSymbols=false -p:Version=0.0.0-ci -o $RUNNER_TEMP/nupkg
       - name: Upload nupkg artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: qsnet-nupkg
           path: ${{ runner.temp }}/nupkg/*.nupkg
@@ -95,7 +95,7 @@ jobs:
       - name: Test + Coverage
         run: dotnet test --configuration Release --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --collect "XPlat Code Coverage"
       - name: Upload TRX
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         if: always()
         with:
           name: test-results-${{ matrix.dotnet }}
@@ -103,7 +103,7 @@ jobs:
           overwrite: true
           retention-days: 7
       - name: Upload raw coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-${{ matrix.dotnet }}
           path: QsNet.Tests/TestResults/**/*.cobertura.xml
@@ -145,7 +145,7 @@ jobs:
           diff -u node.out cs.out > diff.out || (echo "::error::Differences found between Node and C# outputs. See artifact diff.out"; exit 1)
       - name: Upload diff artifacts on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: comparison-diff
           path: |
@@ -429,7 +429,7 @@ jobs:
           name: codecov-umbrella
           fail_ci_if_error: false
       - name: Upload coverage report artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-report
           path: coverage/report/
