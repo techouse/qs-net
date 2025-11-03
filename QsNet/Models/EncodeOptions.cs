@@ -174,6 +174,11 @@ public sealed class EncodeOptions
     public bool? CommaRoundTrip { get; init; }
 
     /// <summary>
+    ///     When ListFormat is ListFormat.Comma, drop null items before joining instead of preserving empty slots.
+    /// </summary>
+    public bool CommaCompactNulls { get; init; }
+
+    /// <summary>
     ///     Set a Sorter to affect the order of parameter keys.
     /// </summary>
     public Comparison<object?>? Sort { get; init; }
@@ -227,6 +232,7 @@ public sealed class EncodeOptions
     /// <param name="skipNulls">Set to override SkipNulls</param>
     /// <param name="strictNullHandling">Set to override StrictNullHandling</param>
     /// <param name="commaRoundTrip">Set to override CommaRoundTrip</param>
+    /// <param name="commaCompactNulls">Set to override CommaCompactNulls</param>
     /// <param name="sort">Set to override Sort</param>
     /// <param name="indices">Set to override Indices (deprecated)</param>
     /// <param name="encoder">Set to override the encoder function</param>
@@ -248,6 +254,7 @@ public sealed class EncodeOptions
         bool? skipNulls = null,
         bool? strictNullHandling = null,
         bool? commaRoundTrip = null,
+        bool? commaCompactNulls = null,
         Comparison<object?>? sort = null,
         bool? indices = null,
         ValueEncoder? encoder = null,
@@ -271,6 +278,7 @@ public sealed class EncodeOptions
             SkipNulls = skipNulls ?? SkipNulls,
             StrictNullHandling = strictNullHandling ?? StrictNullHandling,
             CommaRoundTrip = commaRoundTrip ?? CommaRoundTrip,
+            CommaCompactNulls = commaCompactNulls ?? CommaCompactNulls,
             Sort = sort ?? Sort,
 #pragma warning disable CS0618 // Type or member is obsolete
             Indices = indices ?? Indices,

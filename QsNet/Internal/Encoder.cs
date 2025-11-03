@@ -24,6 +24,7 @@ internal static class Encoder
     /// <param name="prefix">An optional prefix for the encoded string.</param>
     /// <param name="generateArrayPrefix">A generator for array prefixes.</param>
     /// <param name="commaRoundTrip">If true, uses comma for array encoding.</param>
+    /// <param name="commaCompactNulls">When true (and using comma arrays), drops null entries before joining.</param>
     /// <param name="allowEmptyLists">If true, allows empty lists in the output.</param>
     /// <param name="strictNullHandling">If true, handles nulls strictly.</param>
     /// <param name="skipNulls">If true, skips null values in the output.</param>
@@ -46,6 +47,7 @@ internal static class Encoder
         string? prefix = null,
         ListFormatGenerator? generateArrayPrefix = null,
         bool? commaRoundTrip = null,
+        bool commaCompactNulls = false,
         bool allowEmptyLists = false,
         bool strictNullHandling = false,
         bool skipNulls = false,
@@ -68,6 +70,7 @@ internal static class Encoder
 
         var isCommaGen = ReferenceEquals(gen, ListFormat.Comma.GetGenerator());
         var crt = commaRoundTrip ?? isCommaGen;
+        var compactNulls = commaCompactNulls && isCommaGen;
 
         var keyPrefixStr = prefix ?? (addQueryPrefix ? "?" : "");
         var obj = data;
@@ -152,17 +155,46 @@ internal static class Encoder
             isSeq = true;
             seqList = seq0.Cast<object?>().ToList();
         }
+        int? commaEffectiveLength = null;
 
         List<object?> objKeys;
         if (isCommaGen && obj is IEnumerable enumerable and not string and not IDictionary)
         {
-            List<string> strings = [];
-            if (encodeValuesOnly && encoder != null)
-                foreach (var el in enumerable)
-                    strings.Add(el is null ? "" : encoder(el.ToString(), null, null));
+            var commaItems = seqList ?? enumerable.Cast<object?>().ToList();
+            List<object?> itemsForJoin;
+            if (compactNulls)
+            {
+                itemsForJoin = new List<object?>(commaItems.Count);
+                foreach (var item in commaItems)
+                    if (item is not null)
+                        itemsForJoin.Add(item);
+            }
             else
-                foreach (var el in enumerable)
+            {
+                itemsForJoin = commaItems;
+            }
+
+            commaEffectiveLength = itemsForJoin.Count;
+
+            var strings = new List<string>(itemsForJoin.Count);
+            if (encodeValuesOnly && encoder != null)
+            {
+                foreach (var el in itemsForJoin)
+                {
+                    if (el is null)
+                    {
+                        strings.Add("");
+                        continue;
+                    }
+
+                    strings.Add(encoder(el.ToString(), null, null));
+                }
+            }
+            else
+            {
+                foreach (var el in itemsForJoin)
                     strings.Add(el?.ToString() ?? "");
+            }
 
             if (strings.Count != 0)
             {
@@ -232,10 +264,15 @@ internal static class Encoder
         values.Capacity = Math.Max(values.Capacity, objKeys.Count);
 
         var encodedPrefix = encodeDotInKeys ? keyPrefixStr.Replace(".", "%2E") : keyPrefixStr;
-        var adjustedPrefix =
-            crt && isSeq && seqList is { Count: 1 }
-                ? $"{encodedPrefix}[]"
-                : encodedPrefix;
+        var shouldAppendRoundTrip = crt
+                                    && isSeq
+                                    && (
+                                        isCommaGen && commaEffectiveLength.HasValue
+                                            ? commaEffectiveLength.Value == 1
+                                            : seqList is { Count: 1 }
+                                    );
+
+        var adjustedPrefix = shouldAppendRoundTrip ? $"{encodedPrefix}[]" : encodedPrefix;
 
         if (allowEmptyLists && isSeq && seqList is { Count: 0 })
             return $"{adjustedPrefix}[]";
@@ -402,6 +439,7 @@ internal static class Encoder
                 keyPrefix,
                 gen,
                 crt,
+                compactNulls,
                 allowEmptyLists,
                 strictNullHandling,
                 skipNulls,
