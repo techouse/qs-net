@@ -1,3 +1,7 @@
+## 1.1.0
+
+* [FEAT] add `EncodeOptions.CommaCompactNulls` to drop `null` entries when encoding comma lists
+
 ## 1.0.11
 
 * [CHORE] optimize `Decoder.ParseQueryStringValues`
