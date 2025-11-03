@@ -29,7 +29,8 @@ public class EncodeOptionsTests
             Format = Format.Rfc1738,
             SkipNulls = true,
             StrictNullHandling = true,
-            CommaRoundTrip = true
+            CommaRoundTrip = true,
+            CommaCompactNulls = true
         };
 
         // Act
@@ -50,6 +51,7 @@ public class EncodeOptionsTests
         newOptions.SkipNulls.Should().BeTrue();
         newOptions.StrictNullHandling.Should().BeTrue();
         newOptions.CommaRoundTrip.Should().BeTrue();
+        newOptions.CommaCompactNulls.Should().BeTrue();
 
         newOptions.Should().BeEquivalentTo(options);
     }
@@ -73,7 +75,8 @@ public class EncodeOptionsTests
             Format = Format.Rfc1738,
             SkipNulls = true,
             StrictNullHandling = true,
-            CommaRoundTrip = true
+            CommaRoundTrip = true,
+            CommaCompactNulls = true
         };
 
         // Act
@@ -92,6 +95,7 @@ public class EncodeOptionsTests
             skipNulls: false,
             strictNullHandling: false,
             commaRoundTrip: false,
+            commaCompactNulls: false,
             filter: new FunctionFilter((_, _) => new Dictionary<string, object?>())
         );
 
@@ -110,6 +114,7 @@ public class EncodeOptionsTests
         newOptions.SkipNulls.Should().BeFalse();
         newOptions.StrictNullHandling.Should().BeFalse();
         newOptions.CommaRoundTrip.Should().BeFalse();
+        newOptions.CommaCompactNulls.Should().BeFalse();
         newOptions.Filter.Should().NotBeNull();
         newOptions.Filter.Should().BeOfType<FunctionFilter>();
     }
