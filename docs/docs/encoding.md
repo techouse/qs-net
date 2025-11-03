@@ -84,6 +84,8 @@ Qs.Encode(data, options.CopyWith(listFormat: ListFormat.Comma));
 // => "a=b,c"
 ```
 
+**Note:** When `ListFormat.Comma` is used, you can set `EncodeOptions.CommaRoundTrip` to `true` or `false` so single-item lists append `[]` and round-trip through decoding. Set `EncodeOptions.CommaCompactNulls` to `true` with the comma format to drop `null` entries instead of keeping empty slots (for example, `["one", null, "two"]` becomes `one,two`).
+
 ### Nested dictionaries
 
 ```csharp

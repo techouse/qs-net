@@ -187,6 +187,66 @@ public class EncodeTests
     }
 
     [Fact]
+    public void Encode_CommaCompactNulls_DropsNullEntries()
+    {
+        var options = new EncodeOptions
+        {
+            ListFormat = ListFormat.Comma,
+            Encode = false,
+            CommaCompactNulls = true
+        };
+
+        var data = new Dictionary<string, object?>
+        {
+            [
+                "a"
+            ] = new Dictionary<string, object?>
+            {
+                ["b"] = new object?[] { "one", "two", null, "three" }
+            }
+        };
+
+        Qs.Encode(data, options).Should().Be("a[b]=one,two,three");
+    }
+
+    [Fact]
+    public void Encode_CommaCompactNulls_OmitsKeyWhenAllNull()
+    {
+        var options = new EncodeOptions
+        {
+            ListFormat = ListFormat.Comma,
+            Encode = false,
+            CommaCompactNulls = true
+        };
+
+        var data = new Dictionary<string, object?>
+        {
+            ["a"] = new object?[] { null, null }
+        };
+
+        Qs.Encode(data, options).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Encode_CommaCompactNulls_PreservesRoundTripMarker()
+    {
+        var options = new EncodeOptions
+        {
+            ListFormat = ListFormat.Comma,
+            Encode = false,
+            CommaRoundTrip = true,
+            CommaCompactNulls = true
+        };
+
+        var data = new Dictionary<string, object?>
+        {
+            ["a"] = new object?[] { null, "foo" }
+        };
+
+        Qs.Encode(data, options).Should().Be("a[]=foo");
+    }
+
+    [Fact]
     public void Encode_EncodesList()
     {
         Qs.Encode(new List<int> { 1234 }).Should().Be("0=1234");
@@ -4513,6 +4573,7 @@ public class EncodeTests
             false,
             false,
             false,
+            false,
             null,
             null,
             null,
@@ -4537,6 +4598,7 @@ public class EncodeTests
             new SideChannelFrame(),
             "a",
             ListFormat.Indices.GetGenerator(),
+            false,
             false,
             false,
             false,
@@ -4571,6 +4633,7 @@ public class EncodeTests
             false,
             false,
             false,
+            false,
             null,
             null,
             null,
@@ -4595,6 +4658,7 @@ public class EncodeTests
             new SideChannelFrame(),
             "a",
             ListFormat.Indices.GetGenerator(),
+            false,
             false,
             false,
             false,
@@ -4629,6 +4693,7 @@ public class EncodeTests
             false,
             false,
             false,
+            false,
             null,
             null,
             null,
@@ -4653,6 +4718,7 @@ public class EncodeTests
             new SideChannelFrame(),
             "a",
             ListFormat.Indices.GetGenerator(),
+            false,
             false,
             false,
             false,
@@ -4683,6 +4749,7 @@ public class EncodeTests
             ListFormat.Indices.GetGenerator(),
             false,
             false,
+            false,
             true,
             false,
             false,
@@ -4710,6 +4777,7 @@ public class EncodeTests
             new SideChannelFrame(),
             "k",
             ListFormat.Indices.GetGenerator(),
+            false,
             false,
             false,
             false,

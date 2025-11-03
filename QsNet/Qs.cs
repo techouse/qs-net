@@ -214,6 +214,7 @@ public static class Qs
                 key,
                 opts.ListFormat?.GetGenerator(),
                 opts is { ListFormat: ListFormat.Comma, CommaRoundTrip: true },
+                opts is { ListFormat: ListFormat.Comma, CommaCompactNulls: true },
                 opts.AllowEmptyLists,
                 opts.StrictNullHandling,
                 opts.SkipNulls,
