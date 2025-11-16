@@ -24,10 +24,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Setup .NET 8 SDK
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
       - name: Cache NuGet
         uses: actions/cache@v4
         with:
@@ -53,33 +53,22 @@ jobs:
     name: Test ${{ matrix.dotnet }} on ${{ matrix.os }}
     needs: lint
     runs-on: ${{ matrix.os }}
-    continue-on-error: ${{ matrix.experimental }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
             dotnet: '8.0.x'
-            experimental: false
           - os: ubuntu-latest
             dotnet: '9.0.x'
-            experimental: false
           - os: ubuntu-latest
             dotnet: '10.0.x'
-            experimental: true
     steps:
       - uses: actions/checkout@v5
-      - name: Setup .NET SDK (stable)
-        if: ${{ matrix.dotnet != '10.0.x' }}
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: ${{ matrix.dotnet }}
-      - name: Setup .NET SDK (10 preview)
-        if: ${{ matrix.dotnet == '10.0.x' }}
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: ${{ matrix.dotnet }}
-          dotnet-quality: preview
       - name: Cache NuGet
         uses: actions/cache@v4
         with:
@@ -120,11 +109,11 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
       - name: Install JS dependencies
         run: npm install
         working-directory: QsNet.Comparison/js
@@ -153,12 +142,12 @@ jobs:
             cs.out
             diff.out
   smoke:
-    name: Consumer smoke (net5.0; net6.0; net7.0; net8.0; net9.0)
+    name: Consumer smoke (net5.0; net6.0; net7.0; net8.0; net9.0; net10.0)
     needs: lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Setup .NET SDKs (5, 6, 7, 8, 9)
+      - name: Setup .NET SDKs (5, 6, 7, 8, 9, 10)
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: |
@@ -167,12 +156,7 @@ jobs:
             7.0.x
             8.0.x
             9.0.x
-      - name: Setup .NET 10 preview SDK (non-blocking)
-        continue-on-error: true
-        uses: actions/setup-dotnet@v5
-        with:
-          dotnet-version: 10.0.x
-          dotnet-quality: preview
+            10.0.x
       - name: Create consumer project (multi-target)
         run: |
           set -euo pipefail
@@ -221,10 +205,10 @@ jobs:
           CS
       - name: Restore consumer
         run: dotnet restore consumer-smoke/consumer-smoke.csproj
-      - name: Build consumer (net6.0; net7.0; net8.0; net9.0)
+      - name: Build consumer (net6.0; net7.0; net8.0; net9.0; net10.0)
         run: |
           set -euo pipefail
-          for f in net6.0 net7.0 net8.0 net9.0; do
+          for f in net6.0 net7.0 net8.0 net9.0 net10.0; do
             echo "Building $f"
             dotnet build -c Release -f "$f" consumer-smoke/consumer-smoke.csproj --no-restore
           done
@@ -233,28 +217,18 @@ jobs:
         run: |
           set -euo pipefail
           dotnet build -c Release -f net5.0 consumer-smoke/consumer-smoke.csproj --no-restore
-      - name: Build consumer (net10.0 preview — non-blocking)
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          dotnet build -c Release -f net10.0 consumer-smoke/consumer-smoke.csproj --no-restore
       - name: Run smoke (net5.0 — non-blocking)
         continue-on-error: true
         run: |
           set -euo pipefail
           dotnet run -c Release --framework net5.0 --project consumer-smoke/consumer-smoke.csproj --no-build
-      - name: Run smoke (net6.0; net7.0; net8.0; net9.0)
+      - name: Run smoke (net6.0; net7.0; net8.0; net9.0; net10.0)
         run: |
           set -euo pipefail
-          for f in net6.0 net7.0 net8.0 net9.0; do
+          for f in net6.0 net7.0 net8.0 net9.0 net10.0; do
             echo "Running smoke for $f"
             dotnet run -c Release --framework "$f" --project consumer-smoke/consumer-smoke.csproj --no-build
           done
-      - name: Run smoke (net10.0 preview — non-blocking)
-        continue-on-error: true
-        run: |
-          set -euo pipefail
-          dotnet run -c Release --framework net10.0 --project consumer-smoke/consumer-smoke.csproj --no-build
   smoke_netcore31:
     name: Consumer smoke (netcoreapp3.1 compile-only)
     needs: lint
@@ -330,8 +304,7 @@ jobs:
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: |
-            8.0.x
+          dotnet-version: '10.0.x'
       - name: Create consumer project (net461 & net481)
         shell: bash
         run: |
@@ -405,15 +378,15 @@ jobs:
       - smoke_netfx
     steps:
       - uses: actions/checkout@v5
-      - name: Setup .NET 8 SDK
+      - name: Setup .NET 10 SDK
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '10.0.x'
       - name: Restore
         run: dotnet restore
       - name: Build
         run: dotnet build --configuration Release --no-restore
-      - name: Test w/ coverage (8.0—single run)
+      - name: Test with coverage (10.0—single run)
         run: dotnet test --configuration Release --no-build --collect "XPlat Code Coverage" --results-directory coverage --settings coverlet.runsettings
       - name: Install ReportGenerator
         run: dotnet tool install -g dotnet-reportgenerator-globaltool
