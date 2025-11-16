@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>Namespace QsNet.Models | QsNet </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="Namespace QsNet.Models | QsNet ">
+      
+      
+      <link rel="icon" href="../images/logo.png">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="ManagedReference">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../images/logo.png" alt="QsNet">
+            QsNet
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="QsNet.Models">
+
+  <h1 id="QsNet_Models" data-uid="QsNet.Models" class="text-break">Namespace QsNet.Models</h1>
+  <div class="markdown level0 summary"></div>
+  <div class="markdown level0 conceptual"></div>
+  <div class="markdown level0 remarks"></div>
+
+    <h3 id="classes">
+Classes
+</h3>
+    <dl class="jumplist">
+      <dt><a class="xref" href="QsNet.Models.DecodeOptions.html">DecodeOptions</a></dt>
+      <dd><p>Options that configure the output of Qs.Decode.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="QsNet.Models.EncodeOptions.html">EncodeOptions</a></dt>
+      <dd><p>Options that configure the output of Qs.Encode.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="QsNet.Models.FunctionFilter.html">FunctionFilter</a></dt>
+      <dd><p>A filter that applies a function to a key-value pair. The function takes the key as a string and
+the value as object, and returns a transformed value.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="QsNet.Models.IterableFilter.html">IterableFilter</a></dt>
+      <dd><p>A filter that applies to an IEnumerable. This can be used to filter or transform the elements of the
+IEnumerable.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="QsNet.Models.RegexDelimiter.html">RegexDelimiter</a></dt>
+      <dd><p>Regex-based delimiter for complex pattern matching.
+This is useful for delimiters that require regular expression matching, such as \s*;\s* for
+semicolon-separated values with optional whitespace. It uses the Regex.Split method for
+splitting the input string.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="QsNet.Models.StringDelimiter.html">StringDelimiter</a></dt>
+      <dd><p>String-based delimiter for better performance with simple delimiters.
+This is suitable for common delimiters like <code>&amp;</code>, <code>,</code>, or <code>;</code>. It uses the String.Split method
+for efficient splitting.</p>
+</dd>
+    </dl>
+    <h3 id="interfaces">
+Interfaces
+</h3>
+    <dl class="jumplist">
+      <dt><a class="xref" href="QsNet.Models.IDelimiter.html">IDelimiter</a></dt>
+      <dd><p>Represents a delimiter used for splitting key-value pairs.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="QsNet.Models.IFilter.html">IFilter</a></dt>
+      <dd><p>Represents a filter that can be applied to query string processing.</p>
+</dd>
+    </dl>
+    <h3 id="delegates">
+Delegates
+</h3>
+    <dl class="jumplist">
+      <dt><a class="xref" href="QsNet.Models.DateSerializer.html">DateSerializer</a></dt>
+      <dd><p>DateSerializer function that takes a DateTime and returns a String representation
+of the date.
+This can be used to customize how DateTime objects are serialized in the encoded output. If
+no serializer is provided, the default ISO format will be used.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="QsNet.Models.Decoder.html">Decoder</a></dt>
+      <dd><p>A function that decodes a value from a query string or form data. It takes a value and an
+optional encoding, returning the decoded value.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="QsNet.Models.KindAwareDecoder.html">KindAwareDecoder</a></dt>
+      <dd><p>A function that decodes a value from a query string or form data with key/value context.
+The <a class="xref" href="QsNet.Enums.DecodeKind.html">DecodeKind</a> indicates whether the token is a key (or key segment) or a value.</p>
+</dd>
+    </dl>
+    <dl class="jumplist">
+      <dt><a class="xref" href="QsNet.Models.ValueEncoder.html">ValueEncoder</a></dt>
+      <dd><p>ValueEncoder function that takes a value, encoding, and format, and returns a String
+representation of the value.
+The encoder can be used to customize how values are encoded in the query string. If no encoder is
+provided, Utils.Encode will be used by default.</p>
+</dd>
+    </dl>
+
+
+</article>
+
+        <div class="contribution d-print-none">
+        </div>
+
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
