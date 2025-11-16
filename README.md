@@ -58,16 +58,16 @@ dotnet add package QsNet
 - **Target frameworks (TFMs):** `net8.0`, `netstandard2.0`
 - **Supported runtimes (via the target frameworks above):**
 
-| Runtime        | Version      | CI Coverage                          | Status    |
-|----------------|--------------|--------------------------------------|-----------|
-| .NET           | 10 (preview) | Full CI (experimental; non-blocking) | Preview   |
-| .NET           | 9 (STS)      | Full CI                              | Supported |
-| .NET           | 8 (LTS)      | Full CI                              | Supported |
-| .NET           | 7            | Consumer smoke test                  | Supported |
-| .NET           | 6 (LTS)      | Consumer smoke test                  | Supported |
-| .NET           | 5            | Optional smoke (non-blocking)        | EOL       |
-| .NET Core      | 3.1          | Compile-only smoke                   | EOL       |
-| .NET Framework | 4.6.1+       | Smoke test (4.6.1, 4.8.1)            | Supported |
+| Runtime        | Version  | CI Coverage                   | Status    |
+|----------------|----------|-------------------------------|-----------|
+| .NET           | 10 (LTS) | Full CI                       | Supported |
+| .NET           | 9 (STS)  | Full CI                       | Supported |
+| .NET           | 8 (LTS)  | Full CI                       | Supported |
+| .NET           | 7        | Consumer smoke test           | Supported |
+| .NET           | 6 (LTS)  | Consumer smoke test           | Supported |
+| .NET           | 5        | Optional smoke (non-blocking) | EOL       |
+| .NET Core      | 3.1      | Compile-only smoke            | EOL       |
+| .NET Framework | 4.6.1+   | Smoke test (4.6.1, 4.8.1)     | Supported |
 
 - **Platforms:** Windows, Linux, macOS (cross-platform, no native dependencies)
 
