@@ -23,7 +23,7 @@ jobs:
     name: Lint & Build (Release, warn-as-error)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v5
         with:
@@ -64,7 +64,7 @@ jobs:
           - os: ubuntu-latest
             dotnet: '10.0.x'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v5
         with:
@@ -105,7 +105,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
@@ -146,7 +146,7 @@ jobs:
     needs: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup .NET SDKs (5, 6, 7, 8, 9, 10)
         uses: actions/setup-dotnet@v5
         with:
@@ -237,7 +237,7 @@ jobs:
       image: mcr.microsoft.com/dotnet/sdk:3.1
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Download nupkg
         uses: actions/download-artifact@v6
         with:
@@ -300,7 +300,7 @@ jobs:
     needs: lint
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v5
         with:
@@ -377,7 +377,7 @@ jobs:
       - smoke_netcore31
       - smoke_netfx
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - name: Setup .NET 10 SDK
         uses: actions/setup-dotnet@v5
         with:
