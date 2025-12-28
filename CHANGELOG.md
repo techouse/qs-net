@@ -1,3 +1,7 @@
+## 1.1.1
+
+* [CHORE] stabilize .NET 10 CI tests
+
 ## 1.1.0
 
 * [FEAT] add `EncodeOptions.CommaCompactNulls` to drop `null` entries when encoding comma lists
