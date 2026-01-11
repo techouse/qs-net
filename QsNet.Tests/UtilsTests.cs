@@ -1234,6 +1234,223 @@ public class UtilsTests
     }
 
     [Fact]
+    public void Combine_WithListLimit_UnderAndOverLimit()
+    {
+        var under = Utils.CombineWithLimit(
+            new List<object?> { "a", "b" },
+            "c",
+            new DecodeOptions { ListLimit = 10 }
+        );
+        under.Should().BeOfType<List<object?>>();
+        under.Should().BeEquivalentTo(new List<object?> { "a", "b", "c" });
+
+        var atLimit = Utils.CombineWithLimit(
+            new List<object?> { "a", "b" },
+            "c",
+            new DecodeOptions { ListLimit = 3 }
+        );
+        atLimit.Should().BeOfType<List<object?>>();
+        atLimit.Should().BeEquivalentTo(new List<object?> { "a", "b", "c" });
+
+        var over = Utils.CombineWithLimit(
+            new List<object?> { "a", "b", "c" },
+            "d",
+            new DecodeOptions { ListLimit = 3 }
+        );
+        over.Should().BeOfType<Dictionary<object, object?>>();
+        over.Should()
+            .BeEquivalentTo(
+                new Dictionary<object, object?>
+                {
+                    ["0"] = "a",
+                    ["1"] = "b",
+                    ["2"] = "c",
+                    ["3"] = "d"
+                }
+            );
+        Utils.IsOverflow(over).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Combine_WithListLimit_ZeroConvertsToMap()
+    {
+        var combined = Utils.CombineWithLimit(
+            new List<object?>(),
+            "a",
+            new DecodeOptions { ListLimit = 0 }
+        );
+        combined.Should().BeOfType<Dictionary<object, object?>>();
+        combined.Should().BeEquivalentTo(new Dictionary<object, object?> { ["0"] = "a" });
+    }
+
+    [Fact]
+    public void Combine_WithOverflowObject_AppendsAtNextIndex()
+    {
+        var overflow = Utils.CombineWithLimit(
+            new List<object?> { "a" },
+            "b",
+            new DecodeOptions { ListLimit = 1 }
+        );
+        Utils.IsOverflow(overflow).Should().BeTrue();
+
+        var combined = Utils.CombineWithLimit(overflow, "c", new DecodeOptions { ListLimit = 10 });
+        combined.Should().BeSameAs(overflow);
+        combined.Should()
+            .BeEquivalentTo(
+                new Dictionary<object, object?>
+                {
+                    ["0"] = "a",
+                    ["1"] = "b",
+                    ["2"] = "c"
+                }
+            );
+    }
+
+    [Fact]
+    public void Combine_WithPlainMap_DoesNotUseOverflowBehavior()
+    {
+        var plain = new Dictionary<object, object?> { ["0"] = "a", ["1"] = "b" };
+        Utils.IsOverflow(plain).Should().BeFalse();
+
+        var combined = Utils.CombineWithLimit(plain, "c", new DecodeOptions { ListLimit = 10 });
+        combined.Should().BeEquivalentTo(new List<object?> { plain, "c" });
+    }
+
+    [Fact]
+    public void Merge_WithOverflowObject_AppendsAtNextIndex()
+    {
+        var overflow = Utils.CombineWithLimit(
+            new List<object?> { "a" },
+            "b",
+            new DecodeOptions { ListLimit = 1 }
+        );
+        Utils.IsOverflow(overflow).Should().BeTrue();
+
+        var merged = Utils.Merge(overflow, "c");
+        merged.Should()
+            .BeEquivalentTo(
+                new Dictionary<object, object?>
+                {
+                    ["0"] = "a",
+                    ["1"] = "b",
+                    ["2"] = "c"
+                }
+            );
+        Utils.IsOverflow(merged).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Merge_WithPlainMap_UsesValueAsKey()
+    {
+        var obj = new Dictionary<object, object?> { ["0"] = "a", ["1"] = "b" };
+        Utils.IsOverflow(obj).Should().BeFalse();
+
+        var merged = Utils.Merge(obj, "c");
+        merged.Should()
+            .BeEquivalentTo(
+                new Dictionary<object, object?>
+                {
+                    ["0"] = "a",
+                    ["1"] = "b",
+                    ["c"] = true
+                }
+            );
+    }
+
+    [Fact]
+    public void Merge_OverflowObjectIntoPrimitive_ShiftsIndices()
+    {
+        var overflow = Utils.CombineWithLimit(
+            new List<object?> { "b" },
+            "c",
+            new DecodeOptions { ListLimit = 1 }
+        );
+        Utils.IsOverflow(overflow).Should().BeTrue();
+
+        var merged = Utils.Merge("a", overflow);
+        merged.Should()
+            .BeEquivalentTo(
+                new Dictionary<object, object?>
+                {
+                    ["0"] = "a",
+                    ["1"] = "b",
+                    ["2"] = "c"
+                }
+            );
+        Utils.IsOverflow(merged).Should().BeTrue();
+    }
+
+    [Fact]
+    public void Merge_OverflowRespectsExistingNumericKeys()
+    {
+        var options = new DecodeOptions { ListLimit = 1 };
+        var overflow = Utils.CombineWithLimit(new List<object?> { "a" }, "b", options);
+        Utils.IsOverflow(overflow).Should().BeTrue();
+
+        var target = new Dictionary<object, object?> { ["5"] = "x" };
+        var merged = Utils.Merge(target, overflow);
+        Utils.IsOverflow(merged).Should().BeTrue();
+
+        var appended = Utils.CombineWithLimit(merged, "c", options);
+        appended.Should()
+            .BeEquivalentTo(
+                new Dictionary<object, object?>
+                {
+                    ["0"] = "a",
+                    ["1"] = "b",
+                    ["5"] = "x",
+                    ["6"] = "c"
+                }
+            );
+    }
+
+    [Fact]
+    public void Merge_OverflowTracksIntegerKeys()
+    {
+        var options = new DecodeOptions { ListLimit = 1 };
+        var overflow = Utils.CombineWithLimit(new List<object?> { "a" }, "b", options);
+
+        var target = new Dictionary<object, object?> { [5] = "x" };
+        var merged = Utils.Merge(target, overflow);
+        Utils.IsOverflow(merged).Should().BeTrue();
+
+        var appended = Utils.CombineWithLimit(merged, "c", options);
+        appended.Should()
+            .BeEquivalentTo(
+                new Dictionary<object, object?>
+                {
+                    ["0"] = "a",
+                    ["1"] = "b",
+                    [5] = "x",
+                    ["6"] = "c"
+                }
+            );
+    }
+
+    [Fact]
+    public void Merge_OverflowIgnoresNonCanonicalStringIndices()
+    {
+        var options = new DecodeOptions { ListLimit = 1 };
+        var overflow = Utils.CombineWithLimit(new List<object?> { "a" }, "b", options);
+
+        var target = new Dictionary<object, object?> { ["010"] = "x" };
+        var merged = Utils.Merge(target, overflow);
+        Utils.IsOverflow(merged).Should().BeTrue();
+
+        var appended = Utils.CombineWithLimit(merged, "c", options);
+        appended.Should()
+            .BeEquivalentTo(
+                new Dictionary<object, object?>
+                {
+                    ["0"] = "a",
+                    ["1"] = "b",
+                    ["010"] = "x",
+                    ["2"] = "c"
+                }
+            );
+    }
+
+    [Fact]
     public void InterpretNumericEntities_ReturnsInputUnchangedWhenThereAreNoEntities()
     {
         Utils.InterpretNumericEntities("hello world").Should().Be("hello world");
