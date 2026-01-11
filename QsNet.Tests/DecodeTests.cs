@@ -1446,7 +1446,8 @@ public partial class DecodeTest
     [Fact]
     public void Decode_ParsesJqueryParamStrings()
     {
-        const string encoded = "filter%5B0%5D%5B%5D=int1&filter%5B0%5D%5B%5D=%3D&filter%5B0%5D%5B%5D=77&filter%5B%5D=and&filter%5B2%5D%5B%5D=int2&filter%5B2%5D%5B%5D=%3D&filter%5B2%5D%5B%5D=8";
+        const string encoded =
+            "filter%5B0%5D%5B%5D=int1&filter%5B0%5D%5B%5D=%3D&filter%5B0%5D%5B%5D=77&filter%5B%5D=and&filter%5B2%5D%5B%5D=int2&filter%5B2%5D%5B%5D=%3D&filter%5B2%5D%5B%5D=8";
         var expected = new Dictionary<string, object?>
         {
             ["filter"] = new List<object?>
@@ -2585,8 +2586,8 @@ public partial class DecodeTest
         var result = Qs.Decode(attack, new DecodeOptions { ListLimit = 100 });
 
         result.Should().ContainKey("a");
-        result["a"].Should().BeAssignableTo<IDictionary>();
-        ((IDictionary)result["a"]!).Count.Should().Be(105);
+        result["a"].Should().BeAssignableTo<IDictionary>()
+            .Which.Count.Should().Be(105);
     }
 
     [Fact]
