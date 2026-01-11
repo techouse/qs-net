@@ -328,8 +328,13 @@ internal static partial class Utils
 
         var trackOverflow = targetOverflow || sourceOverflow;
         var maxIndex = trackOverflow ? initialMaxIndex : -1;
-        if (trackOverflow && sourceOverflow)
-            maxIndex = Math.Max(maxIndex, GetOverflowMaxIndex(sourceMap));
+        if (trackOverflow)
+        {
+            if (!targetOverflow)
+                maxIndex = Math.Max(maxIndex, GetMaxIndexFromMap(mergeTarget));
+            if (sourceOverflow)
+                maxIndex = Math.Max(maxIndex, GetOverflowMaxIndex(sourceMap));
+        }
 
         foreach (DictionaryEntry entry in sourceMap)
         {
@@ -848,6 +853,15 @@ internal static partial class Utils
                 index = -1;
                 return false;
         }
+    }
+
+    private static int GetMaxIndexFromMap(IDictionary map)
+    {
+        var maxIndex = -1;
+        foreach (DictionaryEntry entry in map)
+            if (TryGetArrayIndex(entry.Key, out var idx) && idx > maxIndex)
+                maxIndex = idx;
+        return maxIndex;
     }
 
     internal static object CombineWithLimit(object? a, object? b, DecodeOptions options)

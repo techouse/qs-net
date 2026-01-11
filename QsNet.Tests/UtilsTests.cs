@@ -1381,6 +1381,30 @@ public class UtilsTests
     }
 
     [Fact]
+    public void Merge_OverflowRespectsExistingNumericKeys()
+    {
+        var options = new DecodeOptions { ListLimit = 1 };
+        var overflow = Utils.CombineWithLimit(new List<object?> { "a" }, "b", options);
+        Utils.IsOverflow(overflow).Should().BeTrue();
+
+        var target = new Dictionary<object, object?> { ["5"] = "x" };
+        var merged = Utils.Merge(target, overflow);
+        Utils.IsOverflow(merged).Should().BeTrue();
+
+        var appended = Utils.CombineWithLimit(merged, "c", options);
+        appended.Should()
+            .BeEquivalentTo(
+                new Dictionary<object, object?>
+                {
+                    ["0"] = "a",
+                    ["1"] = "b",
+                    ["5"] = "x",
+                    ["6"] = "c"
+                }
+            );
+    }
+
+    [Fact]
     public void InterpretNumericEntities_ReturnsInputUnchangedWhenThereAreNoEntities()
     {
         Utils.InterpretNumericEntities("hello world").Should().Be("hello world");
