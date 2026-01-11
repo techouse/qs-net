@@ -253,7 +253,7 @@ internal static partial class Decoder
                 switch (options.Duplicates)
                 {
                     case Duplicates.Combine:
-                        obj[key] = Utils.Combine<object?>(existingVal, value);
+                        obj[key] = Utils.CombineWithLimit(existingVal, value, options);
                         break;
                     case Duplicates.Last:
                         obj[key] = value;
@@ -352,13 +352,20 @@ internal static partial class Decoder
                 }
                 else
                 {
-                    if (
-                        options.AllowEmptyLists
-                        && (leaf?.Equals("") == true || (options.StrictNullHandling && leaf == null))
-                    )
-                        obj = new List<object?>();
+                    if (Utils.IsOverflow(leaf))
+                    {
+                        obj = leaf;
+                    }
                     else
-                        obj = Utils.Combine<object?>(new List<object?>(), leaf);
+                    {
+                        if (
+                            options.AllowEmptyLists
+                            && (leaf?.Equals("") == true || (options.StrictNullHandling && leaf == null))
+                        )
+                            obj = new List<object?>();
+                        else
+                            obj = Utils.CombineWithLimit(new List<object?>(), leaf, options);
+                    }
                 }
             }
             else

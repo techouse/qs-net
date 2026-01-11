@@ -752,7 +752,7 @@ public partial class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b", ["1"] = "c" }
                 }
             );
 
@@ -779,7 +779,7 @@ public partial class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b", ["1"] = "c" }
                 }
             );
 
@@ -1295,7 +1295,13 @@ public partial class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", null, "c", "" }
+                    ["a"] = new Dictionary<string, object?>
+                    {
+                        ["0"] = "b",
+                        ["1"] = null,
+                        ["2"] = "c",
+                        ["3"] = ""
+                    }
                 }
             );
 
@@ -1319,7 +1325,13 @@ public partial class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "", "c", null }
+                    ["a"] = new Dictionary<string, object?>
+                    {
+                        ["0"] = "b",
+                        ["1"] = "",
+                        ["2"] = "c",
+                        ["3"] = null
+                    }
                 }
             );
 
@@ -2560,7 +2572,83 @@ public partial class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "1", "2" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "1", ["1"] = "2" }
+                }
+            );
+    }
+
+    [Fact]
+    public void Decode_ListLimit_RespectsImplicitArrayLimit()
+    {
+        var values = Enumerable.Repeat("x", 105).ToArray();
+        var attack = "a[]=" + string.Join("&a[]=", values);
+        var result = Qs.Decode(attack, new DecodeOptions { ListLimit = 100 });
+
+        result.Should().ContainKey("a");
+        result["a"].Should().BeAssignableTo<IDictionary>();
+        ((IDictionary)result["a"]!).Count.Should().Be(105);
+    }
+
+    [Fact]
+    public void Decode_ListLimit_BoundaryConditions()
+    {
+        Qs.Decode("a[]=1&a[]=2&a[]=3", new DecodeOptions { ListLimit = 3 })
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new List<object?> { "1", "2", "3" }
+                }
+            );
+
+        Qs.Decode("a[]=1&a[]=2&a[]=3&a[]=4", new DecodeOptions { ListLimit = 3 })
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new Dictionary<string, object?>
+                    {
+                        ["0"] = "1",
+                        ["1"] = "2",
+                        ["2"] = "3",
+                        ["3"] = "4"
+                    }
+                }
+            );
+
+        Qs.Decode("a[]=1&a[]=2", new DecodeOptions { ListLimit = 1 })
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "1", ["1"] = "2" }
+                }
+            );
+    }
+
+    [Fact]
+    public void Decode_ListLimit_ConvertsDuplicateValuesWhenLimitExceeded()
+    {
+        Qs.Decode("a=b&a=c&a=d", new DecodeOptions { ListLimit = 20 })
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new List<object?> { "b", "c", "d" }
+                }
+            );
+
+        Qs.Decode("a=b&a=c&a=d", new DecodeOptions { ListLimit = 2 })
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new Dictionary<string, object?>
+                    {
+                        ["0"] = "b",
+                        ["1"] = "c",
+                        ["2"] = "d"
+                    }
                 }
             );
     }
@@ -2915,7 +3003,7 @@ public partial class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b", ["1"] = "c" }
                 }
             );
 
@@ -2933,7 +3021,7 @@ public partial class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "c" }
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b", ["1"] = "c" }
                 }
             );
     }
@@ -3423,7 +3511,13 @@ public partial class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", null, "c", "" }
+                    ["a"] = new Dictionary<string, object?>
+                    {
+                        ["0"] = "b",
+                        ["1"] = null,
+                        ["2"] = "c",
+                        ["3"] = ""
+                    }
                 }
             );
 
@@ -3441,7 +3535,13 @@ public partial class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "b", "", "c", null }
+                    ["a"] = new Dictionary<string, object?>
+                    {
+                        ["0"] = "b",
+                        ["1"] = "",
+                        ["2"] = "c",
+                        ["3"] = null
+                    }
                 }
             );
 
@@ -3450,7 +3550,12 @@ public partial class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new List<object?> { "", "b", "c" }
+                    ["a"] = new Dictionary<string, object?>
+                    {
+                        ["0"] = "",
+                        ["1"] = "b",
+                        ["2"] = "c"
+                    }
                 }
             );
     }
@@ -4178,9 +4283,19 @@ public partial class DecodeTest
         var result = Qs.Decode("a=1,2&a=3,4,5", opts);
 
         var dict = Assert.IsType<Dictionary<string, object?>>(result);
-        var list = Assert.IsType<List<object?>>(dict["a"]);
-        // With ThrowOnLimitExceeded = false, no truncation occurs; full concatenation is allowed
-        list.Select(x => x?.ToString()).Should().Equal("1", "2", "3", "4", "5");
+        var list = Assert.IsType<Dictionary<string, object?>>(dict["a"]);
+        // With ThrowOnLimitExceeded = false, values are preserved but list limit still converts to a map.
+        list.Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["0"] = "1",
+                    ["1"] = "2",
+                    ["2"] = "3",
+                    ["3"] = "4",
+                    ["4"] = "5"
+                }
+            );
     }
 
     [Fact]

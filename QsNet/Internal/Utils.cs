@@ -27,6 +27,13 @@ internal static partial class Utils
     /// </summary>
     private const int SegmentLimit = 1024;
 
+    private sealed class OverflowState
+    {
+        public int MaxIndex { get; set; }
+    }
+
+    private static readonly ConditionalWeakTable<object, OverflowState> OverflowTable = new();
+
     /// <summary>
     ///     A regex to match percent-encoded characters in the format %XX.
     /// </summary>
@@ -179,6 +186,37 @@ internal static partial class Utils
                 case IDictionary targetMap:
                     {
                         var mutable = ToDictionary(targetMap);
+                        var targetMapOverflow = IsOverflow(targetMap);
+                        if (targetMapOverflow && !ReferenceEquals(mutable, targetMap))
+                            SetOverflowMaxIndex(mutable, GetOverflowMaxIndex(targetMap));
+
+                        if (targetMapOverflow)
+                        {
+                            var targetMaxIndex = GetOverflowMaxIndex(mutable);
+                            switch (source)
+                            {
+                                case IEnumerable<object?> srcIter:
+                                    {
+                                        var i = targetMaxIndex + 1;
+                                        foreach (var item in srcIter)
+                                        {
+                                            if (item is not Undefined)
+                                                mutable[i.ToString(CultureInfo.InvariantCulture)] = item;
+                                            i++;
+                                        }
+
+                                        SetOverflowMaxIndex(mutable, i - 1);
+                                        return mutable;
+                                    }
+                                case Undefined:
+                                    return mutable;
+                            }
+
+                            var nextIndex = targetMaxIndex + 1;
+                            mutable[nextIndex.ToString(CultureInfo.InvariantCulture)] = source;
+                            SetOverflowMaxIndex(mutable, nextIndex);
+                            return mutable;
+                        }
 
                         switch (source)
                         {
@@ -217,11 +255,19 @@ internal static partial class Utils
 
         // Source IS a map
         var sourceMap = (IDictionary)source; // iterate the original map
+        var sourceOverflow = IsOverflow(sourceMap);
         Dictionary<object, object?> mergeTarget;
+        var initialMaxIndex = -1;
+        var targetOverflow = false;
         switch (target)
         {
             case IDictionary tmap:
                 mergeTarget = ToDictionary(tmap);
+                targetOverflow = IsOverflow(tmap);
+                if (targetOverflow && !ReferenceEquals(mergeTarget, tmap))
+                    SetOverflowMaxIndex(mergeTarget, GetOverflowMaxIndex(tmap));
+                if (targetOverflow)
+                    initialMaxIndex = GetOverflowMaxIndex(mergeTarget);
                 break;
 
             case IEnumerable<object?> tEnum:
@@ -237,22 +283,53 @@ internal static partial class Utils
                     }
 
                     mergeTarget = dict;
+                    if (i > 0)
+                        initialMaxIndex = i - 1;
                     break;
                 }
 
             default:
                 {
                     if (target is null or Undefined)
-                        return NormalizeForTarget((IDictionary)source);
+                    {
+                        var normalized = NormalizeForTarget(sourceMap);
+                        if (sourceOverflow && normalized is IDictionary normalizedMap)
+                            SetOverflowMaxIndex(normalizedMap, GetOverflowMaxIndex(sourceMap));
+                        return normalized;
+                    }
+
+                    if (sourceOverflow)
+                    {
+                        var result = new Dictionary<object, object?>(sourceMap.Count + 1)
+                        {
+                            ["0"] = target
+                        };
+                        foreach (DictionaryEntry entry in sourceMap)
+                        {
+                            if (TryGetArrayIndex(entry.Key, out var idx))
+                                result[(idx + 1).ToString(CultureInfo.InvariantCulture)] = entry.Value;
+                            else
+                                result[entry.Key] = entry.Value;
+                        }
+
+                        var sourceMaxIndex = GetOverflowMaxIndex(sourceMap);
+                        SetOverflowMaxIndex(result, sourceMaxIndex >= 0 ? sourceMaxIndex + 1 : 0);
+                        return result;
+                    }
 
                     var list = new List<object?>
                 {
                     target,
-                    ToObjectKeyedDictionary((IDictionary)source)
+                    ToObjectKeyedDictionary(sourceMap)
                 };
                     return list;
                 }
         }
+
+        var trackOverflow = targetOverflow || sourceOverflow;
+        var maxIndex = trackOverflow ? initialMaxIndex : -1;
+        if (trackOverflow && sourceOverflow)
+            maxIndex = Math.Max(maxIndex, GetOverflowMaxIndex(sourceMap));
 
         foreach (DictionaryEntry entry in sourceMap)
         {
@@ -262,7 +339,13 @@ internal static partial class Utils
             mergeTarget[key] = mergeTarget.TryGetValue(key, out var existing)
                 ? Merge(existing, value, options)
                 : value;
+
+            if (trackOverflow && TryGetArrayIndex(key, out var idx) && idx > maxIndex)
+                maxIndex = idx;
         }
+
+        if (trackOverflow)
+            SetOverflowMaxIndex(mergeTarget, maxIndex);
 
         return mergeTarget;
     }
@@ -720,6 +803,79 @@ internal static partial class Utils
                     break;
             }
         }
+    }
+
+    internal static bool IsOverflow(object? obj)
+    {
+        return obj is not null && OverflowTable.TryGetValue(obj, out _);
+    }
+
+    private static int GetOverflowMaxIndex(object obj)
+    {
+        return OverflowTable.TryGetValue(obj, out var state) ? state.MaxIndex : -1;
+    }
+
+    private static void SetOverflowMaxIndex(object obj, int maxIndex)
+    {
+        OverflowTable.GetOrCreateValue(obj).MaxIndex = maxIndex;
+    }
+
+    private static object MarkOverflow(object obj, int maxIndex)
+    {
+        SetOverflowMaxIndex(obj, maxIndex);
+        return obj;
+    }
+
+    private static bool TryGetArrayIndex(object key, out int index)
+    {
+        switch (key)
+        {
+            case int i when i >= 0:
+                index = i;
+                return true;
+            case string s
+                when int.TryParse(
+                         s,
+                         NumberStyles.Integer,
+                         CultureInfo.InvariantCulture,
+                         out var parsed
+                     )
+                     && parsed >= 0
+                     && parsed.ToString(CultureInfo.InvariantCulture) == s:
+                index = parsed;
+                return true;
+            default:
+                index = -1;
+                return false;
+        }
+    }
+
+    internal static object CombineWithLimit(object? a, object? b, DecodeOptions options)
+    {
+        if (options.ListLimit < 0)
+            return Combine<object?>(a, b);
+
+        if (IsOverflow(a))
+        {
+            var target = (IDictionary)a!;
+            var nextIndex = GetOverflowMaxIndex(target) + 1;
+            target[nextIndex.ToString(CultureInfo.InvariantCulture)] = b;
+            SetOverflowMaxIndex(target, nextIndex);
+            return target;
+        }
+
+        var combined = Combine<object?>(a, b);
+        return combined.Count > options.ListLimit
+            ? MarkOverflow(ListToIndexMap(combined), combined.Count - 1)
+            : combined;
+    }
+
+    private static Dictionary<object, object?> ListToIndexMap(List<object?> list)
+    {
+        var map = new Dictionary<object, object?>(list.Count);
+        for (var i = 0; i < list.Count; i++)
+            map[i.ToString(CultureInfo.InvariantCulture)] = list[i];
+        return map;
     }
 
     /// <summary>
