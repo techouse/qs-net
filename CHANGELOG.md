@@ -1,3 +1,7 @@
+## 1.1.2
+
+* [FIX] implement `DecodeOptions.ListLimit` handling to prevent DoS via memory exhaustion
+
 ## 1.1.1
 
 * [CHORE] stabilize .NET 10 CI tests
