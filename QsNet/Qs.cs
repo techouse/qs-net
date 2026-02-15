@@ -14,25 +14,33 @@ namespace QsNet;
 
 /// <summary>
 ///     Provides static methods for encoding and decoding query strings and dictionaries.
-///     Supports conversion between query strings and Dictionary&lt;object, object?&gt; objects
+///     Supports conversion between query strings and Dictionary&lt;string, object?&gt; objects
 ///     with configurable parsing and encoding options.
 /// </summary>
 public static class Qs
 {
     /// <summary>
-    ///     Decode a query string or a Dictionary into a Dictionary&lt;object, object?&gt;.
+    ///     Decode a query string, dictionary, or key-value sequence into a Dictionary&lt;string, object?&gt;.
     /// </summary>
-    /// <param name="input">The query string or Dictionary to decode</param>
+    /// <param name="input">The query string, dictionary, or key-value sequence to decode</param>
     /// <param name="options">Optional decoder settings</param>
-    /// <returns>The decoded Dictionary</returns>
-    /// <exception cref="ArgumentException">If the input is not a string or Dictionary</exception>
+    /// <returns>The decoded Dictionary&lt;string, object?&gt;.</returns>
+    /// <exception cref="ArgumentException">If the input is not a string, dictionary, or key-value sequence</exception>
     /// <exception cref="InvalidOperationException">If limits are exceeded and ThrowOnLimitExceeded is true</exception>
     public static Dictionary<string, object?> Decode(object? input, DecodeOptions? options = null)
     {
         var opts = options ?? new DecodeOptions();
+        opts.Validate();
 
-        if (input is not string and not IDictionary and not null)
-            throw new ArgumentException("The input must be a String or a Map<String, Any?>");
+        if (
+            input is not string
+            and not IDictionary
+            and not IEnumerable<KeyValuePair<string?, object?>>
+            and not null
+        )
+            throw new ArgumentException(
+                "The input must be a string, IDictionary, or IEnumerable<KeyValuePair<string?, object?>>."
+            );
 
         if (input is null or string { Length: 0 } or IDictionary { Count: 0 })
             return new Dictionary<string, object?>();
@@ -41,23 +49,17 @@ public static class Qs
         var tempObj = input switch
         {
             string qs => Decoder.ParseQueryStringValues(qs, opts),
-
-            IEnumerable<KeyValuePair<string?, object?>> gen => gen.ToDictionary(
-                kv => kv.Key ?? string.Empty,
-                kv => Utils.ConvertNestedValues(kv.Value) // value-level walk
-            ),
-
-            IDictionary raw => Utils.ConvertNestedDictionary(raw),
-
-            _ => null
+            IEnumerable<KeyValuePair<string?, object?>> gen => ConvertEnumerableKeyValueInput(gen, opts),
+            IDictionary dict => Utils.ConvertNestedDictionary(dict),
+            _ => new Dictionary<string, object?>()
         };
 
         var finalOptions = opts;
-        if (opts is { ParseLists: true, ListLimit: > 0 } && (tempObj?.Count ?? 0) > opts.ListLimit)
+        if (opts is { ParseLists: true, ListLimit: > 0 } && tempObj.Count > opts.ListLimit)
             finalOptions = opts.CopyWith(parseLists: false);
 
         // keep internal work in object-keyed maps
-        if (tempObj is not { Count: > 0 })
+        if (tempObj.Count == 0)
             return new Dictionary<string, object?>();
 
         var obj = new Dictionary<object, object?>(tempObj.Count);
@@ -78,7 +80,7 @@ public static class Qs
                 continue;
             }
 
-            var merged = Utils.Merge(obj, parsed, finalOptions) ?? obj;
+            var merged = Utils.Merge(obj, parsed, finalOptions);
 
             obj = merged switch
             {
@@ -100,7 +102,7 @@ public static class Qs
                 continue;
             }
 
-            var merged = Utils.Merge(obj, parsed, finalOptions) ?? obj;
+            var merged = Utils.Merge(obj, parsed, finalOptions);
 
             obj = merged switch
             {
@@ -117,6 +119,60 @@ public static class Qs
     }
 
     /// <summary>
+    ///     Converts enumerable key/value input into a temporary decoded map while applying duplicate-key
+    ///     handling on decoded key tokens.
+    /// </summary>
+    /// <param name="input">The source key/value sequence.</param>
+    /// <param name="options">Decode options controlling duplicate and key-normalization behavior.</param>
+    /// <returns>A string-keyed map ready for the parse/merge phase.</returns>
+    private static Dictionary<string, object?> ConvertEnumerableKeyValueInput(
+        IEnumerable<KeyValuePair<string?, object?>> input,
+        DecodeOptions options
+    )
+    {
+        var result = new Dictionary<string, object?>();
+        // Decoded key token -> representative raw key stored in `result`.
+        // We only bucket duplicates; ParseKeys should still receive raw keys so merge semantics stay intact.
+        var decodedKeyBuckets = new Dictionary<string, string>();
+
+        foreach (var kv in input)
+        {
+            var rawKey = kv.Key ?? string.Empty;
+            if (rawKey.Length == 0)
+                continue;
+
+            var decodedKey = options.DecodeKey(rawKey, options.Charset) ?? string.Empty;
+            if (decodedKey.Length == 0)
+                continue;
+
+            var value = Utils.ConvertNestedValues(kv.Value);
+
+            if (!decodedKeyBuckets.TryGetValue(decodedKey, out var bucketKey))
+            {
+                decodedKeyBuckets[decodedKey] = rawKey;
+                result[rawKey] = value;
+                continue;
+            }
+
+            var existing = result[bucketKey];
+            switch (options.Duplicates)
+            {
+                case Duplicates.Combine:
+                    result[bucketKey] = Utils.CombineWithLimit(existing, value, options);
+                    break;
+                case Duplicates.Last:
+                    result[bucketKey] = value;
+                    break;
+                case Duplicates.First:
+                default:
+                    break;
+            }
+        }
+
+        return result;
+    }
+
+    /// <summary>
     ///     Encode a Dictionary or IEnumerable into a query string.
     /// </summary>
     /// <param name="data">The data to encode</param>
@@ -126,6 +182,7 @@ public static class Qs
     public static string Encode(object? data, EncodeOptions? options = null)
     {
         var opts = options ?? new EncodeOptions();
+        opts.Validate();
 
         if (data is null)
             return string.Empty;
@@ -187,8 +244,10 @@ public static class Qs
         if (opts.Sort != null)
             objKeys.Sort(Comparer<object?>.Create(opts.Sort));
 
-        // Root side-channel frame (mirrors WeakHashMap chain in Kotlin)
-        var sideChannel = new SideChannelFrame();
+        var isCommaFormat = opts.ListFormat == ListFormat.Comma;
+        var commaRoundTrip = isCommaFormat && opts.CommaRoundTrip == true;
+        var commaCompactNulls = isCommaFormat && opts.CommaCompactNulls;
+        ValueEncoder? valueEncoder = opts.Encode ? opts.GetEncoder : null;
 
         // Collect "key=value" parts
         var parts = new List<string>(objKeys.Count);
@@ -210,16 +269,17 @@ public static class Qs
             var encoded = Encoder.Encode(
                 value,
                 !hasKey,
-                sideChannel,
+                // Isolate side-channel state per top-level key; sibling references are not cycles.
+                new SideChannelFrame(),
                 key,
-                opts.ListFormat?.GetGenerator(),
-                opts is { ListFormat: ListFormat.Comma, CommaRoundTrip: true },
-                opts is { ListFormat: ListFormat.Comma, CommaCompactNulls: true },
+                opts.ListFormat.GetValueOrDefault().GetGenerator(),
+                commaRoundTrip,
+                commaCompactNulls,
                 opts.AllowEmptyLists,
                 opts.StrictNullHandling,
                 opts.SkipNulls,
                 opts.EncodeDotInKeys,
-                opts.Encode ? opts.GetEncoder : null,
+                valueEncoder,
                 opts.GetDateSerializer,
                 opts.Sort,
                 opts.Filter,
@@ -256,11 +316,10 @@ public static class Qs
 
         if (opts.CharsetSentinel)
         {
-            // encodeURIComponent('&#10003;') and encodeURIComponent('✓')
-            if (opts.Charset.WebName.Equals("iso-8859-1", StringComparison.OrdinalIgnoreCase))
-                sb.Append(Sentinel.Iso.GetEncoded()).Append(joined.Length > 0 ? "&" : "");
-            else if (opts.Charset.WebName.Equals("utf-8", StringComparison.OrdinalIgnoreCase))
-                sb.Append(Sentinel.Charset.GetEncoded()).Append(joined.Length > 0 ? "&" : "");
+            // Charset is validated to UTF-8/Latin1 in EncodeOptions.Validate.
+            sb.Append(opts.Charset.CodePage == 28591 ? Sentinel.Iso.GetEncoded() : Sentinel.Charset.GetEncoded());
+            if (joined.Length > 0)
+                sb.Append('&');
         }
 
         if (joined.Length > 0)

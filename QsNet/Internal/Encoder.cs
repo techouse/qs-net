@@ -1,7 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
+using System.Globalization;
 using System.Text;
 using QsNet.Enums;
 using QsNet.Models;
@@ -64,7 +64,7 @@ internal static class Encoder
         bool addQueryPrefix = false
     )
     {
-        var fmt = formatter ?? IdentityFormatter; // avoid per-call lambda alloc
+        var fmt = formatter ?? IdentityFormatter;
         var cs = charset ?? Encoding.UTF8;
         var gen = generateArrayPrefix ?? ListFormat.Indices.GetGenerator();
 
@@ -73,370 +73,14 @@ internal static class Encoder
         var compactNulls = commaCompactNulls && isCommaGen;
 
         var keyPrefixStr = prefix ?? (addQueryPrefix ? "?" : "");
-        var obj = data;
 
-        var objKey = data; // identity key
-        var tmpSc = sideChannel;
-        var step = 0;
-        var found = false;
-
-        while (!found)
-        {
-            tmpSc = tmpSc.Parent;
-            if (tmpSc is null)
-                break;
-            step++;
-            if (objKey is not null && tmpSc.TryGet(objKey, out var pos))
-            {
-                if (pos == step)
-                    throw new InvalidOperationException("Cyclic object value");
-                found = true;
-            }
-
-            if (tmpSc.Parent is null)
-                step = 0;
-        }
-
-        if (filter is FunctionFilter ff)
-            obj = ff.Function(keyPrefixStr, obj);
-        else if (obj is DateTime dt)
-            obj = serializeDate is null ? dt.ToString("o") : serializeDate(dt);
-        else if (isCommaGen && obj is IEnumerable enumerable0 and not string and not IDictionary)
-            // normalize date types inside comma arrays
-            obj = enumerable0
-                .Cast<object?>()
-                .Select(v =>
-                {
-                    return v switch
-                    {
-                        DateTimeOffset inst => inst.ToString("o"),
-                        DateTime ldt => serializeDate?.Invoke(ldt) ?? ldt.ToString("o"),
-                        _ => v
-                    };
-                })
-                .ToList();
-
-        if (!undefined && obj is null)
-        {
-            if (strictNullHandling)
-                return encoder != null && !encodeValuesOnly
-                    ? fmt(encoder(keyPrefixStr, cs, format))
-                    : keyPrefixStr;
-
-            obj = "";
-        }
-
-        if (Utils.IsNonNullishPrimitive(obj, skipNulls) || obj is byte[])
-        {
-            if (encoder == null)
-            {
-                var s = obj switch
-                {
-                    bool b => b ? "true" : "false",
-                    _ => obj?.ToString() ?? ""
-                };
-                return $"{fmt(keyPrefixStr)}={fmt(s)}";
-            }
-
-            var keyPart = encodeValuesOnly ? keyPrefixStr : encoder(keyPrefixStr, null, null);
-            var valuePart = encoder(obj, null, null);
-            return $"{fmt(keyPart)}={fmt(valuePart)}";
-        }
-
-        var values = new List<object?>();
-        if (undefined)
-            return values;
-
-        // Detect sequence once and cache materialization for index access / counts
-        var isSeq = false;
-        List<object?>? seqList = null;
-        if (obj is IEnumerable seq0 and not string and not IDictionary)
-        {
-            isSeq = true;
-            seqList = seq0.Cast<object?>().ToList();
-        }
-        int? commaEffectiveLength = null;
-
-        List<object?> objKeys;
-        if (isCommaGen && obj is IEnumerable enumerable and not string and not IDictionary)
-        {
-            var commaItems = seqList ?? enumerable.Cast<object?>().ToList();
-            List<object?> itemsForJoin;
-            if (compactNulls)
-            {
-                itemsForJoin = new List<object?>(commaItems.Count);
-                foreach (var item in commaItems)
-                    if (item is not null)
-                        itemsForJoin.Add(item);
-            }
-            else
-            {
-                itemsForJoin = commaItems;
-            }
-
-            commaEffectiveLength = itemsForJoin.Count;
-
-            var strings = new List<string>(itemsForJoin.Count);
-            if (encodeValuesOnly && encoder != null)
-            {
-                foreach (var el in itemsForJoin)
-                {
-                    if (el is null)
-                    {
-                        strings.Add("");
-                        continue;
-                    }
-
-                    strings.Add(encoder(el.ToString(), null, null));
-                }
-            }
-            else
-            {
-                foreach (var el in itemsForJoin)
-                    strings.Add(el?.ToString() ?? "");
-            }
-
-            if (strings.Count != 0)
-            {
-                var joined = string.Join(",", strings);
-                objKeys =
-                [
-                    new Dictionary<string, object?>
-                    {
-                        { "value", string.IsNullOrEmpty(joined) ? null : joined }
-                    }
-                ];
-            }
-            else
-            {
-                objKeys = [new Dictionary<string, object?> { { "value", Undefined.Create() } }];
-            }
-        }
-        else if (filter is IterableFilter wl)
-        {
-            objKeys = wl.Iterable.Cast<object?>().ToList();
-        }
-        else
-        {
-            switch (obj)
-            {
-                case IDictionary map:
-                    objKeys = map.Keys.Cast<object?>().ToList();
-                    break;
-                case Array arr:
-                    {
-                        objKeys = new List<object?>(arr.Length);
-                        for (var i = 0; i < arr.Length; i++) objKeys.Add(i);
-                        break;
-                    }
-                case IList list:
-                    {
-                        objKeys = new List<object?>(list.Count);
-                        for (var i = 0; i < list.Count; i++) objKeys.Add(i);
-                        break;
-                    }
-                default:
-                    {
-                        if (isSeq && seqList != null)
-                        {
-                            objKeys = new List<object?>(seqList.Count);
-                            for (var i = 0; i < seqList.Count; i++) objKeys.Add(i);
-                        }
-                        else if (obj is IEnumerable ie and not string)
-                        {
-                            objKeys = [];
-                            var i = 0;
-                            foreach (var _ in ie) objKeys.Add(i++);
-                        }
-                        else
-                        {
-                            objKeys = [];
-                        }
-
-                        break;
-                    }
-            }
-
-            if (sort != null)
-                objKeys.Sort(Comparer<object?>.Create(sort));
-        }
-
-        values.Capacity = Math.Max(values.Capacity, objKeys.Count);
-
-        var encodedPrefix = encodeDotInKeys ? keyPrefixStr.Replace(".", "%2E") : keyPrefixStr;
-        var shouldAppendRoundTrip = crt
-                                    && isSeq
-                                    && (
-                                        isCommaGen && commaEffectiveLength.HasValue
-                                            ? commaEffectiveLength.Value == 1
-                                            : seqList is { Count: 1 }
-                                    );
-
-        var adjustedPrefix = shouldAppendRoundTrip ? $"{encodedPrefix}[]" : encodedPrefix;
-
-        if (allowEmptyLists && isSeq && seqList is { Count: 0 })
-            return $"{adjustedPrefix}[]";
-
-        for (var i = 0; i < objKeys.Count; i++)
-        {
-            var key = objKeys[i];
-            object? value;
-            var valueUndefined = false;
-
-            if (key is IDictionary kmap && kmap.Contains("value") && kmap["value"] is not Undefined)
-                value = kmap["value"];
-            else
-                switch (obj)
-                {
-                    case IDictionary map:
-                        {
-                            switch (obj)
-                            {
-                                // Fast paths for common generic dictionaries
-                                case IDictionary<object, object?> dObj
-                                    when key is not null && dObj.TryGetValue(key, out var got):
-                                    value = got;
-                                    break;
-                                case IDictionary<object, object?>:
-                                    value = null;
-                                    valueUndefined = true;
-                                    break;
-                                case IDictionary<string, object?> dStr:
-                                    {
-                                        var ks = key as string ?? key?.ToString() ?? string.Empty;
-                                        if (dStr.TryGetValue(ks, out var got))
-                                        {
-                                            value = got;
-                                        }
-                                        else
-                                        {
-                                            value = null;
-                                            valueUndefined = true;
-                                        }
-
-                                        break;
-                                    }
-                                default:
-                                    {
-                                        if (key is not null && map.Contains(key))
-                                        {
-                                            value = map[key];
-                                        }
-                                        else
-                                        {
-                                            value = null;
-                                            valueUndefined = true;
-                                        }
-
-                                        break;
-                                    }
-                            }
-
-                            break;
-                        }
-
-                    case Array arr:
-                        {
-                            var idx = key as int? ?? (key is IConvertible c ? c.ToInt32(null) : -1);
-                            if (idx >= 0 && idx < arr.Length)
-                            {
-                                value = arr.GetValue(idx);
-                            }
-                            else
-                            {
-                                value = null;
-                                valueUndefined = true;
-                            }
-
-                            break;
-                        }
-
-                    case IList list:
-                        {
-                            var idx = key switch
-                            {
-                                int j => j,
-                                IConvertible when int.TryParse(key.ToString(), out var parsed) =>
-                                    parsed,
-                                _ => -1
-                            };
-                            if (idx >= 0 && idx < list.Count)
-                            {
-                                value = list[idx];
-                            }
-                            else
-                            {
-                                value = null;
-                                valueUndefined = true;
-                            }
-
-                            break;
-                        }
-
-                    case IEnumerable ie
-                        and not string:
-                        {
-                            var idx = key switch
-                            {
-                                int j => j,
-                                IConvertible when int.TryParse(key.ToString(), out var parsed) => parsed,
-                                _ => -1
-                            };
-                            var list2 = seqList ?? ie.Cast<object?>().ToList();
-                            if ((uint)idx < (uint)list2.Count)
-                            {
-                                value = list2[idx];
-                            }
-                            else
-                            {
-                                value = null;
-                                valueUndefined = true;
-                            }
-
-                            break;
-                        }
-
-                    default:
-                        value = null;
-                        valueUndefined = true;
-                        break;
-                }
-
-            if (skipNulls && value is null)
-                continue;
-
-            var keyStr = key?.ToString() ?? "";
-            var encodedKey = keyStr;
-#if NETSTANDARD2_0
-            if (allowDots && encodeDotInKeys && keyStr.IndexOf('.') >= 0)
-                encodedKey = keyStr.Replace(".", "%2E");
-#else
-            if (allowDots && encodeDotInKeys && keyStr.Contains('.', StringComparison.Ordinal))
-                encodedKey = keyStr.Replace(".", "%2E", StringComparison.Ordinal);
-#endif
-
-            var keyPrefix =
-                obj is IEnumerable and not string and not IDictionary
-                    ? gen(adjustedPrefix, encodedKey)
-                    : allowDots
-                        ? $"{adjustedPrefix}.{encodedKey}"
-                        : $"{adjustedPrefix}[{encodedKey}]";
-
-            if (objKey is not null && obj is IDictionary or IEnumerable and not string)
-                sideChannel.Set(objKey, step);
-
-            var childSc = new SideChannelFrame(sideChannel);
-
-            var childEncoder =
-                isCommaGen && encodeValuesOnly && obj is IEnumerable and not string
-                    ? null
-                    : encoder;
-
-            var encoded = Encode(
-                value,
-                valueUndefined,
-                childSc,
-                keyPrefix,
+        var stack = new Stack<EncodeFrame>();
+        stack.Push(
+            new EncodeFrame(
+                data,
+                undefined,
+                sideChannel,
+                keyPrefixStr,
                 gen,
                 crt,
                 compactNulls,
@@ -444,7 +88,7 @@ internal static class Encoder
                 strictNullHandling,
                 skipNulls,
                 encodeDotInKeys,
-                childEncoder,
+                encoder,
                 serializeDate,
                 sort,
                 filter,
@@ -454,15 +98,526 @@ internal static class Encoder
                 encodeValuesOnly,
                 cs,
                 addQueryPrefix
-            );
+            )
+        );
 
-            if (encoded is IEnumerable en and not string)
-                foreach (var item in en)
-                    values.Add(item);
-            else
-                values.Add(encoded);
+        object? lastResult = null;
+
+        while (stack.Count > 0)
+        {
+            var frame = stack.Peek();
+
+            switch (frame.Phase)
+            {
+                case EncodePhase.Start:
+                    {
+                        var obj = frame.Data;
+
+                        if (frame.Filter is FunctionFilter ff)
+                            obj = ff.Function(frame.Prefix, obj);
+
+                        if (obj is DateTime dt)
+                        {
+                            obj = frame.SerializeDate is null ? dt.ToString("o") : frame.SerializeDate(dt);
+                        }
+                        else if (
+                            ReferenceEquals(frame.Generator, ListFormat.Comma.GetGenerator())
+                            && IsSequence(obj)
+                            && obj is IEnumerable seq
+                        )
+                        {
+                            var normalized = new List<object?>();
+                            foreach (var raw in seq)
+                            {
+                                var v = raw;
+                                normalized.Add(
+                                    v switch
+                                    {
+                                        DateTimeOffset inst => inst.ToString("o"),
+                                        DateTime ldt => frame.SerializeDate?.Invoke(ldt) ?? ldt.ToString("o"),
+                                        _ => v
+                                    }
+                                );
+                            }
+
+                            obj = normalized;
+                        }
+
+                        if (obj is IDictionary || IsSequence(obj))
+                        {
+                            if (IsInAncestorSideChannels(frame.SideChannel, obj!))
+                                throw new InvalidOperationException("Cyclic object value");
+
+                            frame.SideChannel.Set(obj!, 0);
+                        }
+
+                        if (!frame.Undefined && obj is null)
+                        {
+                            if (frame.StrictNullHandling)
+                            {
+                                var keyOnly = frame is { Encoder: not null, EncodeValuesOnly: false }
+                                    ? frame.Formatter(frame.Encoder(frame.Prefix, frame.Charset, frame.Format))
+                                    : frame.Prefix;
+                                FinishFrame(keyOnly);
+                                continue;
+                            }
+
+                            obj = "";
+                        }
+
+                        if (Utils.IsNonNullishPrimitive(obj, frame.SkipNulls) || obj is byte[])
+                        {
+                            if (frame.Encoder == null)
+                            {
+                                var s = obj switch
+                                {
+                                    bool b => b ? "true" : "false",
+                                    byte[] bytes => BytesToString(bytes, frame.Charset),
+                                    _ => obj?.ToString() ?? string.Empty
+                                };
+                                FinishFrame($"{frame.Formatter(frame.Prefix)}={frame.Formatter(s)}");
+                                continue;
+                            }
+
+                            var keyPart = frame.EncodeValuesOnly
+                                ? frame.Prefix
+                                : frame.Encoder(frame.Prefix, frame.Charset, frame.Format);
+                            var valuePart = frame.Encoder(obj, frame.Charset, frame.Format);
+                            FinishFrame($"{frame.Formatter(keyPart)}={frame.Formatter(valuePart)}");
+                            continue;
+                        }
+
+                        if (frame.Undefined)
+                        {
+                            FinishFrame(frame.Values);
+                            continue;
+                        }
+
+                        frame.Obj = obj;
+                        frame.IsSeq = IsSequence(obj);
+                        frame.IsCommaGenerator = ReferenceEquals(frame.Generator, ListFormat.Comma.GetGenerator());
+                        frame.SeqList = frame.IsSeq && obj is IEnumerable en
+                            ? MaterializeObjectList(en)
+                            : null;
+
+                        int? commaEffectiveLength = null;
+                        List<object?> objKeys;
+
+                        if (frame is { IsCommaGenerator: true, IsSeq: true })
+                        {
+                            var commaItems = frame.SeqList!;
+                            List<object?> itemsForJoin;
+                            if (frame.CompactNulls)
+                            {
+                                itemsForJoin = new List<object?>(commaItems.Count);
+                                foreach (var item in commaItems)
+                                    if (item is not null)
+                                        itemsForJoin.Add(item);
+                            }
+                            else
+                            {
+                                itemsForJoin = commaItems;
+                            }
+
+                            commaEffectiveLength = itemsForJoin.Count;
+
+                            var strings = new List<string>(itemsForJoin.Count);
+                            if (frame is { EncodeValuesOnly: true, Encoder: not null })
+                                foreach (var el in itemsForJoin)
+                                {
+                                    if (el is null)
+                                    {
+                                        strings.Add(string.Empty);
+                                        continue;
+                                    }
+
+                                    strings.Add(frame.Encoder(el.ToString(), frame.Charset, frame.Format));
+                                }
+                            else
+                                foreach (var el in itemsForJoin)
+                                    strings.Add(
+                                        frame.Encoder == null && el is byte[] bytes
+                                            ? BytesToString(bytes, frame.Charset)
+                                            : el?.ToString() ?? string.Empty
+                                    );
+
+                            if (strings.Count != 0)
+                            {
+                                var joined = string.Join(",", strings);
+                                objKeys =
+                                [
+                                    new Dictionary<string, object?>
+                                {
+                                    { "value", string.IsNullOrEmpty(joined) ? null : joined }
+                                }
+                                ];
+                            }
+                            else
+                            {
+                                objKeys = [new Dictionary<string, object?> { { "value", Undefined.Create() } }];
+                            }
+                        }
+                        else if (frame.Filter is IterableFilter wl)
+                        {
+                            objKeys = MaterializeObjectList(wl.Iterable);
+                        }
+                        else
+                        {
+                            switch (frame.Obj)
+                            {
+                                case IDictionary map:
+                                    objKeys = MaterializeObjectList(map.Keys);
+                                    break;
+                                case Array arr:
+                                    {
+                                        objKeys = new List<object?>(arr.Length);
+                                        for (var i = 0; i < arr.Length; i++) objKeys.Add(i);
+                                        break;
+                                    }
+                                case IList list:
+                                    {
+                                        objKeys = new List<object?>(list.Count);
+                                        for (var i = 0; i < list.Count; i++) objKeys.Add(i);
+                                        break;
+                                    }
+                                default:
+                                    {
+                                        if (frame is { IsSeq: true, SeqList: not null })
+                                        {
+                                            objKeys = new List<object?>(frame.SeqList.Count);
+                                            for (var i = 0; i < frame.SeqList.Count; i++) objKeys.Add(i);
+                                        }
+                                        else
+                                        {
+                                            objKeys = [];
+                                        }
+
+                                        break;
+                                    }
+                            }
+
+                            if (frame.Sort != null)
+                                objKeys.Sort(Comparer<object?>.Create(frame.Sort));
+                        }
+
+                        frame.ObjKeys = objKeys;
+                        if (frame.Values.Capacity < objKeys.Count)
+                            frame.Values.Capacity = objKeys.Count;
+
+                        var encodedPrefix = frame.EncodeDotInKeys
+                            ? frame.Prefix.Replace(".", "%2E")
+                            : frame.Prefix;
+                        var shouldAppendRoundTrip =
+                            frame is { CommaRoundTrip: true, IsSeq: true } && commaEffectiveLength == 1;
+
+                        frame.AdjustedPrefix = shouldAppendRoundTrip
+                            ? $"{encodedPrefix}[]"
+                            : encodedPrefix;
+
+                        if (frame is { AllowEmptyLists: true, IsSeq: true } && frame.SeqList!.Count == 0)
+                        {
+                            FinishFrame($"{frame.AdjustedPrefix}[]");
+                            continue;
+                        }
+
+                        frame.Index = 0;
+                        frame.Phase = EncodePhase.Iterate;
+                        break;
+                    }
+                case EncodePhase.Iterate when frame.Index >= frame.ObjKeys.Count:
+                    FinishFrame(frame.Values);
+                    continue;
+                case EncodePhase.Iterate:
+                    {
+                        var key = frame.ObjKeys[frame.Index++];
+                        object? value = null;
+                        var valueUndefined = true;
+
+                        if (key is IDictionary kmap && kmap.Contains("value") && kmap["value"] is not Undefined)
+                        {
+                            value = kmap["value"];
+                            valueUndefined = false;
+                        }
+                        else
+                        {
+                            if (frame.Obj is IDictionary map)
+                            {
+                                switch (frame.Obj)
+                                {
+                                    case IDictionary<object, object?> dObj
+                                        when key is not null && dObj.TryGetValue(key, out var got):
+                                        value = got;
+                                        valueUndefined = false;
+                                        break;
+                                    case IDictionary<object, object?>:
+                                        break;
+                                    case IDictionary<string, object?> dStr:
+                                        {
+                                            var ks = StringifyKey(key);
+                                            if (dStr.TryGetValue(ks, out var got))
+                                            {
+                                                value = got;
+                                                valueUndefined = false;
+                                            }
+
+                                            break;
+                                        }
+                                    default:
+                                        {
+                                            if (key is not null && map.Contains(key))
+                                            {
+                                                value = map[key];
+                                                valueUndefined = false;
+                                            }
+
+                                            break;
+                                        }
+                                }
+                            }
+                            else if (frame.Obj is Array arr)
+                            {
+                                if (TryGetIndex(key, out var idx) && (uint)idx < (uint)arr.Length)
+                                {
+                                    value = arr.GetValue(idx);
+                                    valueUndefined = false;
+                                }
+                            }
+                            else if (frame.Obj is IList list)
+                            {
+                                if (TryGetIndex(key, out var idx) && (uint)idx < (uint)list.Count)
+                                {
+                                    value = list[idx];
+                                    valueUndefined = false;
+                                }
+                            }
+                            else if (frame.IsSeq)
+                            {
+                                var idx = CoerceIndexOrMinusOne(key);
+                                var list2 = frame.SeqList!;
+                                if ((uint)idx < (uint)list2.Count)
+                                {
+                                    value = list2[idx];
+                                    valueUndefined = false;
+                                }
+                            }
+                        }
+
+                        if (frame.SkipNulls && value is null)
+                            continue;
+
+                        var keyStr = StringifyKey(key);
+                        var encodedKey = keyStr;
+#if NETSTANDARD2_0
+                    if (frame is { AllowDots: true, EncodeDotInKeys: true } && keyStr.IndexOf('.') >= 0)
+                        encodedKey = keyStr.Replace(".", "%2E");
+#else
+                        if (frame.AllowDots && frame.EncodeDotInKeys && keyStr.Contains('.', StringComparison.Ordinal))
+                            encodedKey = keyStr.Replace(".", "%2E", StringComparison.Ordinal);
+#endif
+
+                        var keyPrefix = frame.Obj is IEnumerable and not string and not IDictionary
+                            ? frame.Generator(frame.AdjustedPrefix!, encodedKey)
+                            : frame.AllowDots
+                                ? $"{frame.AdjustedPrefix}.{encodedKey}"
+                                : $"{frame.AdjustedPrefix}[{encodedKey}]";
+
+                        var childEncoder = frame is
+                        { IsCommaGenerator: true, EncodeValuesOnly: true, Obj: IEnumerable and not string }
+                            ? null
+                            : frame.Encoder;
+
+                        frame.Phase = EncodePhase.AwaitChild;
+                        stack.Push(
+                            new EncodeFrame(
+                                value,
+                                valueUndefined,
+                                new SideChannelFrame(frame.SideChannel),
+                                keyPrefix,
+                                frame.Generator,
+                                frame.CommaRoundTrip,
+                                frame.CompactNulls,
+                                frame.AllowEmptyLists,
+                                frame.StrictNullHandling,
+                                frame.SkipNulls,
+                                frame.EncodeDotInKeys,
+                                childEncoder,
+                                frame.SerializeDate,
+                                frame.Sort,
+                                frame.Filter,
+                                frame.AllowDots,
+                                frame.Format,
+                                frame.Formatter,
+                                frame.EncodeValuesOnly,
+                                frame.Charset,
+                                frame.AddQueryPrefix
+                            )
+                        );
+                        break;
+                    }
+                case EncodePhase.AwaitChild:
+                    {
+                        if (lastResult is List<object?> listResult)
+                            foreach (var item in listResult)
+                                frame.Values.Add(item);
+                        else
+                            frame.Values.Add(lastResult);
+
+                        frame.Phase = EncodePhase.Iterate;
+                        break;
+                    }
+                default:
+                    throw new InvalidOperationException("Unknown encode phase.");
+            }
         }
 
-        return values;
+        return lastResult!;
+
+        void FinishFrame(object? result)
+        {
+            stack.Pop();
+            lastResult = result;
+        }
+    }
+
+    /// <summary>
+    ///     Checks whether the given reference was seen in any ancestor side-channel frame.
+    /// </summary>
+    /// <param name="sideChannel">Current side-channel frame.</param>
+    /// <param name="key">Candidate reference to search for.</param>
+    /// <returns><see langword="true" /> when an ancestor frame already tracked the reference.</returns>
+    private static bool IsInAncestorSideChannels(SideChannelFrame sideChannel, object key)
+    {
+        var current = sideChannel.Parent;
+        while (current is not null)
+        {
+            if (current.TryGet(key, out _))
+                return true;
+
+            current = current.Parent;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    ///     Determines whether a value should be treated as a list-like sequence for encoding.
+    /// </summary>
+    /// <param name="value">The value to inspect.</param>
+    /// <returns>
+    ///     <see langword="true" /> for enumerable non-string, non-dictionary, non-byte-array values.
+    /// </returns>
+    private static bool IsSequence(object? value)
+    {
+        return value is IEnumerable and not string and not IDictionary and not byte[];
+    }
+
+    /// <summary>
+    ///     Converts an object key into a non-null string representation.
+    /// </summary>
+    /// <param name="key">The key to stringify.</param>
+    /// <returns>The key text, or an empty string when the key is null.</returns>
+    private static string StringifyKey(object? key)
+    {
+        return key?.ToString() ?? string.Empty;
+    }
+
+    /// <summary>
+    ///     Parses integer-like keys used for list/array element lookup.
+    /// </summary>
+    /// <param name="key">Candidate key value.</param>
+    /// <param name="index">Parsed index when the method returns <see langword="true" />.</param>
+    /// <returns>
+    ///     <see langword="true" /> when the key is an accepted integer representation; otherwise
+    ///     <see langword="false" />.
+    /// </returns>
+    private static bool TryGetIndex(object? key, out int index)
+    {
+        switch (key)
+        {
+            case int i:
+                index = i;
+                return true;
+            case long l and >= int.MinValue and <= int.MaxValue:
+                index = (int)l;
+                return true;
+            case short s:
+                index = s;
+                return true;
+            case sbyte sb:
+                index = sb;
+                return true;
+            case byte b:
+                index = b;
+                return true;
+            case ushort us:
+                index = us;
+                return true;
+            case uint ui and <= int.MaxValue:
+                index = (int)ui;
+                return true;
+            case ulong ul and <= int.MaxValue:
+                index = (int)ul;
+                return true;
+            case string s when int.TryParse(s, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed):
+                index = parsed;
+                return true;
+        }
+
+        index = -1;
+        return false;
+    }
+
+    /// <summary>
+    ///     Attempts to parse an index key and returns <c>-1</c> when parsing fails.
+    /// </summary>
+    /// <param name="key">Candidate key value.</param>
+    /// <returns>The parsed index, or <c>-1</c> when unavailable.</returns>
+    private static int CoerceIndexOrMinusOne(object? key)
+    {
+        return TryGetIndex(key, out var idx) ? idx : -1;
+    }
+
+    /// <summary>
+    ///     Decodes byte content using the preferred charset with UTF-8 fallback on decoder failures.
+    /// </summary>
+    /// <param name="bytes">The bytes to decode.</param>
+    /// <param name="charset">Preferred character set.</param>
+    /// <returns>A decoded string representation.</returns>
+    private static string BytesToString(byte[] bytes, Encoding charset)
+    {
+        try
+        {
+            return charset.GetString(bytes);
+        }
+        catch (DecoderFallbackException)
+        {
+            return Encoding.UTF8.GetString(bytes);
+        }
+        catch (ArgumentException)
+        {
+            return Encoding.UTF8.GetString(bytes);
+        }
+    }
+
+    /// <summary>
+    ///     Materializes an enumerable into a list of boxed objects.
+    /// </summary>
+    /// <param name="source">Source enumerable to materialize.</param>
+    /// <returns>A list containing all source elements.</returns>
+    private static List<object?> MaterializeObjectList(IEnumerable source)
+    {
+        if (source is ICollection collection)
+        {
+            var list = new List<object?>(collection.Count);
+            foreach (var item in source)
+                list.Add(item);
+            return list;
+        }
+
+        var result = new List<object?>();
+        foreach (var item in source)
+            result.Add(item);
+
+        return result;
     }
 }

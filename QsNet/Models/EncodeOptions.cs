@@ -42,16 +42,6 @@ public sealed class EncodeOptions
     public EncodeOptions(ListFormat? listFormat = null)
     {
         ListFormat = listFormat;
-
-        if (
-            !Equals(Charset, Encoding.UTF8) &&
-#if NETSTANDARD2_0
-            Charset.CodePage != 28591
-#else
-            !Equals(Charset, Encoding.Latin1)
-#endif
-        )
-            throw new ArgumentException("Invalid charset");
     }
 
     /// <summary>
@@ -212,6 +202,18 @@ public sealed class EncodeOptions
     public string GetDateSerializer(DateTime date)
     {
         return DateSerializer?.Invoke(date) ?? date.ToString("O");
+    }
+
+    /// <summary>
+    ///     Validates option invariants before encoding.
+    /// </summary>
+    /// <exception cref="ArgumentException">Thrown when <see cref="Charset" /> is not a supported encoding.</exception>
+    internal void Validate()
+    {
+        if (CharsetHelper.IsSupportedCharset(Charset))
+            return;
+
+        throw new ArgumentException("Invalid charset");
     }
 
     /// <summary>
