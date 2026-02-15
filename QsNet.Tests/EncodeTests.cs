@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
+using System.Reflection;
 using System.Text;
 using FluentAssertions;
 using JetBrains.Annotations;
@@ -277,7 +278,8 @@ public class EncodeTests
     public void Encode_NonListEnumerableMaterializesIndices()
     {
         var queue = new Queue<string>(["a", "b"]);
-        var result = Qs.Encode(new Dictionary<string, object?> { { "queue", queue } }, new EncodeOptions { Encode = false });
+        var result = Qs.Encode(new Dictionary<string, object?> { { "queue", queue } },
+            new EncodeOptions { Encode = false });
         result.Should().Be("queue[0]=a&queue[1]=b");
     }
 
@@ -287,9 +289,9 @@ public class EncodeTests
         var list = new List<object?> { "zero", "one", "two" };
         var encoded = Encoder.Encode(
             list,
-            undefined: false,
-            sideChannel: new SideChannelFrame(),
-            prefix: "items",
+            false,
+            new SideChannelFrame(),
+            "items",
             filter: new IterableFilter(new object[] { "1", "missing" })
         );
 
@@ -363,9 +365,9 @@ public class EncodeTests
         var list = new List<object?> { "zero", "one" };
         var encoded = Encoder.Encode(
             list,
-            undefined: false,
-            sideChannel: new SideChannelFrame(),
-            prefix: "items",
+            false,
+            new SideChannelFrame(),
+            "items",
             filter: new IterableFilter(new object[] { "0", "5" })
         );
 
@@ -1983,6 +1985,54 @@ public class EncodeTests
     }
 
     [Fact]
+    public void ShouldNotTreatSiblingReferencesAsCyclicObjects()
+    {
+        var shared = new Dictionary<string, object?> { ["x"] = "1" };
+        var data = new Dictionary<string, object?>
+        {
+            ["a"] = shared,
+            ["b"] = new Dictionary<string, object?> { ["ref"] = shared }
+        };
+
+        var encoded = Qs.Encode(data, new EncodeOptions { Encode = false });
+        encoded.Should().Be("a[x]=1&b[ref][x]=1");
+    }
+
+    [Fact]
+    public void ShouldDetectCyclesUsingAncestorSideChannelFrames()
+    {
+        var target = new Dictionary<string, object?> { ["a"] = "1" };
+        var parent = new SideChannelFrame();
+        parent.Set(target, 0);
+
+        var child = new SideChannelFrame(parent);
+        Action act = () => Encoder.Encode(
+            target,
+            false,
+            child,
+            "root",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            null,
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*Cyclic object value*");
+    }
+
+    [Fact]
     public void Encode_NonCircularDuplicatedReferencesCanStillWork()
     {
         var hourOfDay = new Dictionary<string, object?> { { "function", "hour_of_day" } };
@@ -3395,6 +3445,18 @@ public class EncodeTests
     }
 
     [Fact]
+    public void ShouldSkipEmptyRelativeUriWhenSkipNullsIsTrue()
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["u"] = new Uri(string.Empty, UriKind.Relative),
+            ["x"] = "1"
+        };
+
+        Qs.Encode(data, new EncodeOptions { Encode = false, SkipNulls = true }).Should().Be("x=1");
+    }
+
+    [Fact]
     public void Encode_EncodesMapWithNullMapAsChild1()
     {
         var obj = new Dictionary<string, object?>
@@ -4709,6 +4771,66 @@ public class EncodeTests
     }
 
     [Fact]
+    public void ShouldIgnoreNonIntegralIndicesForArray()
+    {
+        var arr = new object?[] { "x", "y", "z" };
+        var res = Encoder.Encode(
+            arr,
+            false,
+            new SideChannelFrame(),
+            "a",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            new IterableFilter(new object?[] { true, 1.9d }),
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ShouldIgnoreNonIntegralIndicesForIList()
+    {
+        var list = new List<string> { "x", "y", "z" };
+        var res = Encoder.Encode(
+            list,
+            false,
+            new SideChannelFrame(),
+            "a",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            new IterableFilter(new object?[] { true, 1.9d }),
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().BeEmpty();
+    }
+
+    [Fact]
     public void IEnumerable_NonList_Indexing_With_OutOfRange()
     {
         var en = new YieldEnumerable();
@@ -4797,12 +4919,458 @@ public class EncodeTests
         Parts(res).Should().Equal("k=VAL");
     }
 
+    [Fact]
+    public void ShouldPassCharsetAndFormatToCustomEncoderWhenEncodingPrimitive()
+    {
+        var charset = Encoding.Latin1;
+        var res = Encoder.Encode(
+            "val",
+            false,
+            new SideChannelFrame(),
+            "k",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            (v, enc, fmt) => $"{v}|{enc?.CodePage}|{fmt}",
+            null,
+            null,
+            null,
+            false,
+            Format.Rfc1738,
+            s => s,
+            false,
+            charset
+        );
+
+        Parts(res).Should().Equal("k|28591|Rfc1738=val|28591|Rfc1738");
+    }
+
+    [Fact]
+    public void ShouldTreatNullItemsAsEmptyStringsForCommaEncodeValuesOnlyCustomEncoder()
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["a"] = new List<object?> { null, "x" }
+        };
+
+        var qs = Qs.Encode(data, new EncodeOptions
+        {
+            ListFormat = ListFormat.Comma,
+            EncodeValuesOnly = true,
+            Encoder = (v, _, _) => v?.ToString() ?? string.Empty
+        });
+
+        qs.Should().Be("a=,x");
+    }
+
+    [Fact]
+    public void ShouldPassCharsetAndFormatToCustomEncoderForCommaEncodeValuesOnly()
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["a"] = new List<object?> { "x" }
+        };
+
+        var qs = Qs.Encode(
+            data,
+            new EncodeOptions
+            {
+                ListFormat = ListFormat.Comma,
+                EncodeValuesOnly = true,
+                Charset = Encoding.Latin1,
+                Format = Format.Rfc1738,
+                Encoder = (v, enc, fmt) => $"{v}|{enc?.CodePage}|{fmt}"
+            }
+        );
+
+        qs.Should().Be("a=x|28591|Rfc1738");
+    }
+
+    [Fact]
+    public void ShouldUseConvertiblePathForStringIndexInNonListIEnumerable()
+    {
+        var en = new YieldEnumerable();
+        var res = Encoder.Encode(
+            en,
+            false,
+            new SideChannelFrame(),
+            "a",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            new IterableFilter(new object?[] { "1" }),
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().Equal("a[1]=n");
+    }
+
+    public static IEnumerable<object[]> ValidIntegralFilterKeys()
+    {
+        yield return new object[] { 1, 1 };
+        yield return new object[] { 1L, 1 };
+        yield return new object[] { (short)1, 1 };
+        yield return new object[] { (sbyte)1, 1 };
+        yield return new object[] { (byte)1, 1 };
+        yield return new object[] { (ushort)1, 1 };
+        yield return new object[] { (uint)1, 1 };
+        yield return new object[] { (ulong)1, 1 };
+        yield return new object[] { "1", 1 };
+    }
+
+    public static IEnumerable<object[]> InvalidIntegralFilterKeys()
+    {
+        yield return new object[] { ((long)int.MaxValue) + 1L };
+        yield return new object[] { uint.MaxValue };
+        yield return new object[] { ulong.MaxValue };
+        yield return new object[] { true };
+        yield return new object[] { 1.9d };
+        yield return new object[] { "x" };
+        yield return new object[] { new object() };
+        yield return new object[] { null! };
+    }
+
+    [Theory]
+    [MemberData(nameof(ValidIntegralFilterKeys))]
+    public void TryGetIndex_ShouldAcceptIntegralKeyTypes(object? key, int expectedIndex)
+    {
+        var method = typeof(Encoder).GetMethod(
+            "TryGetIndex",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        method.Should().NotBeNull();
+
+        var args = new object?[] { key, -1 };
+        var ok = (bool)method!.Invoke(null, args)!;
+
+        ok.Should().BeTrue();
+        args[1].Should().Be(expectedIndex);
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidIntegralFilterKeys))]
+    public void TryGetIndex_ShouldRejectNonIntegralOrOutOfRangeKeys(object? key)
+    {
+        var method = typeof(Encoder).GetMethod(
+            "TryGetIndex",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        method.Should().NotBeNull();
+
+        var args = new object?[] { key, 123 };
+        var ok = (bool)method!.Invoke(null, args)!;
+
+        ok.Should().BeFalse();
+        args[1].Should().Be(-1);
+    }
+
+    [Fact]
+    public void ShouldSkipNonConvertibleKeyWhenIndexingNonListIEnumerable()
+    {
+        var en = new YieldEnumerable();
+        var res = Encoder.Encode(
+            en,
+            false,
+            new SideChannelFrame(),
+            "a",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            new IterableFilter(new[] { new object() }),
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ShouldFallBackToUtf8WhenByteArrayCharsetDecoderThrows()
+    {
+        var res = Encoder.Encode(
+            Encoding.UTF8.GetBytes("a"),
+            false,
+            new SideChannelFrame(),
+            "a",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            null,
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            new ThrowingGetStringEncoding()
+        );
+
+        Parts(res).Should().Equal("a=a");
+    }
+
+    [Fact]
+    public void ShouldKeepOriginalObjectWhenTopLevelFunctionFilterReturnsNonMap()
+    {
+        var data = new Dictionary<string, object?> { ["a"] = "1" };
+
+        var qs = Qs.Encode(data, new EncodeOptions
+        {
+            Encode = false,
+            Filter = new FunctionFilter((key, value) => key.Length == 0 ? 42 : value)
+        });
+
+        qs.Should().Be("a=1");
+    }
+
+    [Fact]
+    public void ShouldUseIndexDictionaryFallbackForNonCollectionEnumerable()
+    {
+        var qs = Qs.Encode(new YieldEnumerable(), new EncodeOptions { Encode = false });
+        qs.Should().Be("0=m&1=n");
+    }
+
+    [Fact]
+    public void ShouldUseUtf8AndLatin1CharsetSentinelMarkers()
+    {
+        var data = new Dictionary<string, object?> { ["a"] = "b" };
+
+        Qs.Encode(
+            data,
+            new EncodeOptions
+            {
+                Encode = false,
+                CharsetSentinel = true,
+                Charset = Encoding.UTF8
+            }
+        ).Should().Be("utf8=%E2%9C%93&a=b");
+
+        Qs.Encode(
+            data,
+            new EncodeOptions
+            {
+                Encode = false,
+                CharsetSentinel = true,
+                Charset = Encoding.Latin1
+            }
+        ).Should().Be("utf8=%26%2310003%3B&a=b");
+    }
+
+    [Fact]
+    public void ShouldUseEmptyPrefixWhenAddQueryPrefixIsFalseAndPrefixIsNull()
+    {
+        var res = Encoder.Encode(
+            null,
+            false,
+            new SideChannelFrame(),
+            null,
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            true,
+            false,
+            false,
+            null,
+            null,
+            null,
+            null,
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ShouldDecodeByteArraysWithConfiguredCharsetWhenEncodeIsFalse()
+    {
+        var utf8Bytes = Encoding.UTF8.GetBytes("ž");
+        var latin1Bytes = new byte[] { 0xE4 };
+
+        Qs.Encode(
+            new Dictionary<string, object?> { ["a"] = utf8Bytes },
+            new EncodeOptions { Encode = false, Charset = Encoding.UTF8 }
+        ).Should().Be("a=ž");
+
+        Qs.Encode(
+            new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["b"] = latin1Bytes }
+            },
+            new EncodeOptions { Encode = false, Charset = Encoding.Latin1 }
+        ).Should().Be("a[b]=ä");
+    }
+
+    [Fact]
+    public void ShouldDecodeCommaListByteArraysWithConfiguredCharset()
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["a"] = new List<object?>
+            {
+                new byte[] { 0xE4 },
+                new byte[] { 0xF6 }
+            }
+        };
+
+        Qs.Encode(
+            data,
+            new EncodeOptions
+            {
+                Encode = false,
+                Charset = Encoding.Latin1,
+                ListFormat = ListFormat.Comma
+            }
+        ).Should().Be("a=ä,ö");
+    }
+
+    [Fact]
+    public void ShouldKeepCommaScalarByteArrayAsScalar()
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["a"] = new byte[] { 0xE4, 0xF6 }
+        };
+
+        Qs.Encode(
+            data,
+            new EncodeOptions
+            {
+                Encode = false,
+                Charset = Encoding.Latin1,
+                ListFormat = ListFormat.Comma
+            }
+        ).Should().Be("a=äö");
+    }
+
+    [Fact]
+    public void ShouldNotBypassDateSerializerWithFunctionFilterForScalarAndCommaList()
+    {
+        var date = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        DateSerializer serializer = _ => "SERIALIZED";
+
+        Qs.Encode(
+            new Dictionary<string, object?> { ["d"] = date },
+            new EncodeOptions
+            {
+                Encode = false,
+                Filter = new FunctionFilter((_, value) => value),
+                DateSerializer = serializer
+            }
+        ).Should().Be("d=SERIALIZED");
+
+        Qs.Encode(
+            new Dictionary<string, object?> { ["d"] = new List<object?> { date } },
+            new EncodeOptions
+            {
+                Encode = false,
+                Filter = new FunctionFilter((_, value) => value),
+                DateSerializer = serializer,
+                ListFormat = ListFormat.Comma
+            }
+        ).Should().Be("d=SERIALIZED");
+    }
+
+    [Fact]
+    public void ShouldNotCrashWhenEncodingVeryDeepMap()
+    {
+        const int depth = 5000;
+
+        var root = new Dictionary<string, object?>();
+        var current = root;
+        for (var i = 0; i < depth; i++)
+        {
+            var next = new Dictionary<string, object?>();
+            current["p"] = next;
+            current = next;
+        }
+
+        current["leaf"] = "x";
+
+        string encoded = null!;
+        Action act = () => encoded = Qs.Encode(root, new EncodeOptions { Encode = false });
+
+        act.Should().NotThrow();
+        encoded.Should().EndWith("=x");
+    }
+
     private sealed class YieldEnumerable : IEnumerable
     {
         public IEnumerator GetEnumerator()
         {
             yield return "m";
             yield return "n";
+        }
+    }
+
+    private sealed class ThrowingGetStringEncoding : Encoding
+    {
+        public override int GetByteCount(char[] chars, int index, int count)
+        {
+            return UTF8.GetByteCount(chars, index, count);
+        }
+
+        public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex)
+        {
+            return UTF8.GetBytes(chars, charIndex, charCount, bytes, byteIndex);
+        }
+
+        public override int GetCharCount(byte[] bytes, int index, int count)
+        {
+            throw new DecoderFallbackException("decode failed");
+        }
+
+        public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
+        {
+            throw new DecoderFallbackException("decode failed");
+        }
+
+        public override int GetMaxByteCount(int charCount)
+        {
+            return UTF8.GetMaxByteCount(charCount);
+        }
+
+        public override int GetMaxCharCount(int byteCount)
+        {
+            return UTF8.GetMaxCharCount(byteCount);
+        }
+
+        public override string GetString(byte[] bytes, int index, int count)
+        {
+            throw new DecoderFallbackException("decode failed");
         }
     }
 

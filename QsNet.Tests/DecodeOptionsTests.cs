@@ -147,6 +147,25 @@ public class DecodeOptionsTests
     }
 
     [Fact]
+    public void ShouldDecodeValueWhenDecodeDotInKeysIsTrueAndAllowDotsIsFalse()
+    {
+        var options = new DecodeOptions
+        {
+            AllowDots = false,
+            DecodeDotInKeys = true
+        };
+
+        options.DecodeValue("%2E", Encoding.UTF8).Should().Be(".");
+    }
+
+    [Fact]
+    public void ShouldReturnNullWhenDecodeValueInputIsNull()
+    {
+        var options = new DecodeOptions();
+        options.DecodeValue(null, Encoding.UTF8).Should().BeNull();
+    }
+
+    [Fact]
     public void DecoderWithKind_IsUsed_For_Key_And_Value()
     {
         var calls = new List<(string? s, DecodeKind kind)>();
@@ -233,6 +252,30 @@ public class DecodeOptionsTests
     }
 
     [Fact]
+    public void CopyWith_ShouldImplyAllowDots_WhenDecodeDotInKeysSetTrue_AndAllowDotsNotProvided()
+    {
+        var original = new DecodeOptions { AllowDots = false, DecodeDotInKeys = false };
+
+        var copy = original.CopyWith(decodeDotInKeys: true);
+
+        copy.DecodeDotInKeys.Should().BeTrue();
+        copy.AllowDots.Should().BeTrue();
+    }
+
+    [Fact]
+    public void CopyWith_ShouldKeepExplicitAllowDotsFalse_WhenProvidedWithDecodeDotInKeysTrue()
+    {
+        var original = new DecodeOptions { AllowDots = true, DecodeDotInKeys = false };
+
+        var copy = original.CopyWith(allowDots: false, decodeDotInKeys: true);
+
+        copy.DecodeDotInKeys.Should().BeTrue();
+        copy.AllowDots.Should().BeFalse();
+        Action act = () => copy.DecodeKey("a%2Eb", Encoding.UTF8);
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
     public void DecodeKey_Throws_When_CustomKindAwareDecoder_Returns_NonString()
     {
         var opts = new DecodeOptions
@@ -264,5 +307,59 @@ public class DecodeOptionsTests
         // Unchanged properties remain the same by default
         copy.AllowEmptyLists.Should().Be(original.AllowEmptyLists);
         copy.ListLimit.Should().Be(original.ListLimit);
+    }
+
+    [Fact]
+    public void ShouldThrowWhenCharsetIsNotUtf8OrLatin1()
+    {
+        var opts = new DecodeOptions { Charset = Encoding.Unicode };
+
+        Action act = () => Qs.Decode("a=b", opts);
+
+        act.Should().Throw<ArgumentException>().WithMessage("*Invalid charset*");
+    }
+
+    [Fact]
+    public void ShouldThrowWhenCharsetIsNullAtRuntime()
+    {
+        var opts = new DecodeOptions { Charset = null! };
+
+        Action act = () => Qs.Decode("a=b", opts);
+
+        act.Should().Throw<ArgumentException>().WithMessage("*Invalid charset*");
+    }
+
+    [Fact]
+    public void ShouldThrowWhenParameterLimitIsNotPositive()
+    {
+        var opts = new DecodeOptions { ParameterLimit = 0 };
+
+        Action act = () => Qs.Decode("a=b", opts);
+
+        act.Should().Throw<ArgumentException>().WithMessage("*Parameter limit must be positive*");
+    }
+
+    [Fact]
+    public void ShouldNotThrowForUtf8OrLatin1CodePageWithCustomFallbacks()
+    {
+        var utf8 = Encoding.GetEncoding(
+            65001,
+            EncoderFallback.ExceptionFallback,
+            DecoderFallback.ExceptionFallback
+        );
+        var latin1 = Encoding.GetEncoding(
+            28591,
+            EncoderFallback.ExceptionFallback,
+            DecoderFallback.ExceptionFallback
+        );
+
+        utf8.Equals(Encoding.UTF8).Should().BeFalse();
+        latin1.Equals(Encoding.Latin1).Should().BeFalse();
+
+        Action utf8Act = () => Qs.Decode("a=b", new DecodeOptions { Charset = utf8 });
+        Action latin1Act = () => Qs.Decode("a=b", new DecodeOptions { Charset = latin1 });
+
+        utf8Act.Should().NotThrow();
+        latin1Act.Should().NotThrow();
     }
 }
