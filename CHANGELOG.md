@@ -1,4 +1,4 @@
-## Unreleased
+## 1.2.0
 
 * [FIX] harden encoder/decode merge paths to iterative traversal for deep-input stack safety
 * [FIX] decode `byte[]` values with selected charset when `EncodeOptions.Encode = false` (including comma list paths)
