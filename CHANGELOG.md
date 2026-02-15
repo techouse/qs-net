@@ -1,3 +1,14 @@
+## Unreleased
+
+* [FIX] harden encoder/decode merge paths to iterative traversal for deep-input stack safety
+* [FIX] decode `byte[]` values with selected charset when `EncodeOptions.Encode = false` (including comma list paths)
+* [FIX] keep `DateSerializer` and comma temporal normalization active after `FunctionFilter` transforms
+* [FIX] harden decoder empty-segment/key handling before parameter-limit counting and enforce comma list-limit behavior deterministically
+* [FIX] enforce runtime `EncodeOptions`/`DecodeOptions` validation for object-initializer scenarios
+* [FIX] allow `Qs.Decode(...)` for `IEnumerable<KeyValuePair<string?, object?>>` input with duplicate handling aligned to `DecodeOptions`
+* [FIX] avoid false cyclic-object detection when encoding shared sibling references (ancestor cycles still rejected)
+* [DOCS] document intentional edge-case divergences from JavaScript `qs` where limitation fixes are preferred
+
 ## 1.1.2
 
 * [FIX] implement `DecodeOptions.ListLimit` handling to prevent DoS via memory exhaustion

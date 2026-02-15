@@ -36,6 +36,15 @@ Qs.Decode("a=b&c=d", new DecodeOptions { ParameterLimit = 1 });
 // => { "a": "b" }
 ```
 
+### Compatibility notes
+
+- Deep decode/merge handling is iterative (stack-safe) to avoid recursion overflows on very deep inputs.
+- Empty query segments and empty keys are ignored before `ParameterLimit` accounting.
+- Comma-list limit behavior is deterministic:
+  - `ThrowOnLimitExceeded = true` throws on overflow.
+  - `ThrowOnLimitExceeded = false` truncates to the remaining list capacity.
+- Some JavaScript `qs` edge-case limitations are intentionally fixed rather than mirrored.
+
 ### Ignore leading `?`
 
 ```csharp
@@ -129,6 +138,10 @@ Qs.Decode("a[1]=b&a[15]=c");
 Qs.Decode("a[]=&a[]=b");
 // => { "a": ["", "b"] }
 ```
+
+`ListLimit` uses two related guards:
+- Explicit numeric indices (`a[21]`) are limited by maximum allowed index (`index <= ListLimit`).
+- Implicit/comma/combined list growth (`a[]`, comma lists, duplicate combine paths) is limited by maximum list size before overflow conversion or exception.
 
 Large indices convert to a dictionary by default:
 
