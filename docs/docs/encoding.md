@@ -86,6 +86,13 @@ Qs.Encode(data, options.CopyWith(listFormat: ListFormat.Comma));
 
 **Note:** When `ListFormat.Comma` is used, you can set `EncodeOptions.CommaRoundTrip` to `true` or `false` so single-item lists append `[]` and round-trip through decoding. Set `EncodeOptions.CommaCompactNulls` to `true` with the comma format to drop `null` entries instead of keeping empty slots (for example, `["one", null, "two"]` becomes `one,two`).
 
+### Compatibility notes
+
+- Deep/nested object encoding is iterative (stack-safe), so very deep graphs do not recurse the call stack.
+- With `EncodeOptions.Encode = false`, `byte[]` values are converted to strings using the selected charset (`UTF-8`/`Latin1`) instead of using runtime type names.
+- `FunctionFilter` output still flows through `DateSerializer` and comma-list temporal normalization.
+- A few legacy JavaScript `qs` edge-case limitations are intentionally not mirrored when they conflict with safety or deterministic behavior.
+
 ### Nested dictionaries
 
 ```csharp

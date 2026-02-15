@@ -252,5 +252,61 @@ public class EncodeOptionsTests
         // Sort exists (can't easily trigger usage here, but mapping should hold)
         copy.Sort.Should().NotBeNull();
     }
+
+    [Fact]
+    public void ShouldThrowWhenCharsetIsNotUtf8OrLatin1()
+    {
+        var opts = new EncodeOptions { Charset = Encoding.Unicode };
+
+        Action act = () => Qs.Encode(
+            new Dictionary<string, object?> { ["a"] = "b" },
+            opts
+        );
+
+        act.Should().Throw<ArgumentException>().WithMessage("*Invalid charset*");
+    }
+
+    [Fact]
+    public void ShouldThrowWhenCharsetIsNullAtRuntime()
+    {
+        var opts = new EncodeOptions { Charset = null! };
+
+        Action act = () => Qs.Encode(
+            new Dictionary<string, object?> { ["a"] = "b" },
+            opts
+        );
+
+        act.Should().Throw<ArgumentException>().WithMessage("*Invalid charset*");
+    }
+
+    [Fact]
+    public void Encode_DoesNotThrow_For_Utf8_Or_Latin1_CodePage_With_CustomFallbacks()
+    {
+        var utf8 = Encoding.GetEncoding(
+            65001,
+            EncoderFallback.ExceptionFallback,
+            DecoderFallback.ExceptionFallback
+        );
+        var latin1 = Encoding.GetEncoding(
+            28591,
+            EncoderFallback.ExceptionFallback,
+            DecoderFallback.ExceptionFallback
+        );
+
+        utf8.Equals(Encoding.UTF8).Should().BeFalse();
+        latin1.Equals(Encoding.Latin1).Should().BeFalse();
+
+        Action utf8Act = () => Qs.Encode(
+            new Dictionary<string, object?> { ["a"] = "b" },
+            new EncodeOptions { Charset = utf8 }
+        );
+        Action latin1Act = () => Qs.Encode(
+            new Dictionary<string, object?> { ["a"] = "b" },
+            new EncodeOptions { Charset = latin1 }
+        );
+
+        utf8Act.Should().NotThrow();
+        latin1Act.Should().NotThrow();
+    }
 }
 #pragma warning restore CS0618

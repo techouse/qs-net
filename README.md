@@ -365,7 +365,10 @@ Qs.Encode(data, options.CopyWith(listFormat: ListFormat.Comma));
 // => "a=b,c"
 ```
 
-**Note:** When `ListFormat.Comma` is selected, you can set `EncodeOptions.CommaRoundTrip` to `true` or `false` to append `[]` on single-item lists so they round-trip through decoding. Set `EncodeOptions.CommaCompactNulls` to `true` alongside the comma format when you'd like to drop `null` entries instead of keeping empty slots (for example, `["one", null, "two"]` becomes `one,two`).
+**Note:** When `ListFormat.Comma` is selected, you can set `EncodeOptions.CommaRoundTrip` to `true` or `false` to append
+`[]` on single-item lists so they round-trip through decoding. Set `EncodeOptions.CommaCompactNulls` to `true` alongside
+the comma format when you'd like to drop `null` entries instead of keeping empty slots (for example,
+`["one", null, "two"]` becomes `one,two`).
 
 ### Nested dictionaries
 
@@ -675,7 +678,6 @@ Qs.Encode(new Dictionary<string, object?> { ["a"] = "b c" }, new EncodeOptions {
 ---
 
 ## Other ports
-
 
 | Port                       | Repository                                                  | Package                                                                                                                                                                                       |
 |----------------------------|-------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|

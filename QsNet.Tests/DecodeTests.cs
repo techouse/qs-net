@@ -24,7 +24,7 @@ public partial class DecodeTest
         var exception = Assert.Throws<ArgumentException>(() =>
             Qs.Decode("a=b&c=d", new DecodeOptions { ParameterLimit = 0 })
         );
-        exception.Message.Should().Contain("Parameter limit must be a positive integer.");
+        exception.Message.Should().Contain("Parameter limit must be positive");
     }
 
     [Fact]
@@ -64,6 +64,279 @@ public partial class DecodeTest
         dict.Should().ContainKey("root");
         dict["root"].Should().BeOfType<Dictionary<object, object?>>()
             .Which.Should().ContainKey("inner").WhoseValue.Should().Be("value");
+    }
+
+    [Fact]
+    public void ShouldReturnNullForNullOrEmptyKey()
+    {
+        InternalDecoder.ParseKeys(null, "x", new DecodeOptions(), true).Should().BeNull();
+        InternalDecoder.ParseKeys(string.Empty, "x", new DecodeOptions(), true).Should().BeNull();
+    }
+
+    [Fact]
+    public void ShouldSkipEmptyKeysWhenDecodingMapInput()
+    {
+        var input = new Dictionary<string, object?>
+        {
+            [""] = "ignored",
+            ["a"] = "1"
+        };
+
+        Qs.Decode(input).Should().BeEquivalentTo(
+            new Dictionary<string, object?> { ["a"] = "1" }
+        );
+    }
+
+    [Fact]
+    public void ShouldSkipNullKeyInEnumerableInput()
+    {
+        var input = new[]
+        {
+            new KeyValuePair<string?, object?>(null, "ignored"),
+            new KeyValuePair<string?, object?>("a", "1")
+        };
+
+        Qs.Decode(input).Should().BeEquivalentTo(
+            new Dictionary<string, object?> { ["a"] = "1" }
+        );
+    }
+
+    [Fact]
+    public void ShouldCombineDuplicateKeysIntoList()
+    {
+        var input = new[]
+        {
+            new KeyValuePair<string?, object?>("a", "1"),
+            new KeyValuePair<string?, object?>("a", "2")
+        };
+
+        var result = Qs.Decode(input, new DecodeOptions { Duplicates = Duplicates.Combine });
+
+        result.Should().BeEquivalentTo(
+            new Dictionary<string, object?>
+            {
+                ["a"] = new List<object?> { "1", "2" }
+            }
+        );
+    }
+
+    [Fact]
+    public void ShouldThrowWhenDuplicateEnumerableKeysExceedListLimit()
+    {
+        var input = new[]
+        {
+            new KeyValuePair<string?, object?>("a", "1"),
+            new KeyValuePair<string?, object?>("a", "2"),
+            new KeyValuePair<string?, object?>("a", "3"),
+            new KeyValuePair<string?, object?>("a", "4")
+        };
+
+        var options = new DecodeOptions
+        {
+            Duplicates = Duplicates.Combine,
+            ListLimit = 3,
+            ThrowOnLimitExceeded = true
+        };
+
+        Action act = () => Qs.Decode(input, options);
+        act.Should().Throw<InvalidOperationException>().WithMessage("*List limit exceeded*");
+    }
+
+    [Fact]
+    public void ShouldKeepFirstValueForDuplicatesWhenFirstOption()
+    {
+        var input = new[]
+        {
+            new KeyValuePair<string?, object?>("a", "1"),
+            new KeyValuePair<string?, object?>("a", "2")
+        };
+
+        var result = Qs.Decode(input, new DecodeOptions { Duplicates = Duplicates.First });
+
+        result.Should().BeEquivalentTo(
+            new Dictionary<string, object?>
+            {
+                ["a"] = "1"
+            }
+        );
+    }
+
+    [Fact]
+    public void ShouldUseLastValueForDuplicatesWhenLastOption()
+    {
+        var input = new[]
+        {
+            new KeyValuePair<string?, object?>("a", "1"),
+            new KeyValuePair<string?, object?>("a", "2")
+        };
+
+        var result = Qs.Decode(input, new DecodeOptions { Duplicates = Duplicates.Last });
+
+        result.Should().BeEquivalentTo(
+            new Dictionary<string, object?>
+            {
+                ["a"] = "2"
+            }
+        );
+    }
+
+    [Fact]
+    public void ShouldCombineValuesForNormalizedEnumerableKeyCollisions()
+    {
+        var input = new[]
+        {
+            new KeyValuePair<string?, object?>("a.b", "1"),
+            new KeyValuePair<string?, object?>("a[b]", "2")
+        };
+
+        var result = Qs.Decode(input, new DecodeOptions { AllowDots = true, Duplicates = Duplicates.Combine });
+
+        result.Should().BeEquivalentTo(
+            new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?>
+                {
+                    ["b"] = new List<object?> { "1", "2" }
+                }
+            }
+        );
+    }
+
+    [Fact]
+    public void ShouldKeepFirstValueForNormalizedEnumerableKeyCollisionsWhenFirstOption()
+    {
+        var input = new[]
+        {
+            new KeyValuePair<string?, object?>("a.b", "1"),
+            new KeyValuePair<string?, object?>("a[b]", "2")
+        };
+
+        var options = new DecodeOptions { AllowDots = true, Duplicates = Duplicates.First };
+        var expected = Qs.Decode("a.b=1&a[b]=2", options);
+        var actual = Qs.Decode(input, options);
+
+        actual.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public void ShouldUseLastValueForNormalizedEnumerableKeyCollisionsWhenLastOption()
+    {
+        var input = new[]
+        {
+            new KeyValuePair<string?, object?>("a.b", "1"),
+            new KeyValuePair<string?, object?>("a[b]", "2")
+        };
+
+        var options = new DecodeOptions { AllowDots = true, Duplicates = Duplicates.Last };
+        var expected = Qs.Decode("a.b=1&a[b]=2", options);
+        var actual = Qs.Decode(input, options);
+
+        actual.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public void ShouldDecodePercentEncodedDotInsideBracketedEnumerableKeys()
+    {
+        var input = new[]
+        {
+            new KeyValuePair<string?, object?>("a[%2E]", "x")
+        };
+
+        var result = Qs.Decode(input, new DecodeOptions
+        {
+            AllowDots = true,
+            DecodeDotInKeys = true
+        });
+
+        result.Should().BeEquivalentTo(
+            new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["."] = "x" }
+            }
+        );
+    }
+
+    [Fact]
+    public void EnumerableInput_DoubleDots_AllowDotsTrue_MatchesQueryStringDecode()
+    {
+        var enumerableInput = new[]
+        {
+            new KeyValuePair<string?, object?>("a..b", "x")
+        };
+
+        var expected = Qs.Decode("a..b=x", new DecodeOptions { AllowDots = true });
+        var actual = Qs.Decode(enumerableInput, new DecodeOptions { AllowDots = true });
+
+        actual.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public void GenericDictionaryInput_DoubleDots_AllowDotsTrue_MatchesQueryStringDecode()
+    {
+        var mapInput = new Dictionary<string, object?> { ["a..b"] = "x" };
+
+        var expected = Qs.Decode("a..b=x", new DecodeOptions { AllowDots = true });
+        var actual = Qs.Decode(mapInput, new DecodeOptions { AllowDots = true });
+
+        actual.Should().BeEquivalentTo(expected);
+    }
+
+    [Fact]
+    public void ShouldMaterializeNonListEnumerableValuesWhenDecodingMapInput()
+    {
+        static IEnumerable DeferredValues()
+        {
+            yield return "x";
+            yield return new Hashtable { ["nested"] = "y" };
+        }
+
+        var input = new Dictionary<string, object?>
+        {
+            ["set"] = new HashSet<object?> { "a", "b" },
+            ["seq"] = DeferredValues()
+        };
+
+        var decoded = Qs.Decode(input);
+
+        decoded["set"]
+            .Should()
+            .BeOfType<List<object?>>()
+            .Which.Should().BeEquivalentTo(new object?[] { "a", "b" });
+        var seq = decoded["seq"].Should().BeOfType<List<object?>>().Which;
+        seq.Should().HaveCount(2);
+        seq[0].Should().Be("x");
+        seq[1].Should()
+            .BeOfType<Dictionary<string, object?>>()
+            .Which.Should().Contain(new KeyValuePair<string, object?>("nested", "y"));
+    }
+
+    [Fact]
+    public void ShouldMaterializeNestedNonListEnumerableValuesWhenDecodingGenericMapInput()
+    {
+        static IEnumerable DeferredValues()
+        {
+            yield return "x";
+            yield return "y";
+        }
+
+        var input = new Dictionary<string, object?>
+        {
+            ["outer"] = new Dictionary<string, object?>
+            {
+                ["seq"] = DeferredValues()
+            }
+        };
+
+        var decoded = Qs.Decode(input);
+        var outer = decoded["outer"].Should().BeOfType<Dictionary<string, object?>>().Which;
+        outer["seq"].Should().BeOfType<List<object?>>().Which.Should().Equal("x", "y");
+    }
+
+    [Fact]
+    public void ShouldUseDefaultOptionsWhenParsingQueryStringValues()
+    {
+        InternalDecoder.ParseQueryStringValues("a=b")
+            .Should().BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "b" });
     }
 
     [Fact]
@@ -932,6 +1205,28 @@ public partial class DecodeTest
                 new Dictionary<string, object?>
                 {
                     ["a"] = new Dictionary<string, object?> { ["21"] = "a" }
+                }
+            );
+    }
+
+    [Fact]
+    public void ShouldUseIndexForExplicitArraysAndSizeForImplicitArrays()
+    {
+        Qs.Decode("a[2]=x", new DecodeOptions { ListLimit = 2 })
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "x" } });
+
+        Qs.Decode("a[]=1&a[]=2&a[]=3", new DecodeOptions { ListLimit = 2 })
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new Dictionary<string, object?>
+                    {
+                        ["0"] = "1",
+                        ["1"] = "2",
+                        ["2"] = "3"
+                    }
                 }
             );
     }
@@ -1946,6 +2241,41 @@ public partial class DecodeTest
         }
 
         actualDepth.Should().Be(depth);
+    }
+
+    [Fact]
+    public void Decode_DoesNotCrashWhenMergingVeryDeepKeys()
+    {
+        const int depth = 12000;
+
+        var path = new StringBuilder("a");
+        for (var i = 0; i < depth; i++)
+            path.Append("[p]");
+
+        var deepPath = path.ToString();
+        var leftKey = deepPath + "[left]=1";
+        var rightKey = deepPath + "[right]=2";
+        var query = leftKey + "&" + rightKey;
+
+        Dictionary<string, object?> parsed = null!;
+        Action act = () => parsed = Qs.Decode(
+            query,
+            new DecodeOptions { Depth = depth + 2, ParameterLimit = int.MaxValue }
+        );
+
+        act.Should().NotThrow();
+        parsed.Should().ContainKey("a");
+
+        var current = parsed["a"];
+        for (var i = 0; i < depth; i++)
+        {
+            var level = current.Should().BeOfType<Dictionary<string, object?>>().Subject;
+            current = level["p"];
+        }
+
+        var leaf = current.Should().BeOfType<Dictionary<string, object?>>().Subject;
+        leaf.Should().ContainKey("left").WhoseValue.Should().Be("1");
+        leaf.Should().ContainKey("right").WhoseValue.Should().Be("2");
     }
 
     [Fact]
@@ -4270,7 +4600,7 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void Decode_CommaSplit_NoTruncationWhenSumExceedsLimit_AndThrowOff()
+    public void Decode_CommaSplit_TruncatesWhenSumExceedsLimit_AndThrowOff()
     {
         var opts = new DecodeOptions
         {
@@ -4284,19 +4614,46 @@ public partial class DecodeTest
         var result = Qs.Decode("a=1,2&a=3,4,5", opts);
 
         var dict = Assert.IsType<Dictionary<string, object?>>(result);
-        var list = Assert.IsType<Dictionary<string, object?>>(dict["a"]);
-        // With ThrowOnLimitExceeded = false, values are preserved but list limit still converts to a map.
-        list.Should()
-            .BeEquivalentTo(
-                new Dictionary<string, object?>
-                {
-                    ["0"] = "1",
-                    ["1"] = "2",
-                    ["2"] = "3",
-                    ["3"] = "4",
-                    ["4"] = "5"
-                }
-            );
+        var list = Assert.IsType<List<object?>>(dict["a"]);
+        list.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
+    }
+
+    [Fact]
+    public void Decode_CommaSplit_DropsIncomingValuesWhenAlreadyAtLimit_AndThrowOff()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 3,
+            ThrowOnLimitExceeded = false,
+            ParseLists = true,
+            Duplicates = Duplicates.Combine
+        };
+
+        var result = Qs.Decode("a=1,2,3&a=4,5", opts);
+
+        var dict = Assert.IsType<Dictionary<string, object?>>(result);
+        var list = Assert.IsType<List<object?>>(dict["a"]);
+        list.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
+    }
+
+    [Fact]
+    public void Decode_CommaSplit_BracketedKey_DropsIncomingWhenListAlreadyAtLimit_AndThrowOff()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 2,
+            ThrowOnLimitExceeded = false,
+            ParseLists = true,
+            Duplicates = Duplicates.Combine
+        };
+
+        var result = Qs.Decode("a[]=1&a[]=2&a[]=3,4", opts);
+
+        var dict = Assert.IsType<Dictionary<string, object?>>(result);
+        var list = Assert.IsType<List<object?>>(dict["a"]);
+        list.Select(x => x?.ToString()).Should().Equal("1", "2");
     }
 
     [Fact]
@@ -4931,6 +5288,223 @@ public partial class DecodeTest
         // Existing N=2, incoming M=4; N+M = 6 > limit and ThrowOnLimitExceeded = true → throws
         Action act = () => Qs.Decode("a=1,2&a=3,4,5,6", opts);
         act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Decode_DuplicateScalars_ThrowWhenAtListLimit_AndThrowOn()
+    {
+        var opts = new DecodeOptions
+        {
+            ListLimit = 1,
+            ThrowOnLimitExceeded = true,
+            Duplicates = Duplicates.Combine
+        };
+
+        Action act = () => Qs.Decode("a=1&a=2", opts);
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Decode_ParameterLimit_IgnoresEmptySegmentsAndEmptyKeysBeforeCounting()
+    {
+        var opts = new DecodeOptions
+        {
+            ParameterLimit = 1,
+            ThrowOnLimitExceeded = true
+        };
+
+        var decoded = Qs.Decode("&&=ignored&&a=1&&", opts);
+
+        decoded.Should().BeEquivalentTo(
+            new Dictionary<string, object?> { ["a"] = "1" }
+        );
+    }
+
+    [Fact]
+    public void Decode_ParameterLimit_DoesNotCountCharsetSentinel()
+    {
+        var opts = new DecodeOptions
+        {
+            CharsetSentinel = true,
+            Charset = Encoding.Latin1,
+            ParameterLimit = 1,
+            ThrowOnLimitExceeded = true
+        };
+
+        var decoded = Qs.Decode("utf8=%E2%9C%93&a=1", opts);
+
+        decoded.Should().BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "1" });
+    }
+
+    [Fact]
+    public void Decode_ParameterLimit_ThrowOn_WithCharsetSentinel_ThrowsWhenRealParamsExceedLimit()
+    {
+        var opts = new DecodeOptions
+        {
+            CharsetSentinel = true,
+            Charset = Encoding.Latin1,
+            ParameterLimit = 1,
+            ThrowOnLimitExceeded = true
+        };
+
+        Action act = () => Qs.Decode("utf8=%E2%9C%93&a=1&b=2", opts);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Parameter limit exceeded. Only 1 parameter allowed.");
+    }
+
+    [Fact]
+    public void Decode_CustomKeyDecoderReturningEmptyKey_SkipsBareAndAssignedKeys()
+    {
+        var opts = new DecodeOptions
+        {
+            DecoderWithKind = (value, _, kind) => kind == DecodeKind.Key ? "" : value
+        };
+
+        var decoded = Qs.Decode("a&b=1", opts);
+
+        decoded.Should().BeEmpty();
+    }
+
+    [Fact]
+    public void ShouldNotCountDecodedEmptyKeysAgainstParameterLimit()
+    {
+        var opts = new DecodeOptions
+        {
+            ParameterLimit = 1,
+            ThrowOnLimitExceeded = true,
+            DecoderWithKind = (value, _, kind) =>
+                kind == DecodeKind.Key && value == "a" ? "" : value
+        };
+
+        var decoded = Qs.Decode("a=1&b=2", opts);
+
+        decoded.Should().BeEquivalentTo(new Dictionary<string, object?> { ["b"] = "2" });
+    }
+
+    [Fact]
+    public void Decode_ParameterLimit_ThrowOn_ScansPastMultipleSkippedDecodedKeys()
+    {
+        var opts = new DecodeOptions
+        {
+            ParameterLimit = 1,
+            ThrowOnLimitExceeded = true,
+            DecoderWithKind = (value, _, kind) =>
+                kind == DecodeKind.Key && (value == "a" || value == "b") ? "" : value
+        };
+
+        var decoded = Qs.Decode("a=1&b=2&c=3", opts);
+
+        decoded.Should().BeEquivalentTo(new Dictionary<string, object?> { ["c"] = "3" });
+    }
+
+    [Fact]
+    public void Decode_ParameterLimit_ThrowOff_ScansPastSkippedKey_ButStopsAtAcceptedLimit()
+    {
+        var keyDecodeCalls = 0;
+        var opts = new DecodeOptions
+        {
+            ParameterLimit = 1,
+            ThrowOnLimitExceeded = false,
+            DecoderWithKind = (value, _, kind) =>
+            {
+                if (kind == DecodeKind.Key)
+                    keyDecodeCalls++;
+
+                if (kind == DecodeKind.Key && value == "a")
+                    return "";
+
+                return value;
+            }
+        };
+
+        var decoded = Qs.Decode("a=1&b=2&c=3", opts);
+
+        decoded.Should().BeEquivalentTo(new Dictionary<string, object?> { ["b"] = "2" });
+        keyDecodeCalls.Should().Be(2);
+    }
+
+    [Fact]
+    public void Decode_ParameterLimit_DoesNotDecodeKeysBeyondWindow_WhenThrowOff()
+    {
+        var keyDecodeCalls = 0;
+        var opts = new DecodeOptions
+        {
+            ParameterLimit = 1,
+            ThrowOnLimitExceeded = false,
+            DecoderWithKind = (value, _, kind) =>
+            {
+                if (kind == DecodeKind.Key)
+                    keyDecodeCalls++;
+
+                return value;
+            }
+        };
+
+        var decoded = Qs.Decode("a=1&b=2&c=3", opts);
+
+        decoded.Should().BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "1" });
+        keyDecodeCalls.Should().Be(1);
+    }
+
+    [Fact]
+    public void Decode_IDictionaryInput_SkipsEntriesWithEmptyStringKeys()
+    {
+        IDictionary map = new Hashtable
+        {
+            [""] = "drop",
+            ["a"] = "1"
+        };
+
+        var decoded = Qs.Decode(map);
+
+        decoded.Should().BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "1" });
+    }
+
+    [Fact]
+    public void Decode_InterpretNumericEntities_CommaList_InterpretsJoinedValues()
+    {
+        var opts = new DecodeOptions
+        {
+            Charset = Encoding.Latin1,
+            InterpretNumericEntities = true,
+            Comma = true
+        };
+
+        var decoded = Qs.Decode("a=%26%2397%3B,%26%2398%3B", opts);
+
+        decoded.Should().BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "a,b" });
+    }
+
+    [Fact]
+    public void Decode_InterpretNumericEntities_InterpretsStringValuePath()
+    {
+        var opts = new DecodeOptions
+        {
+            Charset = Encoding.Latin1,
+            InterpretNumericEntities = true
+        };
+
+        var decoded = Qs.Decode("a=%26%2397%3B", opts);
+
+        decoded.Should().BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "a" });
+    }
+
+    [Fact]
+    public void Decode_InterpretNumericEntities_SupportsNonEnumerableDecodedValuePath()
+    {
+        var opts = new DecodeOptions
+        {
+            Charset = Encoding.Latin1,
+            InterpretNumericEntities = true,
+            DecoderWithKind = (value, _, kind) =>
+                kind == DecodeKind.Value ? 123 : value
+        };
+
+        var decoded = Qs.Decode("a=1", opts);
+
+        // Non-enumerable decoded scalars are stringified before InterpretNumericEntities handling.
+        decoded.Should().BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "123" });
     }
 
     [GeneratedRegex("^test$")]

@@ -13,6 +13,8 @@ using QsNet.Internal;
 using QsNet.Models;
 using QsNet.Tests.Fixtures;
 using Xunit;
+using Decoder = System.Text.Decoder;
+using ReferenceEqualityComparer = QsNet.Internal.ReferenceEqualityComparer;
 
 namespace QsNet.Tests;
 
@@ -85,6 +87,19 @@ public class UtilsTests
         // parentheses
         Utils.Encode("foo(bar)", latin1).Should().Be("foo%28bar%29");
         Utils.Encode("foo(bar)", latin1, Format.Rfc1738).Should().Be("foo(bar)");
+    }
+
+    [Fact]
+    public void ShouldUseLatin1EncodePathForCustomLatin1EncodingInstances()
+    {
+        var strictLatin1 = Encoding.GetEncoding(
+            "ISO-8859-1",
+            new EncoderExceptionFallback(),
+            new DecoderExceptionFallback()
+        );
+
+        // Latin1 path encodes '~' as %7E (RFC3986 exceptions differ from UTF-8 path).
+        Utils.Encode("foo~bar", strictLatin1).Should().Be("foo%7Ebar");
     }
 
     [Fact]
@@ -259,6 +274,19 @@ public class UtilsTests
         Utils.Decode("foo%20bar", latin1).Should().Be("foo bar");
         // parentheses
         Utils.Decode("foo%28bar%29", latin1).Should().Be("foo(bar)");
+    }
+
+    [Fact]
+    public void ShouldUseLatin1DecodePathForCustomLatin1EncodingInstances()
+    {
+        var strictLatin1 = Encoding.GetEncoding(
+            "ISO-8859-1",
+            new EncoderExceptionFallback(),
+            new DecoderExceptionFallback()
+        );
+
+        // Latin1 branch only decodes %XX sequences and should leave %uXXXX intact.
+        Utils.Decode("%u263A", strictLatin1).Should().Be("%u263A");
     }
 
     [Fact]
@@ -1451,6 +1479,337 @@ public class UtilsTests
     }
 
     [Fact]
+    public void ShouldAdvanceOverflowMaxIndexWhenUndefinedIterableSlotsAreMerged()
+    {
+        var options = new DecodeOptions { ListLimit = 1 };
+        var overflow = Utils.CombineWithLimit(new List<object?> { "a" }, "b", options);
+        Utils.IsOverflow(overflow).Should().BeTrue();
+
+        var merged = Utils.Merge(overflow, new List<object?> { Undefined.Create(), Undefined.Create() });
+        Utils.IsOverflow(merged).Should().BeTrue();
+
+        var appended = Utils.CombineWithLimit(merged, "c", options);
+        appended.Should()
+            .BeEquivalentTo(
+                new Dictionary<object, object?>
+                {
+                    ["0"] = "a",
+                    ["1"] = "b",
+                    ["4"] = "c"
+                }
+            );
+    }
+
+    [Fact]
+    public void ShouldPreserveNumericAndStringKeysWhenMergingNullWithMixedKeyOverflowMap()
+    {
+        var options = new DecodeOptions { ListLimit = 1 };
+        var overflow = Utils.CombineWithLimit(new List<object?> { "a" }, "b", options);
+        ((IDictionary)overflow)["meta"] = "m";
+
+        var merged = Utils.Merge(null, overflow);
+        Utils.IsOverflow(merged).Should().BeTrue();
+        merged.Should()
+            .BeEquivalentTo(
+                new Dictionary<object, object?>
+                {
+                    ["0"] = "a",
+                    ["1"] = "b",
+                    ["meta"] = "m"
+                }
+            );
+
+        var appended = Utils.CombineWithLimit(merged, "c", new DecodeOptions { ListLimit = 10 });
+        appended.Should()
+            .BeEquivalentTo(
+                new Dictionary<object, object?>
+                {
+                    ["0"] = "a",
+                    ["1"] = "b",
+                    ["meta"] = "m",
+                    ["2"] = "c"
+                }
+            );
+    }
+
+    [Fact]
+    public void ShouldShiftNumericKeysOnlyWhenMergingScalarWithMixedKeyOverflowMap()
+    {
+        var options = new DecodeOptions { ListLimit = 1 };
+        var overflow = Utils.CombineWithLimit(new List<object?> { "a" }, "b", options);
+        ((IDictionary)overflow)["meta"] = "m";
+
+        var merged = Utils.Merge("root", overflow);
+        Utils.IsOverflow(merged).Should().BeTrue();
+        merged.Should()
+            .BeEquivalentTo(
+                new Dictionary<object, object?>
+                {
+                    ["0"] = "root",
+                    ["1"] = "a",
+                    ["2"] = "b",
+                    ["meta"] = "m"
+                }
+            );
+    }
+
+    [Fact]
+    public void ShouldUpdateOverflowMaxIndexOnlyForSupportedKeyTypes()
+    {
+        var overflow = Utils.CombineWithLimit(
+            new List<object?> { "a", "b" },
+            "c",
+            new DecodeOptions { ListLimit = 2 }
+        );
+        Utils.IsOverflow(overflow).Should().BeTrue();
+
+        var marker = new object();
+        var merged = Utils.Merge(
+            overflow,
+            new Dictionary<object, object?>
+            {
+                [-1] = "neg",
+                [5] = "int",
+                [7L] = "long",
+                [long.MaxValue] = "too-big",
+                ["010"] = "leading-zero",
+                ["meta"] = "meta",
+                [marker] = "marker"
+            }
+        );
+
+        var dict = merged.Should().BeOfType<Dictionary<object, object?>>().Subject;
+        dict["meta"].Should().Be("meta");
+        dict[marker].Should().Be("marker");
+
+        var appended = Utils.CombineWithLimit(merged, "tail", new DecodeOptions { ListLimit = 20 });
+        appended.Should().BeOfType<Dictionary<object, object?>>()
+            .Which.Should().Contain(new KeyValuePair<object, object?>("8", "tail"));
+    }
+
+    [Fact]
+    public void ShouldNormalizeUndefinedTailInListOfMapsWhenParseListsIsFalse()
+    {
+        var result = Utils.Merge(
+            new List<object?> { new Dictionary<string, object?> { ["a"] = "1" } },
+            new List<object?>
+            {
+                new Dictionary<string, object?> { ["b"] = "2" },
+                Undefined.Create()
+            },
+            new DecodeOptions { ParseLists = false }
+        );
+
+        result.Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["0"] = new Dictionary<string, object?>
+                    {
+                        ["a"] = "1",
+                        ["b"] = "2"
+                    }
+                }
+            );
+    }
+
+    [Fact]
+    public void ShouldIgnoreUndefinedSourceWhenTargetIsMap()
+    {
+        Utils.Merge(
+            new Dictionary<string, object?> { ["a"] = "b" },
+            Undefined.Create()
+        ).Should().BeEquivalentTo(new Dictionary<string, object?> { ["a"] = "b" });
+    }
+
+    [Fact]
+    public void ShouldPreserveOverflowTrackingWhenMergingNonGenericDictionaryWithScalar()
+    {
+        IDictionary overflow = new Hashtable
+        {
+            ["0"] = "a",
+            ["1"] = "b"
+        };
+        MarkAsOverflow(overflow, 1);
+
+        var merged = Utils.Merge(overflow, "c");
+
+        merged.Should().BeEquivalentTo(
+            new Dictionary<object, object?>
+            {
+                ["0"] = "a",
+                ["1"] = "b",
+                ["2"] = "c"
+            }
+        );
+        Utils.IsOverflow(merged).Should().BeTrue();
+    }
+
+    [Fact]
+    public void ShouldPreserveOverflowTrackingWhenMergingNonGenericDictionaryWithMap()
+    {
+        IDictionary overflow = new Hashtable
+        {
+            ["0"] = "a",
+            ["1"] = "b"
+        };
+        MarkAsOverflow(overflow, 1);
+
+        var merged = Utils.Merge(overflow, new Hashtable { ["meta"] = "m" });
+        Utils.IsOverflow(merged).Should().BeTrue();
+
+        var appended = Utils.CombineWithLimit(merged, "tail", new DecodeOptions { ListLimit = 10 });
+        appended.Should().BeEquivalentTo(
+            new Dictionary<object, object?>
+            {
+                ["0"] = "a",
+                ["1"] = "b",
+                ["meta"] = "m",
+                ["2"] = "tail"
+            }
+        );
+    }
+
+    [Fact]
+    public void ShouldPreserveSparseOffsetsWhenMergingOverflowMapWithIterable()
+    {
+        var overflow = Utils.CombineWithLimit(
+            new List<object?> { "a" },
+            "b",
+            new DecodeOptions { ListLimit = 1 }
+        );
+        Utils.IsOverflow(overflow).Should().BeTrue();
+
+        var merged = Utils.Merge(overflow, new List<object?> { "c", Undefined.Create(), "d" });
+
+        merged.Should().BeEquivalentTo(
+            new Dictionary<object, object?>
+            {
+                ["0"] = "a",
+                ["1"] = "b",
+                ["2"] = "c",
+                ["4"] = "d"
+            }
+        );
+        Utils.IsOverflow(merged).Should().BeTrue();
+
+        var appended = Utils.CombineWithLimit(merged, "tail", new DecodeOptions { ListLimit = 10 });
+        appended.Should().BeEquivalentTo(
+            new Dictionary<object, object?>
+            {
+                ["0"] = "a",
+                ["1"] = "b",
+                ["2"] = "c",
+                ["4"] = "d",
+                ["5"] = "tail"
+            }
+        );
+    }
+
+    [Fact]
+    public void ShouldPreserveLeadingUndefinedOffsetWhenMergingOverflowMapWithIterable()
+    {
+        var overflow = Utils.CombineWithLimit(
+            new List<object?> { "a" },
+            "b",
+            new DecodeOptions { ListLimit = 1 }
+        );
+        Utils.IsOverflow(overflow).Should().BeTrue();
+
+        var merged = Utils.Merge(overflow, new List<object?> { Undefined.Create(), "c" });
+
+        merged.Should().BeEquivalentTo(
+            new Dictionary<object, object?>
+            {
+                ["0"] = "a",
+                ["1"] = "b",
+                ["3"] = "c"
+            }
+        );
+        Utils.IsOverflow(merged).Should().BeTrue();
+
+        var appended = Utils.CombineWithLimit(merged, "tail", new DecodeOptions { ListLimit = 10 });
+        appended.Should().BeEquivalentTo(
+            new Dictionary<object, object?>
+            {
+                ["0"] = "a",
+                ["1"] = "b",
+                ["3"] = "c",
+                ["4"] = "tail"
+            }
+        );
+    }
+
+    [Fact]
+    public void ShouldReturnUnchangedWhenMergingOverflowMapWithUndefinedSource()
+    {
+        var overflow = Utils.CombineWithLimit(
+            new List<object?> { "a" },
+            "b",
+            new DecodeOptions { ListLimit = 1 }
+        );
+
+        var merged = Utils.Merge(overflow, Undefined.Create());
+
+        merged.Should().BeSameAs(overflow);
+        merged.Should().BeEquivalentTo(
+            new Dictionary<object, object?>
+            {
+                ["0"] = "a",
+                ["1"] = "b"
+            }
+        );
+    }
+
+    [Fact]
+    public void ShouldTrackOverflowMaxIndexWhenListTargetMergedWithOverflowSource()
+    {
+        var overflow = Utils.CombineWithLimit(
+            new List<object?> { "a" },
+            "b",
+            new DecodeOptions { ListLimit = 1 }
+        );
+        Utils.IsOverflow(overflow).Should().BeTrue();
+
+        var merged = Utils.Merge(new List<object?> { "x" }, overflow);
+        Utils.IsOverflow(merged).Should().BeTrue();
+
+        var appended = Utils.CombineWithLimit(merged, "tail", new DecodeOptions { ListLimit = 10 });
+        appended.Should().BeEquivalentTo(
+            new Dictionary<object, object?>
+            {
+                ["0"] = new List<object?> { "x", "a" },
+                ["1"] = "b",
+                ["2"] = "tail"
+            }
+        );
+    }
+
+    [Fact]
+    public void ShouldReplaceUndefinedSlotsInListOfMapsWhenSourceHasMap()
+    {
+        var target = new List<object?>
+        {
+            Undefined.Create(),
+            new Dictionary<string, object?> { ["a"] = "1" }
+        };
+        var source = new List<object?>
+        {
+            new Dictionary<string, object?> { ["b"] = "2" }
+        };
+
+        var merged = Utils.Merge(target, source);
+
+        merged.Should().BeEquivalentTo(
+            new List<object?>
+            {
+                new Dictionary<string, object?> { ["b"] = "2" },
+                new Dictionary<string, object?> { ["a"] = "1" }
+            }
+        );
+    }
+
+    [Fact]
     public void InterpretNumericEntities_ReturnsInputUnchangedWhenThereAreNoEntities()
     {
         Utils.InterpretNumericEntities("hello world").Should().Be("hello world");
@@ -2075,6 +2434,67 @@ public class UtilsTests
     }
 
     [Fact]
+    public void Compact_ReusesConvertedInstanceForSharedNonGenericDictionaryReferences()
+    {
+        IDictionary shared = new Hashtable
+        {
+            ["drop"] = Undefined.Instance,
+            ["keep"] = 7
+        };
+        var list = new List<object?> { shared };
+        var root = new Dictionary<object, object?>
+        {
+            ["map"] = shared,
+            ["list"] = list
+        };
+
+        var compacted = Utils.Compact(root);
+
+        var mapConverted = compacted["map"].Should().BeOfType<Dictionary<object, object?>>().Subject;
+        var listConverted = ((List<object?>)compacted["list"]!)[0]
+            .Should().BeOfType<Dictionary<object, object?>>().Subject;
+
+        mapConverted.Should().BeSameAs(listConverted);
+        mapConverted.Should().ContainKey("keep").WhoseValue.Should().Be(7);
+        mapConverted.Should().NotContainKey("drop");
+    }
+
+    [Fact]
+    public void Compact_ReusesConvertedMap_ForRepeatedNonGenericMapValuesInObjectDictionary()
+    {
+        IDictionary shared = new Hashtable { ["x"] = 1 };
+        var root = new Dictionary<object, object?>
+        {
+            ["a"] = shared,
+            ["b"] = shared
+        };
+
+        var compacted = Utils.Compact(root);
+
+        var first = compacted["a"].Should().BeOfType<Dictionary<object, object?>>().Which;
+        var second = compacted["b"].Should().BeOfType<Dictionary<object, object?>>().Which;
+        second.Should().BeSameAs(first);
+    }
+
+    [Fact]
+    public void Compact_ReusesConvertedMap_ForRepeatedNonGenericMapValuesInStringDictionary()
+    {
+        IDictionary shared = new Hashtable { ["x"] = 1 };
+        var inner = new Dictionary<string, object?>
+        {
+            ["a"] = shared,
+            ["b"] = shared
+        };
+        var root = new Dictionary<object, object?> { ["inner"] = inner };
+
+        var compacted = Utils.Compact(root);
+        var compactedInner = compacted["inner"].Should().BeOfType<Dictionary<string, object?>>().Which;
+
+        compactedInner["a"].Should().BeOfType<Dictionary<object, object?>>();
+        compactedInner["b"].Should().BeSameAs(compactedInner["a"]);
+    }
+
+    [Fact]
     public void Compact_Respects_Visited_Set_To_Avoid_Cycles()
     {
         var a = new Dictionary<object, object?>();
@@ -2132,10 +2552,13 @@ public class UtilsTests
                 "ConvertNestedDictionary",
                 BindingFlags.NonPublic | BindingFlags.Static,
                 null,
-                [typeof(IDictionary), typeof(ISet<object>)],
+                [typeof(IDictionary), typeof(ISet<object>), typeof(Dictionary<object, object?>)],
                 null
             )!;
-        var converted = method.Invoke(null, [src, new HashSet<object>()]) as Dictionary<string, object?>;
+        var converted = method.Invoke(
+            null,
+            [src, new HashSet<object>(ReferenceEqualityComparer.Instance), new Dictionary<object, object?>(ReferenceEqualityComparer.Instance)]
+        ) as Dictionary<string, object?>;
 
         converted.Should().NotBeNull();
         var outListObj = converted["lst"];
@@ -2164,6 +2587,165 @@ public class UtilsTests
 
         // NormalizeForTarget should detect self-reference and return the same instance
         ReferenceEquals(result, map).Should().BeTrue();
+    }
+
+    [Fact]
+    public void CopyToList_MaterializesNonCollectionEnumerablePath()
+    {
+        static IEnumerable<object?> Sequence()
+        {
+            yield return "a";
+            yield return 2;
+        }
+
+        var method = typeof(Utils).GetMethod(
+            "CopyToList",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        method.Should().NotBeNull();
+
+        var list = (List<object?>)method!.Invoke(null, [Sequence()])!;
+        list.Should().Equal("a", 2);
+    }
+
+    [Fact]
+    public void NormalizeDictionaryValue_HandlesEnumerableCacheVisitedAndMaterializationPaths()
+    {
+        static IEnumerable Sequence()
+        {
+            yield return 1;
+            yield return new Hashtable { ["k"] = 2 };
+        }
+
+        var method = typeof(Utils).GetMethod(
+            "NormalizeDictionaryValue",
+            BindingFlags.NonPublic | BindingFlags.Static,
+            null,
+            [typeof(object), typeof(ISet<object>), typeof(Dictionary<object, object?>)],
+            null
+        );
+        method.Should().NotBeNull();
+
+        var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
+        var cache = new Dictionary<object, object?>(ReferenceEqualityComparer.Instance);
+        var seq = Sequence();
+
+        var materialized = method!.Invoke(null, [seq, visited, cache]).Should().BeOfType<List<object?>>().Which;
+        materialized.Should().HaveCount(2);
+        materialized[0].Should().Be(1);
+        materialized[1].Should().BeOfType<Dictionary<string, object?>>().Which["k"].Should().Be(2);
+
+        method.Invoke(null, [seq, visited, cache]).Should().BeSameAs(materialized);
+
+        var seqVisitedOnly = Sequence();
+        var visitedOnly = new HashSet<object>(ReferenceEqualityComparer.Instance) { seqVisitedOnly };
+        var cacheOnly = new Dictionary<object, object?>(ReferenceEqualityComparer.Instance);
+        method.Invoke(null, [seqVisitedOnly, visitedOnly, cacheOnly]).Should().BeSameAs(seqVisitedOnly);
+    }
+
+    [Fact]
+    public void NormalizeListValues_ReturnsImmediately_WhenListAlreadyVisited()
+    {
+        var method = typeof(Utils).GetMethod(
+            "NormalizeListValues",
+            BindingFlags.NonPublic | BindingFlags.Static,
+            null,
+            [typeof(IList), typeof(ISet<object>), typeof(Dictionary<object, object?>)],
+            null
+        );
+        method.Should().NotBeNull();
+
+        IList list = new ArrayList { new Hashtable { ["x"] = 1 } };
+        var visited = new HashSet<object>(ReferenceEqualityComparer.Instance) { list };
+        var cache = new Dictionary<object, object?>(ReferenceEqualityComparer.Instance);
+
+        method.Invoke(null, [list, visited, cache]);
+
+        list[0].Should().BeOfType<Hashtable>();
+    }
+
+    [Fact]
+    public void CombineWithLimit_Throws_WhenOverflowAppendExceedsListLimit()
+    {
+        IDictionary overflow = new Dictionary<object, object?> { ["0"] = "a" };
+        MarkAsOverflow(overflow, 0);
+
+        Action act = () => Utils.CombineWithLimit(
+            overflow,
+            "b",
+            new DecodeOptions { ListLimit = 1, ThrowOnLimitExceeded = true }
+        );
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("List limit exceeded*");
+    }
+
+    [Fact]
+    public void CombineWithLimit_OverflowThrowMessage_UsesPluralSuffix_WhenLimitIsNotOne()
+    {
+        IDictionary overflow = new Dictionary<object, object?> { ["0"] = "a", ["1"] = "b" };
+        MarkAsOverflow(overflow, 1);
+
+        Action act = () => Utils.CombineWithLimit(
+            overflow,
+            "c",
+            new DecodeOptions { ListLimit = 2, ThrowOnLimitExceeded = true }
+        );
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*2 elements*");
+    }
+
+    [Fact]
+    public void CombineWithLimit_OverflowMap_DoesNotThrow_WhenThrowOptionDisabled()
+    {
+        IDictionary overflow = new Dictionary<object, object?> { ["0"] = "a" };
+        MarkAsOverflow(overflow, 0);
+
+        var result = Utils.CombineWithLimit(
+            overflow,
+            "b",
+            new DecodeOptions { ListLimit = 1, ThrowOnLimitExceeded = false }
+        );
+
+        var map = result.Should().BeAssignableTo<IDictionary>().Subject;
+        map["1"].Should().Be("b");
+    }
+
+    [Fact]
+    public void CombineWithLimit_NonOverflowOverLimit_ReturnsOverflowMap_WhenThrowOptionDisabled()
+    {
+        var result = Utils.CombineWithLimit(
+            "a",
+            "b",
+            new DecodeOptions { ListLimit = 1, ThrowOnLimitExceeded = false }
+        );
+
+        var map = result.Should().BeAssignableTo<IDictionary>().Subject;
+        map["0"].Should().Be("a");
+        map["1"].Should().Be("b");
+    }
+
+    [Fact]
+    public void CombineWithLimit_NonOverflowThrowMessage_UsesPluralSuffix_WhenLimitIsNotOne()
+    {
+        Action act = () => Utils.CombineWithLimit(
+            new List<object?> { "a", "b" },
+            "c",
+            new DecodeOptions { ListLimit = 2, ThrowOnLimitExceeded = true }
+        );
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*2 elements*");
+    }
+
+    [Fact]
+    public void CombineWithLimit_NonOverflowThrowMessage_UsesSingularSuffix_WhenLimitIsOne()
+    {
+        Action act = () => Utils.CombineWithLimit(
+            "a",
+            "b",
+            new DecodeOptions { ListLimit = 1, ThrowOnLimitExceeded = true }
+        );
+
+        act.Should().Throw<InvalidOperationException>().WithMessage("*1 element*");
     }
 
     [Fact]
@@ -2360,26 +2942,60 @@ public class UtilsTests
 
     private sealed class ThrowingEncoding : Encoding
     {
-        private sealed class ThrowingDecoder : System.Text.Decoder
-        {
-            public override int GetCharCount(byte[] bytes, int index, int count) =>
-                throw new InvalidOperationException("decoder failure");
+        public override string EncodingName => "ThrowingEncoding";
 
-            public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex) =>
-                throw new InvalidOperationException("decoder failure");
+        public override int GetByteCount(char[] chars, int index, int count)
+        {
+            throw new NotSupportedException();
         }
 
-        public override string EncodingName => "ThrowingEncoding";
-        public override int GetByteCount(char[] chars, int index, int count) => throw new NotSupportedException();
-        public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex) =>
+        public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex)
+        {
             throw new NotSupportedException();
-        public override int GetCharCount(byte[] bytes, int index, int count) => throw new InvalidOperationException();
-        public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex) =>
+        }
+
+        public override int GetCharCount(byte[] bytes, int index, int count)
+        {
             throw new InvalidOperationException();
-        public override int GetMaxByteCount(int charCount) => charCount * 2;
-        public override int GetMaxCharCount(int byteCount) => byteCount;
-        public override System.Text.Decoder GetDecoder() => new ThrowingDecoder();
-        public override byte[] GetPreamble() => [];
+        }
+
+        public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
+        {
+            throw new InvalidOperationException();
+        }
+
+        public override int GetMaxByteCount(int charCount)
+        {
+            return charCount * 2;
+        }
+
+        public override int GetMaxCharCount(int byteCount)
+        {
+            return byteCount;
+        }
+
+        public override Decoder GetDecoder()
+        {
+            return new ThrowingDecoder();
+        }
+
+        public override byte[] GetPreamble()
+        {
+            return [];
+        }
+
+        private sealed class ThrowingDecoder : Decoder
+        {
+            public override int GetCharCount(byte[] bytes, int index, int count)
+            {
+                throw new InvalidOperationException("decoder failure");
+            }
+
+            public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
+            {
+                throw new InvalidOperationException("decoder failure");
+            }
+        }
     }
 
     [Fact]
@@ -2485,6 +3101,31 @@ public class UtilsTests
     }
 
     [Fact]
+    public void ShouldWalkNestedObjectStringAndListValuesForCompactStringDictionary()
+    {
+        var nestedObj = new Dictionary<object, object?> { ["x"] = 1 };
+        var nestedStr = new Dictionary<string, object?> { ["y"] = 2 };
+        var nestedList = new List<object?> { new Dictionary<string, object?> { ["z"] = 3 } };
+
+        var root = new Dictionary<object, object?>
+        {
+            ["map"] = new Dictionary<string, object?>
+            {
+                ["obj"] = nestedObj,
+                ["str"] = nestedStr,
+                ["list"] = nestedList
+            }
+        };
+
+        var compacted = Utils.Compact(root);
+        var map = compacted["map"].Should().BeOfType<Dictionary<string, object?>>().Which;
+
+        map["obj"].Should().BeSameAs(nestedObj);
+        map["str"].Should().BeSameAs(nestedStr);
+        map["list"].Should().BeSameAs(nestedList);
+    }
+
+    [Fact]
     public void ToStringKeyDeepNonRecursive_ReusesVisitedNodesInLists()
     {
         IDictionary shared = new Hashtable { ["v"] = 1 };
@@ -2528,17 +3169,30 @@ public class UtilsTests
                 "ConvertNestedDictionary",
                 BindingFlags.NonPublic | BindingFlags.Static,
                 null,
-                [typeof(IDictionary), typeof(ISet<object>)],
+                [typeof(IDictionary), typeof(ISet<object>), typeof(Dictionary<object, object?>)],
                 null
             );
         method.Should().NotBeNull();
 
         var dictionary = new Dictionary<string, object?> { ["x"] = 1 };
         IDictionary raw = dictionary;
-        var visited = new HashSet<object>(Internal.ReferenceEqualityComparer.Instance) { raw };
+        var visited = new HashSet<object>(ReferenceEqualityComparer.Instance) { raw };
 
-        var result = (Dictionary<string, object?>)method.Invoke(null, [raw, visited])!;
+        var result = (Dictionary<string, object?>)method.Invoke(
+            null,
+            [raw, visited, new Dictionary<object, object?>(ReferenceEqualityComparer.Instance)]
+        )!;
         result.Should().BeSameAs(dictionary);
+    }
+
+    private static void MarkAsOverflow(IDictionary map, int maxIndex)
+    {
+        var method = typeof(Utils).GetMethod(
+            "SetOverflowMaxIndex",
+            BindingFlags.NonPublic | BindingFlags.Static
+        );
+        method.Should().NotBeNull();
+        method.Invoke(null, [map, maxIndex]);
     }
 
     #endregion

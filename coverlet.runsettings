@@ -5,8 +5,11 @@
       <DataCollector friendlyName="XPlat code coverage">
         <Configuration>
           <Format>cobertura,opencover</Format>
+          <!-- source-only coverage for QsNet assembly -->
+          <Include>[QsNet]QsNet.*</Include>
+          <IncludeTestAssembly>false</IncludeTestAssembly>
           <!-- exclude designer/auto-generated -->
-          <ExcludeByFile>**/*Designer.cs;**/*Generated*.cs</ExcludeByFile>
+          <ExcludeByFile>**/*Designer.cs;**/*Generated*.cs;**/obj/**/RegexGenerator.g.cs</ExcludeByFile>
         </Configuration>
       </DataCollector>
     </DataCollectors>

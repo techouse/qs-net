@@ -6,7 +6,7 @@ Concise, project-specific guidance for automated coding agents. Keep answers gro
 - Library: Query string encode/decode parity with JS `qs` but idiomatic C#.
 - Public surface: `Qs` static API (`QsNet/Qs.cs`) + extension helpers (`Extensions.cs`). All other code under `Internal/`, `Models/`, `Enums/`, `Constants/` is implementation detail.
 - Core flow (Decode): Raw string -> token split (`Internal/Decoder` + delimiters) -> key path parsing (`Decoder.ParseKeys`) -> progressive structure merge (`Utils.Merge`) -> compaction + string-key normalization (`Utils.Compact`, `Utils.ToStringKeyDeepNonRecursive`).
-- Core flow (Encode): Input normalization to `Dictionary<string, object?>` -> optional filter/sort -> recursive encode via `Internal/Encoder.Encode` producing `key=value` parts -> delimiter join + optional prefix/sentinel.
+- Core flow (Encode): Input normalization to `Dictionary<string, object?>` -> optional filter/sort -> iterative encode traversal via `Internal/Encoder.Encode` producing `key=value` parts -> delimiter join + optional prefix/sentinel.
 - Data model: Heterogeneous tree of `Dictionary<object, object?>`, `List<object?>`, primitives, sentinel `Undefined` (represents omitted vs null). Lists can degrade to dictionaries when sparse / large indices / list parsing disabled.
 
 ## 2. Key Option Objects
@@ -14,13 +14,13 @@ Concise, project-specific guidance for automated coding agents. Keep answers gro
 - Always prefer `CopyWith` to derive tweaks inside iterative logic rather than new manual constructors.
 
 ## 3. Performance & Safety Constraints
-- Hot paths: `Utils.Merge`, `Utils.Encode/Decode`, `Decoder.ParseKeys`, `Encoder.Encode`. Minimize allocations: prefer reusing lists, avoid LINQ in tight loops unless existing code already does so.
+- Hot paths: `Utils.Merge`, `Decoder.ParseKeys`, `Decoder.ParseQueryStringValues`, `DecodeOptions.Decode()`, `EncodeOptions.Encode()`, and `Encoder.Encode`. Minimize allocations: prefer explicit loops, pre-sized collections, and list reuse; do not introduce LINQ allocation operators (`Cast`, `Where`, `Select`, `ToList`, `ToDictionary`, `GroupBy`) in these paths unless benchmark evidence justifies it.
 - Depth / parameter / list limits guard untrusted input (see `DecodeOptions.Depth`, `ParameterLimit`, `ListLimit`). Do not remove; if extending, keep defaults protective and feature-gated behind options.
 - Cycle detection in encode implemented with `SideChannelFrame`; maintain when adding new container handling.
 
 ## 4. Conventions
 - Public API additions require: docs (`docs/api` via DocFX), tests (`QsNet.Tests`), README snippet if user-facing.
-- Tests: xUnit + FluentAssertions. Naming style: `Should<Behavior>` in fact methods; extremely exhaustive existing tests—mirror patterns instead of new frameworks.
+- Tests: xUnit + FluentAssertions. Naming style for new tests: `Should<Behavior>` in fact methods; extremely exhaustive existing tests—mirror patterns instead of new frameworks.
 - Encoding/decoding examples in README serve as canonical behavior; keep them synchronized when changing logic.
 - Use `Undefined.Create()` only to signal omission during encode filtering; never return it from public API results.
 
@@ -47,9 +47,9 @@ When implementing:
 ## 8. Build & Test Workflow
 Run from repo root:
 ```bash
-Dotnet restore
-Dotnet build
-Dotnet test
+dotnet restore
+dotnet build
+dotnet test
 ```
 Coverage (optional local):
 ```bash

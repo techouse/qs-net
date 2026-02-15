@@ -48,18 +48,6 @@ public sealed class DecodeOptions
     /// </summary>
     public DecodeOptions()
     {
-        if (
-            !Equals(Charset, Encoding.UTF8) &&
-#if NETSTANDARD2_0
-            Charset.CodePage != 28591
-#else
-            !Equals(Charset, Encoding.Latin1)
-#endif
-        )
-            throw new ArgumentException("Invalid charset");
-
-        if (ParameterLimit <= 0)
-            throw new ArgumentException("Parameter limit must be positive");
     }
 
     /// <summary>
@@ -74,11 +62,12 @@ public sealed class DecodeOptions
     public bool AllowSparseLists { get; init; }
 
     /// <summary>
-    ///     QS will limit specifying indices in a list to a maximum index of 20. Any list members with
-    ///     an index of greater than 20 will instead be converted to a dictionary with the index as the key.
-    ///     This is needed to handle cases when someone sent, for example, a[999999999] and it will
-    ///     take significant time to iterate over this huge list. This limit can be overridden by passing
-    ///     a ListLimit option.
+    ///     Controls list growth limits during decoding.
+    ///     For explicit numeric indices (for example <c>a[21]</c>), values with index greater than this
+    ///     limit are treated as dictionary entries instead of list entries.
+    ///     For implicit/comma/combined list growth (for example <c>a[]=1&amp;a[]=2</c>), this is enforced
+    ///     as a maximum list size before overflow conversion or exception (when
+    ///     <see cref="ThrowOnLimitExceeded" /> is true).
     /// </summary>
     public int ListLimit { get; init; } = 20;
 
@@ -202,10 +191,11 @@ public sealed class DecodeOptions
     /// </summary>
     public object? Decode(string? value, Encoding? encoding = null, DecodeKind kind = DecodeKind.Value)
     {
-        if (kind == DecodeKind.Key && _decodeDotInKeys == true && _allowDots == false)
+        if (kind == DecodeKind.Key && DecodeDotInKeys && !AllowDots)
             throw new InvalidOperationException(
                 "Invalid DecodeOptions: DecodeDotInKeys=true requires AllowDots=true when decoding keys."
             );
+
         var d3 = DecoderWithKind;
         if (d3 is not null) return d3.Invoke(value, encoding, kind);
 
@@ -294,28 +284,69 @@ public sealed class DecodeOptions
         bool? throwOnLimitExceeded = null
     )
     {
+        var finalDecodeDotInKeys = decodeDotInKeys.GetValueOrDefault(DecodeDotInKeys);
+        var finalAllowDots = allowDots ?? (decodeDotInKeys.HasValue
+            ? finalDecodeDotInKeys || AllowDots
+            : AllowDots);
+
         return new DecodeOptions
         {
-            AllowDots = allowDots ?? AllowDots,
-            AllowEmptyLists = allowEmptyLists ?? AllowEmptyLists,
-            AllowSparseLists = allowSparseLists ?? AllowSparseLists,
-            ListLimit = listLimit ?? ListLimit,
-            Charset = charset ?? Charset,
-            CharsetSentinel = charsetSentinel ?? CharsetSentinel,
-            Comma = comma ?? Comma,
-            DecodeDotInKeys = decodeDotInKeys ?? DecodeDotInKeys,
-            Decoder = decoder ?? Decoder,
-            DecoderWithKind = decoderWithKind ?? DecoderWithKind,
-            Delimiter = delimiter ?? Delimiter,
-            Depth = depth ?? Depth,
-            ParameterLimit = parameterLimit ?? ParameterLimit,
-            Duplicates = duplicates ?? Duplicates,
-            IgnoreQueryPrefix = ignoreQueryPrefix ?? IgnoreQueryPrefix,
-            InterpretNumericEntities = interpretNumericEntities ?? InterpretNumericEntities,
-            ParseLists = parseLists ?? ParseLists,
-            StrictDepth = strictDepth ?? StrictDepth,
-            StrictNullHandling = strictNullHandling ?? StrictNullHandling,
-            ThrowOnLimitExceeded = throwOnLimitExceeded ?? ThrowOnLimitExceeded
+            AllowDots = finalAllowDots,
+            AllowEmptyLists = allowEmptyLists.GetValueOrDefault(AllowEmptyLists),
+            AllowSparseLists = allowSparseLists.GetValueOrDefault(AllowSparseLists),
+            ListLimit = listLimit.GetValueOrDefault(ListLimit),
+            Charset = Coalesce(charset, Charset)!,
+            CharsetSentinel = charsetSentinel.GetValueOrDefault(CharsetSentinel),
+            Comma = comma.GetValueOrDefault(Comma),
+            DecodeDotInKeys = finalDecodeDotInKeys,
+            Decoder = Coalesce(decoder, Decoder),
+            DecoderWithKind = Coalesce(decoderWithKind, DecoderWithKind),
+            Delimiter = Coalesce(delimiter, Delimiter)!,
+            Depth = depth.GetValueOrDefault(Depth),
+            ParameterLimit = parameterLimit.GetValueOrDefault(ParameterLimit),
+            Duplicates = duplicates.GetValueOrDefault(Duplicates),
+            IgnoreQueryPrefix = ignoreQueryPrefix.GetValueOrDefault(IgnoreQueryPrefix),
+            InterpretNumericEntities = interpretNumericEntities.GetValueOrDefault(InterpretNumericEntities),
+            ParseLists = parseLists.GetValueOrDefault(ParseLists),
+            StrictDepth = strictDepth.GetValueOrDefault(StrictDepth),
+            StrictNullHandling = strictNullHandling.GetValueOrDefault(StrictNullHandling),
+            ThrowOnLimitExceeded = throwOnLimitExceeded.GetValueOrDefault(ThrowOnLimitExceeded)
         };
+    }
+
+    /// <summary>
+    ///     Returns <paramref name="value" /> when non-null; otherwise returns <paramref name="fallback" />.
+    /// </summary>
+    /// <typeparam name="T">Reference type being coalesced.</typeparam>
+    /// <param name="value">Preferred value.</param>
+    /// <param name="fallback">Fallback value when preferred is null.</param>
+    /// <returns>The selected non-null value, or null when both values are null.</returns>
+    private static T? Coalesce<T>(T? value, T? fallback)
+        where T : class
+    {
+        return value ?? fallback;
+    }
+
+    /// <summary>
+    ///     Validates option combinations and invariant constraints before decoding.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    ///     Thrown when <see cref="Charset" /> is unsupported or <see cref="ParameterLimit" /> is not positive.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">
+    ///     Thrown when <see cref="DecodeDotInKeys" /> is enabled while <see cref="AllowDots" /> is disabled.
+    /// </exception>
+    internal void Validate()
+    {
+        if (!CharsetHelper.IsSupportedCharset(Charset))
+            throw new ArgumentException("Invalid charset");
+
+        if (ParameterLimit <= 0)
+            throw new ArgumentException("Parameter limit must be positive");
+
+        if (DecodeDotInKeys && !AllowDots)
+            throw new InvalidOperationException(
+                "Invalid DecodeOptions: DecodeDotInKeys=true requires AllowDots=true when decoding keys."
+            );
     }
 }

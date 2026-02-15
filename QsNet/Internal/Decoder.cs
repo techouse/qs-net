@@ -25,6 +25,11 @@ internal static partial class Decoder
         Encoding.Latin1;
 #endif
 
+    /// <summary>
+    ///     Checks whether an encoding instance represents ISO-8859-1 (Latin-1).
+    /// </summary>
+    /// <param name="e">The encoding to inspect.</param>
+    /// <returns><see langword="true" /> when the encoding is Latin-1; otherwise <see langword="false" />.</returns>
     private static bool IsLatin1(Encoding e) =>
 #if NETSTANDARD2_0
         e is { CodePage: 28591 };
@@ -46,48 +51,52 @@ internal static partial class Decoder
         int currentListLength
     )
     {
-        // If lists are disabled (ListLimit < 0), skip comma splitting and limit checks entirely.
         if (options.ListLimit < 0)
             return value;
+
         if (value is string str && options.Comma && str.Length != 0)
         {
-            // Single-pass: fast-path check with IndexOf, then split while enforcing the list limit.
             var idx = str.IndexOf(',');
             if (idx >= 0)
             {
-                var list = new List<object?>(
-                    4); // Initial capacity for typical comma lists (3-5 elements); grows as needed
+                var remaining = options.ListLimit - currentListLength;
+                var list = new List<object?>();
                 var start = 0;
 
                 while (true)
                 {
-                    // Before adding the next element, ensure we won't exceed the limit.
-                    if (options.ThrowOnLimitExceeded && currentListLength + list.Count >= options.ListLimit)
-                        throw new InvalidOperationException(
-                            $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
-                        );
+                    var end = idx >= 0 ? idx : str.Length;
+                    if (options.ThrowOnLimitExceeded)
+                    {
+                        if (currentListLength + list.Count >= options.ListLimit)
+                            throw new InvalidOperationException(
+                                $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
+                            );
+                        list.Add(str.Substring(start, end - start));
+                    }
+                    else
+                    {
+                        if (remaining <= 0)
+                            // Signal ParseQueryStringValues to drop this entire incoming pair (see parsedValue is Undefined -> continue).
+                            return Undefined.Instance;
+                        if (list.Count < remaining)
+                            list.Add(str.Substring(start, end - start));
+                    }
 
-                    // Add the segment before the comma (can be empty when there are consecutive commas)
-                    list.Add(str.Substring(start, idx - start));
-                    start = idx + 1;
-
-                    idx = str.IndexOf(',', start);
                     if (idx < 0)
                         break;
+
+                    start = idx + 1;
+                    idx = str.IndexOf(',', start);
+
+                    if (!options.ThrowOnLimitExceeded && list.Count >= remaining && idx >= 0)
+                        return list;
                 }
 
-                // Add the final (possibly empty) segment, with the same limit guard
-                if (options.ThrowOnLimitExceeded && currentListLength + list.Count >= options.ListLimit)
-                    throw new InvalidOperationException(
-                        $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
-                    );
-
-                list.Add(str.Substring(start));
                 return list;
             }
         }
 
-        // No commas: treat as a scalar and (if enforcing) block adding another element past the limit.
         if (options is { ListLimit: >= 0, ThrowOnLimitExceeded: true } && currentListLength >= options.ListLimit)
             throw new InvalidOperationException(
                 $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
@@ -110,6 +119,7 @@ internal static partial class Decoder
     )
     {
         options ??= new DecodeOptions();
+        options.Validate();
 
 #if NETSTANDARD2_0
         var tmp = options.IgnoreQueryPrefix ? str.TrimStart('?') : str;
@@ -134,28 +144,16 @@ internal static partial class Decoder
 
         var limit = options.ParameterLimit == int.MaxValue ? (int?)null : options.ParameterLimit;
 
-        if (limit is <= 0)
-            throw new ArgumentException("Parameter limit must be a positive integer.");
-
         var allPartsSeq = options.Delimiter.Split(cleanStr);
         var allParts = allPartsSeq as string[] ?? allPartsSeq.ToArray();
-        List<string> parts;
-        if (limit != null)
-        {
-            var takeCount = options.ThrowOnLimitExceeded ? limit.Value + 1 : limit.Value;
-            var count = allParts.Length < takeCount ? allParts.Length : takeCount;
-            parts = new List<string>(count);
-            for (var i = 0; i < count; i++) parts.Add(allParts[i]);
+        var parts = new List<string>(allParts.Length);
 
-            if (options.ThrowOnLimitExceeded && allParts.Length > limit.Value)
-                throw new InvalidOperationException(
-                    $"Parameter limit exceeded. Only {limit} parameter{(limit == 1 ? "" : "s")} allowed."
-                );
-        }
-        else
+        foreach (var part in allParts)
         {
-            parts = new List<string>(allParts.Length);
-            parts.AddRange(allParts);
+            if (!HasNonEmptyRawKey(part))
+                continue;
+
+            parts.Add(part);
         }
 
         var obj = new Dictionary<string, object?>(parts.Count);
@@ -177,15 +175,17 @@ internal static partial class Decoder
                 }
 
         var isLatin1 = IsLatin1(charset);
+        var accepted = 0;
 
         for (var i = 0; i < parts.Count; i++)
         {
             if (i == skipIndex)
                 continue;
 
+            if (limit != null && !options.ThrowOnLimitExceeded && accepted >= limit.Value)
+                break;
+
             var part = parts[i];
-            var hadExisting = false;
-            object? existingVal = null;
             var bracketEqualsPos = part.IndexOf("]=", StringComparison.Ordinal);
             var pos = bracketEqualsPos == -1 ? part.IndexOf('=') : bracketEqualsPos + 1;
 
@@ -195,8 +195,8 @@ internal static partial class Decoder
             if (pos == -1)
             {
                 key = options.DecodeKey(part, charset) ?? string.Empty;
-                value = options.StrictNullHandling ? null : "";
-                hadExisting = obj.TryGetValue(key, out existingVal);
+                if (key.Length == 0)
+                    continue;
             }
             else
             {
@@ -207,7 +207,27 @@ internal static partial class Decoder
                 var rawKey = part[..pos];
                 key = options.DecodeKey(rawKey, charset) ?? string.Empty;
 #endif
-                hadExisting = obj.TryGetValue(key, out existingVal);
+                if (key.Length == 0)
+                    continue;
+            }
+
+            accepted++;
+            if (limit != null && accepted > limit.Value)
+            {
+                if (options.ThrowOnLimitExceeded)
+                    throw new InvalidOperationException(
+                        $"Parameter limit exceeded. Only {limit} parameter{(limit == 1 ? "" : "s")} allowed."
+                    );
+                break;
+            }
+
+            var hadExisting = obj.TryGetValue(key, out var existingVal);
+            if (pos == -1)
+            {
+                value = options.StrictNullHandling ? null : "";
+            }
+            else
+            {
                 // Only count existing when combining; Last/First do not increase length.
                 var currentLength = 0;
                 if (hadExisting && options.Duplicates == Duplicates.Combine)
@@ -216,17 +236,20 @@ internal static partial class Decoder
                     else if (!Utils.IsEmpty(existingVal)) currentLength = 1;
                 }
 
+                object? parsedValue;
 #if NETSTANDARD2_0
-                value = Utils.Apply<object?>(
-                    ParseListValue(part.Substring(pos + 1), options, currentLength),
-                    v => options.DecodeValue(v?.ToString(), charset)
-                );
+                parsedValue = ParseListValue(part.Substring(pos + 1), options, currentLength);
 #else
-                value = Utils.Apply<object?>(
-                    ParseListValue(part[(pos + 1)..], options, currentLength),
-                    v => options.DecodeValue(v?.ToString(), charset)
-                );
+                parsedValue = ParseListValue(part[(pos + 1)..], options, currentLength);
 #endif
+                // ParseListValue uses Undefined.Instance as a drop sentinel when non-throw list capacity is exhausted.
+                if (parsedValue is Undefined)
+                    continue;
+
+                value = Utils.Apply<object?>(
+                    parsedValue,
+                    v => options.DecodeValue((string?)v, charset)
+                );
             }
 
             if (
@@ -271,6 +294,23 @@ internal static partial class Decoder
     }
 
     /// <summary>
+    ///     Determines whether a raw query-string token contains a non-empty key portion.
+    /// </summary>
+    /// <param name="part">The raw token (for example <c>key=value</c>).</param>
+    /// <returns>
+    ///     <see langword="true" /> when the key portion is non-empty; otherwise <see langword="false" />.
+    /// </returns>
+    private static bool HasNonEmptyRawKey(string part)
+    {
+        if (part.Length == 0)
+            return false;
+
+        var bracketEqualsPos = part.IndexOf("]=", StringComparison.Ordinal);
+        var pos = bracketEqualsPos == -1 ? part.IndexOf('=') : bracketEqualsPos + 1;
+        return pos != 0;
+    }
+
+    /// <summary>
     ///     Parses a chain of keys into an object, handling nested structures and lists.
     /// </summary>
     /// <param name="chain">The list of keys representing the structure to parse.</param>
@@ -286,13 +326,13 @@ internal static partial class Decoder
     )
     {
         var currentListLength = 0;
-        if (chain.Count > 0 &&
+        if (
 #if NETSTANDARD2_0
-            chain[chain.Count - 1] == "[]"
+                chain[chain.Count - 1] == "[]"
 #else
             chain[^1] == "[]"
 #endif
-           )
+            )
             // Look only at the immediate parent segment, e.g. "[0]" in ["a", "[0]", "[]"]
             if (chain.Count > 1)
             {
@@ -353,19 +393,11 @@ internal static partial class Decoder
                 else
                 {
                     if (Utils.IsOverflow(leaf))
-                    {
                         obj = leaf;
-                    }
                     else
-                    {
-                        if (
-                            options.AllowEmptyLists
-                            && (leaf?.Equals("") == true || (options.StrictNullHandling && leaf == null))
-                        )
-                            obj = new List<object?>();
-                        else
-                            obj = Utils.CombineWithLimit(new List<object?>(), leaf, options);
-                    }
+                        obj = ShouldCreateEmptyList(options, leaf)
+                            ? new List<object?>()
+                            : Utils.CombineWithLimit(new List<object?>(), leaf, options);
                 }
             }
             else
@@ -431,12 +463,8 @@ internal static partial class Decoder
                     isPureNumeric && root != decodedRoot && idx.ToString(CultureInfo.InvariantCulture) == decodedRoot;
 
                 if (!options.ParseLists || options.ListLimit < 0)
-                {
-                    var keyForMap = decodedRoot == "" ? "0" : decodedRoot;
-                    obj = new Dictionary<object, object?> { [keyForMap] = leaf };
-                }
+                    obj = new Dictionary<object, object?> { [decodedRoot] = leaf };
                 else
-                {
                     switch (isBracketedNumeric)
                     {
                         case true when idx >= 0 && idx <= options.ListLimit:
@@ -457,7 +485,6 @@ internal static partial class Decoder
                             obj = new Dictionary<object, object?> { [decodedRoot] = leaf };
                             break;
                     }
-                }
             }
 
             leaf = obj;
@@ -511,7 +538,9 @@ internal static partial class Decoder
         if (string.IsNullOrEmpty(key) || key.IndexOf('.') < 0)
             return key;
 #else
-        if (string.IsNullOrEmpty(key) || !key.Contains('.'))
+        if (string.IsNullOrEmpty(key))
+            return key;
+        if (!key.Contains('.'))
             return key;
 #endif
 
@@ -731,6 +760,23 @@ internal static partial class Decoder
 #endif
 
     /// <summary>
+    ///     Determines whether an empty list should be materialized for a trailing <c>[]</c> segment.
+    /// </summary>
+    /// <param name="options">Active decode options.</param>
+    /// <param name="leaf">The computed leaf value for the segment.</param>
+    /// <returns><see langword="true" /> if an empty list should be produced; otherwise <see langword="false" />.</returns>
+    private static bool ShouldCreateEmptyList(DecodeOptions options, object? leaf)
+    {
+        if (!options.AllowEmptyLists)
+            return false;
+
+        if (leaf?.Equals("") == true)
+            return true;
+
+        return options.StrictNullHandling && leaf == null;
+    }
+
+    /// <summary>
     ///     Helper for joining IEnumerable as comma-separated strings (avoiding LINQ)
     /// </summary>
     /// <param name="enumerable"></param>
@@ -738,31 +784,26 @@ internal static partial class Decoder
     private static string JoinAsCommaSeparatedStrings(IEnumerable enumerable)
     {
         var e = enumerable.GetEnumerator();
-        StringBuilder? sb = null;
-        var first = true;
+        var sb = new StringBuilder();
+        var hasAny = false;
         try
         {
             while (e.MoveNext())
             {
-                if (first)
-                {
-                    sb = new StringBuilder();
-                    first = false;
-                }
+                if (hasAny)
+                    sb.Append(',');
                 else
-                {
-                    sb!.Append(',');
-                }
+                    hasAny = true;
 
-                var s = e.Current?.ToString() ?? string.Empty;
-                sb.Append(s);
+                sb.Append(e.Current);
             }
         }
         finally
         {
-            (e as IDisposable)?.Dispose();
+            if (e is IDisposable d)
+                d.Dispose();
         }
 
-        return sb?.ToString() ?? string.Empty;
+        return hasAny ? sb.ToString() : string.Empty;
     }
 }
