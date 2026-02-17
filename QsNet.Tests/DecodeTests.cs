@@ -5290,6 +5290,93 @@ public partial class DecodeTest
         act.Should().Throw<InvalidOperationException>();
     }
 
+    #region GHSA-w7fw-mjwx-w883 regression
+
+    [Fact]
+    public void Decode_GHSA_w7fw_mjwx_w883_CommaWithinLimit_StaysList()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 5,
+            ThrowOnLimitExceeded = false
+        };
+
+        var decoded = Assert.IsType<Dictionary<string, object?>>(Qs.Decode("a=1,2,3", opts));
+        var list = Assert.IsType<List<object?>>(decoded["a"]);
+
+        list.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
+    }
+
+    [Fact]
+    public void Decode_GHSA_w7fw_mjwx_w883_CommaAtLimit_StaysList()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 3,
+            ThrowOnLimitExceeded = false
+        };
+
+        var decoded = Assert.IsType<Dictionary<string, object?>>(Qs.Decode("a=1,2,3", opts));
+        var list = Assert.IsType<List<object?>>(decoded["a"]);
+
+        list.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
+    }
+
+    [Fact]
+    public void Decode_GHSA_w7fw_mjwx_w883_CommaExceedsLimit_ThrowOn_Throws()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 3,
+            ThrowOnLimitExceeded = true
+        };
+
+        Action act = () => Qs.Decode("a=1,2,3,4", opts);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("List limit exceeded. Only 3 elements allowed in a list.");
+    }
+
+    [Fact]
+    public void Decode_GHSA_w7fw_mjwx_w883_CommaExceedsLimit_ThrowOff_Truncates()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 3,
+            ThrowOnLimitExceeded = false
+        };
+
+        var decoded = Assert.IsType<Dictionary<string, object?>>(Qs.Decode("a=1,2,3,4", opts));
+        var list = Assert.IsType<List<object?>>(decoded["a"]);
+
+        // Intentional divergence from JS qs: keep allocation bounded by truncating.
+        list.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
+    }
+
+    [Fact]
+    public void Decode_GHSA_w7fw_mjwx_w883_LargeCommaPayload_RespectsListLimitBound()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 5,
+            ThrowOnLimitExceeded = false
+        };
+
+        var payload = "a=" + new string(',', 10_000);
+
+        var decoded = Assert.IsType<Dictionary<string, object?>>(Qs.Decode(payload, opts));
+        var list = Assert.IsType<List<object?>>(decoded["a"]);
+
+        list.Should().HaveCount(5);
+    }
+
+    #endregion
+
     [Fact]
     public void Decode_DuplicateScalars_ThrowWhenAtListLimit_AndThrowOn()
     {
