@@ -1,17 +1,51 @@
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace QsNet.Internal;
 
 /// <summary>
-///     SideChannelFrame tracks encoding state to prevent infinite loops in cyclic references.
-///     Stores encoding steps for each key using ConditionalWeakTable for efficient memory usage.
-///     Supports nested operations through parent frames, allowing resumption from correct positions.
+///     SideChannelFrame tracks the currently active object path during encoding.
+///     Child frames share the same backing state so cycle checks remain O(1) for deep graphs.
 /// </summary>
 /// <param name="parent">Parent frame used for ancestor lookups.</param>
 internal sealed class SideChannelFrame(SideChannelFrame? parent = null)
 {
-    private readonly ConditionalWeakTable<object, Box<int>> _map = new();
+    private readonly HashSet<object> _active =
+        parent?._active ?? new HashSet<object>(ReferenceEqualityComparer.Instance);
+
+    private readonly Dictionary<object, int> _steps =
+        parent?._steps ?? new Dictionary<object, int>(ReferenceEqualityComparer.Instance);
+
     public SideChannelFrame? Parent { get; } = parent;
+
+    /// <summary>
+    ///     Marks an object as active in the current traversal path.
+    /// </summary>
+    /// <param name="key">Reference key to mark active.</param>
+    /// <returns>
+    ///     <see langword="true" /> if the key was not active and is now tracked; otherwise
+    ///     <see langword="false" /> when a cycle was detected.
+    /// </returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool Enter(object key)
+    {
+        if (!_active.Add(key))
+            return false;
+
+        _steps[key] = 0;
+        return true;
+    }
+
+    /// <summary>
+    ///     Removes an object from the currently active traversal path.
+    /// </summary>
+    /// <param name="key">Reference key to untrack.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void Exit(object key)
+    {
+        _active.Remove(key);
+        _steps.Remove(key);
+    }
 
     /// <summary>
     ///     Attempts to read a tracked step index for the provided object reference.
@@ -22,11 +56,8 @@ internal sealed class SideChannelFrame(SideChannelFrame? parent = null)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public bool TryGet(object key, out int step)
     {
-        if (_map.TryGetValue(key, out var box))
-        {
-            step = box.Value;
+        if (_steps.TryGetValue(key, out step))
             return true;
-        }
 
         step = 0;
         return false;
@@ -40,20 +71,7 @@ internal sealed class SideChannelFrame(SideChannelFrame? parent = null)
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void Set(object key, int step)
     {
-        if (_map.TryGetValue(key, out var box))
-            box.Value = step;
-        else
-            _map.Add(key, new Box<int>(step));
+        _active.Add(key);
+        _steps[key] = step;
     }
-}
-
-/// <summary>
-///     This class is a simple wrapper to hold a value.
-///     It is used to store values in a ConditionalWeakTable without boxing issues.
-/// </summary>
-/// <param name="v">Initial wrapped value.</param>
-/// <typeparam name="T">Wrapped value type.</typeparam>
-internal sealed class Box<T>(T v)
-{
-    public T Value = v;
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Reflection;
@@ -1999,7 +2000,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void ShouldDetectCyclesUsingAncestorSideChannelFrames()
+    public void ShouldDetectCyclesUsingSharedSideChannelState()
     {
         var target = new Dictionary<string, object?> { ["a"] = "1" };
         var parent = new SideChannelFrame();
@@ -4456,6 +4457,30 @@ public class EncodeTests
     }
 
     [Fact]
+    public void ShouldEncodeAncestorSeparatorsWhenAllowDotsAndEncodeDotInKeysOnDeeperNodes()
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["a"] = new Dictionary<string, object?>
+            {
+                ["b"] = new Dictionary<string, object?>
+                {
+                    ["c.d"] = "x"
+                }
+            }
+        };
+
+        var qs = Qs.Encode(data, new EncodeOptions
+        {
+            AllowDots = true,
+            EncodeDotInKeys = true
+        });
+
+        // Legacy semantics encode ancestor separators once paths become nested objects.
+        qs.Should().Be("a%252Eb.c%252Ed=x");
+    }
+
+    [Fact]
     public void Comma_List_With_EncodeValuesOnly_Sets_ChildEncoder_Null_Path()
     {
         var data = new Dictionary<string, object?>
@@ -5139,6 +5164,127 @@ public class EncodeTests
     }
 
     [Fact]
+    public void ShouldFallBackToUtf8WhenByteArrayCharsetThrowsArgumentException()
+    {
+        var res = Encoder.Encode(
+            Encoding.UTF8.GetBytes("a"),
+            false,
+            new SideChannelFrame(),
+            "a",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            null,
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            new ThrowingArgumentGetStringEncoding()
+        );
+
+        Parts(res).Should().Equal("a=a");
+    }
+
+    [Fact]
+    public void ShouldUseCustomGeneratorFallbackForSequenceChildPath()
+    {
+        var list = new List<object?> { "x" };
+        ListFormatGenerator customGenerator = (p, k) => $"{p}.<{k}>";
+
+        var res = Encoder.Encode(
+            list,
+            false,
+            new SideChannelFrame(),
+            "a",
+            customGenerator,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            null,
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().Equal("a.<0>=x");
+    }
+
+    [Fact]
+    public void ShouldReuseAdjustedPathForRepeatSequenceGenerator()
+    {
+        var list = new List<object?> { "x", "y" };
+
+        var res = Encoder.Encode(
+            list,
+            false,
+            new SideChannelFrame(),
+            "a",
+            ListFormat.Repeat.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            null,
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().Equal("a=x", "a=y");
+    }
+
+    [Fact]
+    public void ShouldUseLiteralFalseForPrimitiveBoolWithoutEncoder()
+    {
+        var res = Encoder.Encode(
+            false,
+            false,
+            new SideChannelFrame(),
+            "flag",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            null,
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        Parts(res).Should().Equal("flag=false");
+    }
+
+    [Fact]
     public void ShouldKeepOriginalObjectWhenTopLevelFunctionFilterReturnsNonMap()
     {
         var data = new Dictionary<string, object?> { ["a"] = "1" };
@@ -5307,7 +5453,7 @@ public class EncodeTests
     [Fact]
     public void ShouldNotCrashWhenEncodingVeryDeepMap()
     {
-        const int depth = 5000;
+        const int depth = 12000;
 
         var root = new Dictionary<string, object?>();
         var current = root;
@@ -5327,6 +5473,57 @@ public class EncodeTests
         encoded.Should().EndWith("=x");
     }
 
+    [PerfFact]
+    [Trait("Category", "Performance")]
+    public void ShouldKeepDeepEncodingGrowthAndAllocationsWithinSoftGuardrails()
+    {
+        static Dictionary<string, object?> BuildNested(int depth)
+        {
+            Dictionary<string, object?> current = new() { ["leaf"] = "x" };
+            for (var i = 0; i < depth; i++)
+                current = new Dictionary<string, object?> { ["a"] = current };
+
+            return current;
+        }
+
+        var options = new EncodeOptions { Encode = false };
+        var depths = new[] { 2000, 5000, 12000 };
+        var samples = new Dictionary<int, (double Seconds, long AllocBytes)>(depths.Length);
+
+        foreach (var depth in depths)
+        {
+            var payload = BuildNested(depth);
+            _ = Qs.Encode(payload, options); // Warmup.
+
+            var times = new double[3];
+            var allocs = new long[3];
+
+            for (var i = 0; i < 3; i++)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect();
+
+                var before = GC.GetAllocatedBytesForCurrentThread();
+                var sw = Stopwatch.StartNew();
+                _ = Qs.Encode(payload, options);
+                sw.Stop();
+                var after = GC.GetAllocatedBytesForCurrentThread();
+
+                times[i] = sw.Elapsed.TotalSeconds;
+                allocs[i] = after - before;
+            }
+
+            Array.Sort(times);
+            Array.Sort(allocs);
+            samples[depth] = (times[1], allocs[1]);
+        }
+
+        // Timing ratios are intentionally not asserted because they are noisy across machines/loads.
+        // Allocation at 12k depth is the stable soft guardrail for catching major regressions.
+        samples[12000].AllocBytes.Should().BeLessThan(250L * 1024 * 1024);
+    }
+
     private sealed class YieldEnumerable : IEnumerable
     {
         public IEnumerator GetEnumerator()
@@ -5336,7 +5533,7 @@ public class EncodeTests
         }
     }
 
-    private sealed class ThrowingGetStringEncoding : Encoding
+    private abstract class DelegatingUtf8Encoding : Encoding
     {
         public override int GetByteCount(char[] chars, int index, int count)
         {
@@ -5350,12 +5547,12 @@ public class EncodeTests
 
         public override int GetCharCount(byte[] bytes, int index, int count)
         {
-            throw new DecoderFallbackException("decode failed");
+            return UTF8.GetCharCount(bytes, index, count);
         }
 
         public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
         {
-            throw new DecoderFallbackException("decode failed");
+            return UTF8.GetChars(bytes, byteIndex, byteCount, chars, charIndex);
         }
 
         public override int GetMaxByteCount(int charCount)
@@ -5367,10 +5564,32 @@ public class EncodeTests
         {
             return UTF8.GetMaxCharCount(byteCount);
         }
+    }
+
+    private sealed class ThrowingGetStringEncoding : DelegatingUtf8Encoding
+    {
+        public override int GetCharCount(byte[] bytes, int index, int count)
+        {
+            throw new DecoderFallbackException("decode failed");
+        }
+
+        public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
+        {
+            throw new DecoderFallbackException("decode failed");
+        }
 
         public override string GetString(byte[] bytes, int index, int count)
         {
             throw new DecoderFallbackException("decode failed");
+        }
+    }
+
+    private sealed class ThrowingArgumentGetStringEncoding : DelegatingUtf8Encoding
+    {
+
+        public override string GetString(byte[] bytes, int index, int count)
+        {
+            throw new ArgumentException("decode failed");
         }
     }
 

@@ -17,7 +17,7 @@ internal sealed class EncodeFrame(
     object? data,
     bool undefined,
     SideChannelFrame sideChannel,
-    string prefix,
+    KeyPathNode path,
     ListFormatGenerator generator,
     bool commaRoundTrip,
     bool compactNulls,
@@ -39,7 +39,7 @@ internal sealed class EncodeFrame(
     public object? Data { get; set; } = data;
     public bool Undefined { get; } = undefined;
     public SideChannelFrame SideChannel { get; } = sideChannel;
-    public string Prefix { get; } = prefix;
+    public KeyPathNode Path { get; } = path;
     public ListFormatGenerator Generator { get; } = generator;
     public bool CommaRoundTrip { get; } = commaRoundTrip;
     public bool CompactNulls { get; } = compactNulls;
@@ -63,7 +63,9 @@ internal sealed class EncodeFrame(
     public List<object?>? SeqList { get; set; }
     public bool IsSeq { get; set; }
     public bool IsCommaGenerator { get; set; }
-    public string? AdjustedPrefix { get; set; }
+    public bool IsCycleTracked { get; set; }
+    public object? CycleKey { get; set; }
+    public KeyPathNode? AdjustedPath { get; set; }
     public List<object?> ObjKeys { get; set; } = [];
     public List<object?> Values { get; } = [];
     public int Index { get; set; }

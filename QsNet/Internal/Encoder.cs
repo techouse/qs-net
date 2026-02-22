@@ -14,6 +14,10 @@ namespace QsNet.Internal;
 internal static class Encoder
 {
     private static readonly Formatter IdentityFormatter = s => s;
+    private static readonly ListFormatGenerator IndicesGenerator = ListFormat.Indices.GetGenerator();
+    private static readonly ListFormatGenerator BracketsGenerator = ListFormat.Brackets.GetGenerator();
+    private static readonly ListFormatGenerator RepeatGenerator = ListFormat.Repeat.GetGenerator();
+    private static readonly ListFormatGenerator CommaGenerator = ListFormat.Comma.GetGenerator();
 
     /// <summary>
     ///     Encodes the given data into a query string format.
@@ -66,13 +70,13 @@ internal static class Encoder
     {
         var fmt = formatter ?? IdentityFormatter;
         var cs = charset ?? Encoding.UTF8;
-        var gen = generateArrayPrefix ?? ListFormat.Indices.GetGenerator();
+        var gen = generateArrayPrefix ?? IndicesGenerator;
 
-        var isCommaGen = ReferenceEquals(gen, ListFormat.Comma.GetGenerator());
+        var isCommaGen = ReferenceEquals(gen, CommaGenerator);
         var crt = commaRoundTrip ?? isCommaGen;
         var compactNulls = commaCompactNulls && isCommaGen;
 
-        var keyPrefixStr = prefix ?? (addQueryPrefix ? "?" : "");
+        var keyPrefixPath = KeyPathNode.FromMaterialized(prefix ?? (addQueryPrefix ? "?" : ""));
 
         var stack = new Stack<EncodeFrame>();
         stack.Push(
@@ -80,7 +84,7 @@ internal static class Encoder
                 data,
                 undefined,
                 sideChannel,
-                keyPrefixStr,
+                keyPrefixPath,
                 gen,
                 crt,
                 compactNulls,
@@ -112,43 +116,43 @@ internal static class Encoder
                 case EncodePhase.Start:
                     {
                         var obj = frame.Data;
+                        string? pathText = null;
 
                         if (frame.Filter is FunctionFilter ff)
-                            obj = ff.Function(frame.Prefix, obj);
+                            obj = ff.Function(GetPathText(), obj);
 
                         if (obj is DateTime dt)
                         {
                             obj = frame.SerializeDate is null ? dt.ToString("o") : frame.SerializeDate(dt);
                         }
                         else if (
-                            ReferenceEquals(frame.Generator, ListFormat.Comma.GetGenerator())
+                            ReferenceEquals(frame.Generator, CommaGenerator)
                             && IsSequence(obj)
                             && obj is IEnumerable seq
                         )
                         {
                             var normalized = new List<object?>();
                             foreach (var raw in seq)
-                            {
-                                var v = raw;
                                 normalized.Add(
-                                    v switch
+                                    raw switch
                                     {
                                         DateTimeOffset inst => inst.ToString("o"),
                                         DateTime ldt => frame.SerializeDate?.Invoke(ldt) ?? ldt.ToString("o"),
-                                        _ => v
+                                        _ => raw
                                     }
                                 );
-                            }
 
                             obj = normalized;
                         }
 
                         if (obj is IDictionary || IsSequence(obj))
                         {
-                            if (IsInAncestorSideChannels(frame.SideChannel, obj!))
+                            // Active-path tracking keeps cycle checks O(1) regardless of nesting depth.
+                            if (!frame.SideChannel.Enter(obj!))
                                 throw new InvalidOperationException("Cyclic object value");
 
-                            frame.SideChannel.Set(obj!, 0);
+                            frame.IsCycleTracked = true;
+                            frame.CycleKey = obj;
                         }
 
                         if (!frame.Undefined && obj is null)
@@ -156,8 +160,8 @@ internal static class Encoder
                             if (frame.StrictNullHandling)
                             {
                                 var keyOnly = frame is { Encoder: not null, EncodeValuesOnly: false }
-                                    ? frame.Formatter(frame.Encoder(frame.Prefix, frame.Charset, frame.Format))
-                                    : frame.Prefix;
+                                    ? frame.Formatter(frame.Encoder(GetPathText(), frame.Charset, frame.Format))
+                                    : GetPathText();
                                 FinishFrame(keyOnly);
                                 continue;
                             }
@@ -175,13 +179,13 @@ internal static class Encoder
                                     byte[] bytes => BytesToString(bytes, frame.Charset),
                                     _ => obj?.ToString() ?? string.Empty
                                 };
-                                FinishFrame($"{frame.Formatter(frame.Prefix)}={frame.Formatter(s)}");
+                                FinishFrame($"{frame.Formatter(GetPathText())}={frame.Formatter(s)}");
                                 continue;
                             }
 
                             var keyPart = frame.EncodeValuesOnly
-                                ? frame.Prefix
-                                : frame.Encoder(frame.Prefix, frame.Charset, frame.Format);
+                                ? GetPathText()
+                                : frame.Encoder(GetPathText(), frame.Charset, frame.Format);
                             var valuePart = frame.Encoder(obj, frame.Charset, frame.Format);
                             FinishFrame($"{frame.Formatter(keyPart)}={frame.Formatter(valuePart)}");
                             continue;
@@ -195,7 +199,7 @@ internal static class Encoder
 
                         frame.Obj = obj;
                         frame.IsSeq = IsSequence(obj);
-                        frame.IsCommaGenerator = ReferenceEquals(frame.Generator, ListFormat.Comma.GetGenerator());
+                        frame.IsCommaGenerator = ReferenceEquals(frame.Generator, CommaGenerator);
                         frame.SeqList = frame.IsSeq && obj is IEnumerable en
                             ? MaterializeObjectList(en)
                             : null;
@@ -304,25 +308,31 @@ internal static class Encoder
                         if (frame.Values.Capacity < objKeys.Count)
                             frame.Values.Capacity = objKeys.Count;
 
-                        var encodedPrefix = frame.EncodeDotInKeys
-                            ? frame.Prefix.Replace(".", "%2E")
-                            : frame.Prefix;
+                        // Dot-encoding is applied as a cached path view so descendants can reuse it.
+                        var pathForChildren = frame.EncodeDotInKeys
+                            ? frame.Path.AsDotEncoded()
+                            : frame.Path;
                         var shouldAppendRoundTrip =
                             frame is { CommaRoundTrip: true, IsSeq: true } && commaEffectiveLength == 1;
 
-                        frame.AdjustedPrefix = shouldAppendRoundTrip
-                            ? $"{encodedPrefix}[]"
-                            : encodedPrefix;
+                        frame.AdjustedPath = shouldAppendRoundTrip
+                            ? pathForChildren.Append("[]")
+                            : pathForChildren;
 
                         if (frame is { AllowEmptyLists: true, IsSeq: true } && frame.SeqList!.Count == 0)
                         {
-                            FinishFrame($"{frame.AdjustedPrefix}[]");
+                            FinishFrame(frame.AdjustedPath!.Append("[]").Materialize());
                             continue;
                         }
 
                         frame.Index = 0;
                         frame.Phase = EncodePhase.Iterate;
                         break;
+
+                        string GetPathText()
+                        {
+                            return pathText ??= frame.Path.Materialize();
+                        }
                     }
                 case EncodePhase.Iterate when frame.Index >= frame.ObjKeys.Count:
                     FinishFrame(frame.Values);
@@ -340,65 +350,71 @@ internal static class Encoder
                         }
                         else
                         {
-                            if (frame.Obj is IDictionary map)
+                            switch (frame.Obj)
                             {
-                                switch (frame.Obj)
-                                {
-                                    case IDictionary<object, object?> dObj
-                                        when key is not null && dObj.TryGetValue(key, out var got):
-                                        value = got;
-                                        valueUndefined = false;
-                                        break;
-                                    case IDictionary<object, object?>:
-                                        break;
-                                    case IDictionary<string, object?> dStr:
+                                case IDictionary<object, object?> dObj
+                                    when key is not null && dObj.TryGetValue(key, out var got):
+                                    value = got;
+                                    valueUndefined = false;
+                                    break;
+                                case IDictionary<object, object?>:
+                                    break;
+                                case IDictionary<string, object?> dStr:
+                                    {
+                                        var ks = StringifyKey(key);
+                                        if (dStr.TryGetValue(ks, out var got))
                                         {
-                                            var ks = StringifyKey(key);
-                                            if (dStr.TryGetValue(ks, out var got))
+                                            value = got;
+                                            valueUndefined = false;
+                                        }
+
+                                        break;
+                                    }
+                                case IDictionary map:
+                                    {
+                                        if (key is not null && map.Contains(key))
+                                        {
+                                            value = map[key];
+                                            valueUndefined = false;
+                                        }
+
+                                        break;
+                                    }
+                                case Array arr:
+                                    {
+                                        if (TryGetIndex(key, out var idx) && (uint)idx < (uint)arr.Length)
+                                        {
+                                            value = arr.GetValue(idx);
+                                            valueUndefined = false;
+                                        }
+
+                                        break;
+                                    }
+                                case IList list:
+                                    {
+                                        if (TryGetIndex(key, out var idx) && (uint)idx < (uint)list.Count)
+                                        {
+                                            value = list[idx];
+                                            valueUndefined = false;
+                                        }
+
+                                        break;
+                                    }
+                                default:
+                                    {
+                                        if (frame.IsSeq)
+                                        {
+                                            var idx = CoerceIndexOrMinusOne(key);
+                                            var list2 = frame.SeqList!;
+                                            if ((uint)idx < (uint)list2.Count)
                                             {
-                                                value = got;
+                                                value = list2[idx];
                                                 valueUndefined = false;
                                             }
-
-                                            break;
                                         }
-                                    default:
-                                        {
-                                            if (key is not null && map.Contains(key))
-                                            {
-                                                value = map[key];
-                                                valueUndefined = false;
-                                            }
 
-                                            break;
-                                        }
-                                }
-                            }
-                            else if (frame.Obj is Array arr)
-                            {
-                                if (TryGetIndex(key, out var idx) && (uint)idx < (uint)arr.Length)
-                                {
-                                    value = arr.GetValue(idx);
-                                    valueUndefined = false;
-                                }
-                            }
-                            else if (frame.Obj is IList list)
-                            {
-                                if (TryGetIndex(key, out var idx) && (uint)idx < (uint)list.Count)
-                                {
-                                    value = list[idx];
-                                    valueUndefined = false;
-                                }
-                            }
-                            else if (frame.IsSeq)
-                            {
-                                var idx = CoerceIndexOrMinusOne(key);
-                                var list2 = frame.SeqList!;
-                                if ((uint)idx < (uint)list2.Count)
-                                {
-                                    value = list2[idx];
-                                    valueUndefined = false;
-                                }
+                                        break;
+                                    }
                             }
                         }
 
@@ -415,11 +431,14 @@ internal static class Encoder
                             encodedKey = keyStr.Replace(".", "%2E", StringComparison.Ordinal);
 #endif
 
-                        var keyPrefix = frame.Obj is IEnumerable and not string and not IDictionary
-                            ? frame.Generator(frame.AdjustedPrefix!, encodedKey)
-                            : frame.AllowDots
-                                ? $"{frame.AdjustedPrefix}.{encodedKey}"
-                                : $"{frame.AdjustedPrefix}[{encodedKey}]";
+                        KeyPathNode keyPath;
+                        if (frame.Obj is IEnumerable and not string and not IDictionary)
+                            // Known list-format generators are mapped to lightweight segment appends.
+                            keyPath = BuildSequenceChildPath(frame.AdjustedPath!, encodedKey, frame.Generator);
+                        else if (frame.AllowDots)
+                            keyPath = frame.AdjustedPath!.Append("." + encodedKey);
+                        else
+                            keyPath = frame.AdjustedPath!.Append("[" + encodedKey + "]");
 
                         var childEncoder = frame is
                         { IsCommaGenerator: true, EncodeValuesOnly: true, Obj: IEnumerable and not string }
@@ -431,8 +450,8 @@ internal static class Encoder
                             new EncodeFrame(
                                 value,
                                 valueUndefined,
-                                new SideChannelFrame(frame.SideChannel),
-                                keyPrefix,
+                                frame.SideChannel,
+                                keyPath,
                                 frame.Generator,
                                 frame.CommaRoundTrip,
                                 frame.CompactNulls,
@@ -474,29 +493,32 @@ internal static class Encoder
 
         void FinishFrame(object? result)
         {
-            stack.Pop();
+            var completed = stack.Pop();
+            if (completed.IsCycleTracked && completed.CycleKey is not null)
+                completed.SideChannel.Exit(completed.CycleKey);
+
             lastResult = result;
         }
     }
 
-    /// <summary>
-    ///     Checks whether the given reference was seen in any ancestor side-channel frame.
-    /// </summary>
-    /// <param name="sideChannel">Current side-channel frame.</param>
-    /// <param name="key">Candidate reference to search for.</param>
-    /// <returns><see langword="true" /> when an ancestor frame already tracked the reference.</returns>
-    private static bool IsInAncestorSideChannels(SideChannelFrame sideChannel, object key)
+    private static KeyPathNode BuildSequenceChildPath(
+        KeyPathNode adjustedPath,
+        string encodedKey,
+        ListFormatGenerator generator
+    )
     {
-        var current = sideChannel.Parent;
-        while (current is not null)
-        {
-            if (current.TryGet(key, out _))
-                return true;
+        if (ReferenceEquals(generator, IndicesGenerator))
+            return adjustedPath.Append("[" + encodedKey + "]");
 
-            current = current.Parent;
-        }
+        if (ReferenceEquals(generator, BracketsGenerator))
+            return adjustedPath.Append("[]");
 
-        return false;
+        if (ReferenceEquals(generator, RepeatGenerator) || ReferenceEquals(generator, CommaGenerator))
+            return adjustedPath;
+
+        // Unknown generators may produce arbitrary shape; preserve behavior via one materialized fallback.
+        var generated = generator(adjustedPath.Materialize(), encodedKey);
+        return KeyPathNode.FromMaterialized(generated);
     }
 
     /// <summary>

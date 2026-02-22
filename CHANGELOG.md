@@ -1,3 +1,9 @@
+## 1.2.1-wip
+
+* [FIX] optimize deep encode traversal by replacing ancestor side-channel scans with O(1) active-path cycle tracking
+* [FIX] reduce deep encode allocations by switching path assembly to cached segment nodes with leaf-time materialization
+* [CHORE] add encode deep-nesting benchmark harness and soft performance regression guard tests
+
 ## 1.2.0
 
 * [FIX] harden encoder/decode merge paths to iterative traversal for deep-input stack safety
