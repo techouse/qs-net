@@ -651,7 +651,7 @@ internal static partial class Utils
         var fmt = format.GetValueOrDefault();
 
         // These cannot be encoded
-        if (value is (IEnumerable and not string and not byte[]) or Undefined)
+        if (value is IEnumerable and not string and not byte[] or Undefined)
             return string.Empty;
 
         var str = value switch
