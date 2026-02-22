@@ -321,7 +321,7 @@ internal static class Encoder
 
                         if (frame is { AllowEmptyLists: true, IsSeq: true } && frame.SeqList!.Count == 0)
                         {
-                            FinishFrame(frame.AdjustedPath.Append("[]").Materialize());
+                            FinishFrame(frame.AdjustedPath!.Append("[]").Materialize());
                             continue;
                         }
 
@@ -329,7 +329,10 @@ internal static class Encoder
                         frame.Phase = EncodePhase.Iterate;
                         break;
 
-                        string GetPathText() => pathText ??= frame.Path.Materialize();
+                        string GetPathText()
+                        {
+                            return pathText ??= frame.Path.Materialize();
+                        }
                     }
                 case EncodePhase.Iterate when frame.Index >= frame.ObjKeys.Count:
                     FinishFrame(frame.Values);
