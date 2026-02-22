@@ -1,4 +1,4 @@
-## 1.2.1-wip
+## 1.2.1
 
 * [FIX] optimize deep encode traversal by replacing ancestor side-channel scans with O(1) active-path cycle tracking
 * [FIX] reduce deep encode allocations by switching path assembly to cached segment nodes with leaf-time materialization
