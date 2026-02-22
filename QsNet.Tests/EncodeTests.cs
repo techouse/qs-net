@@ -5473,7 +5473,7 @@ public class EncodeTests
         encoded.Should().EndWith("=x");
     }
 
-    [Fact]
+    [PerfFact]
     [Trait("Category", "Performance")]
     public void ShouldKeepDeepEncodingGrowthAndAllocationsWithinSoftGuardrails()
     {
