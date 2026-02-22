@@ -5533,45 +5533,7 @@ public class EncodeTests
         }
     }
 
-    private sealed class ThrowingGetStringEncoding : Encoding
-    {
-        public override int GetByteCount(char[] chars, int index, int count)
-        {
-            return UTF8.GetByteCount(chars, index, count);
-        }
-
-        public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex)
-        {
-            return UTF8.GetBytes(chars, charIndex, charCount, bytes, byteIndex);
-        }
-
-        public override int GetCharCount(byte[] bytes, int index, int count)
-        {
-            throw new DecoderFallbackException("decode failed");
-        }
-
-        public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
-        {
-            throw new DecoderFallbackException("decode failed");
-        }
-
-        public override int GetMaxByteCount(int charCount)
-        {
-            return UTF8.GetMaxByteCount(charCount);
-        }
-
-        public override int GetMaxCharCount(int byteCount)
-        {
-            return UTF8.GetMaxCharCount(byteCount);
-        }
-
-        public override string GetString(byte[] bytes, int index, int count)
-        {
-            throw new DecoderFallbackException("decode failed");
-        }
-    }
-
-    private sealed class ThrowingArgumentGetStringEncoding : Encoding
+    private abstract class DelegatingUtf8Encoding : Encoding
     {
         public override int GetByteCount(char[] chars, int index, int count)
         {
@@ -5602,6 +5564,28 @@ public class EncodeTests
         {
             return UTF8.GetMaxCharCount(byteCount);
         }
+    }
+
+    private sealed class ThrowingGetStringEncoding : DelegatingUtf8Encoding
+    {
+        public override int GetCharCount(byte[] bytes, int index, int count)
+        {
+            throw new DecoderFallbackException("decode failed");
+        }
+
+        public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
+        {
+            throw new DecoderFallbackException("decode failed");
+        }
+
+        public override string GetString(byte[] bytes, int index, int count)
+        {
+            throw new DecoderFallbackException("decode failed");
+        }
+    }
+
+    private sealed class ThrowingArgumentGetStringEncoding : DelegatingUtf8Encoding
+    {
 
         public override string GetString(byte[] bytes, int index, int count)
         {
