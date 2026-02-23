@@ -1,3 +1,7 @@
+## 1.2.2
+
+* [CHORE] optimize decode by skipping dot-in-keys normalization when "%2E" is not present in key segments
+
 ## 1.2.1
 
 * [FIX] optimize deep encode traversal by replacing ancestor side-channel scans with O(1) active-path cycle tracking
