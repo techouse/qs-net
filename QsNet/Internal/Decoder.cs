@@ -446,11 +446,11 @@ internal static partial class Decoder
                 }
 
 #if NETSTANDARD2_0
-                var decodedRoot = options.DecodeDotInKeys
+                var decodedRoot = options.DecodeDotInKeys && cleanRoot.IndexOf("%2E", StringComparison.OrdinalIgnoreCase) >= 0
                     ? ReplaceOrdinalIgnoreCase(cleanRoot, "%2E", ".")
                     : cleanRoot;
 #else
-                var decodedRoot = options.DecodeDotInKeys
+                var decodedRoot = options.DecodeDotInKeys && cleanRoot.Contains("%2E", StringComparison.OrdinalIgnoreCase)
                     ? cleanRoot.Replace("%2E", ".", StringComparison.OrdinalIgnoreCase)
                     : cleanRoot;
 #endif
