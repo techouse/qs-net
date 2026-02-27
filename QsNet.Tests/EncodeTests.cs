@@ -2003,14 +2003,12 @@ public class EncodeTests
     public void ShouldDetectCyclesUsingSharedSideChannelState()
     {
         var target = new Dictionary<string, object?> { ["a"] = "1" };
-        var parent = new SideChannelFrame();
-        parent.Set(target, 0);
-
-        var child = new SideChannelFrame(parent);
+        var sideChannel = new SideChannelFrame();
+        sideChannel.Enter(target).Should().BeTrue();
         Action act = () => Encoder.Encode(
             target,
             false,
-            child,
+            sideChannel,
             "root",
             ListFormat.Indices.GetGenerator(),
             false,
@@ -2031,6 +2029,7 @@ public class EncodeTests
         );
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*Cyclic object value*");
+        sideChannel.Exit(target);
     }
 
     [Fact]
@@ -5471,6 +5470,139 @@ public class EncodeTests
 
         act.Should().NotThrow();
         encoded.Should().EndWith("=x");
+    }
+
+    [Fact]
+    public void LinearMapFastPath_ShouldPreserveDeepChainOutputWhenEncodeIsFalse()
+    {
+        const int depth = 128;
+        Dictionary<string, object?> current = new() { ["leaf"] = "x" };
+        for (var i = 0; i < depth; i++)
+            current = new Dictionary<string, object?> { ["a"] = current };
+
+        var encoded = Qs.Encode(current, new EncodeOptions { Encode = false });
+
+        var expected = new StringBuilder("a");
+        for (var i = 0; i < depth - 1; i++)
+            expected.Append("[a]");
+        expected.Append("[leaf]=x");
+
+        encoded.Should().Be(expected.ToString());
+    }
+
+    [Fact]
+    public void LinearMapFastPath_ShouldApplyDateSerializerAtLeaf()
+    {
+        var payload = new Dictionary<string, object?>
+        {
+            ["a"] = new Dictionary<string, object?>
+            {
+                ["b"] = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc)
+            }
+        };
+
+        var encoded = Qs.Encode(
+            payload,
+            new EncodeOptions
+            {
+                Encode = false,
+                DateSerializer = _ => "SERIALIZED"
+            }
+        );
+
+        encoded.Should().Be("a[b]=SERIALIZED");
+    }
+
+    [Fact]
+    public void LinearMapFastPath_ShouldThrowOnCycle()
+    {
+        var root = new Dictionary<string, object?>();
+        var child = new Dictionary<string, object?>();
+        root["a"] = child;
+        child["a"] = root;
+
+        Action act = () => Qs.Encode(root, new EncodeOptions { Encode = false });
+        act.Should().Throw<InvalidOperationException>().WithMessage("*Cyclic object value*");
+    }
+
+    [Fact]
+    public void LinearMapFastPath_ShouldBeBypassedWhenAllowDotsIsTrue()
+    {
+        var payload = new Dictionary<string, object?>
+        {
+            ["a"] = new Dictionary<string, object?>
+            {
+                ["b"] = new Dictionary<string, object?>
+                {
+                    ["leaf"] = "x"
+                }
+            }
+        };
+
+        var encoded = Qs.Encode(payload, new EncodeOptions { Encode = false, AllowDots = true });
+        encoded.Should().Be("a.b.leaf=x");
+    }
+
+    [Fact]
+    public void LinearMapFastPath_ShouldBeBypassedWhenFilterIsProvided()
+    {
+        var payload = new Dictionary<string, object?>
+        {
+            ["a"] = new Dictionary<string, object?>
+            {
+                ["b"] = "x"
+            }
+        };
+
+        var encoded = Qs.Encode(
+            payload,
+            new EncodeOptions
+            {
+                Encode = false,
+                Filter = new FunctionFilter((key, value) =>
+                    key.EndsWith("[b]", StringComparison.Ordinal) ? "y" : value)
+            }
+        );
+
+        encoded.Should().Be("a[b]=y");
+    }
+
+    [Fact]
+    public void LinearMapFastPath_DirectEncoderCall_ShouldReturnListResultForContainerRoot()
+    {
+        var payload = new Dictionary<string, object?>
+        {
+            ["a"] = new Dictionary<string, object?>
+            {
+                ["leaf"] = "x"
+            }
+        };
+
+        var encoded = Encoder.Encode(
+            payload,
+            false,
+            new SideChannelFrame(),
+            "root",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            null,
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        encoded.Should().BeOfType<List<object?>>();
+        ((List<object?>)encoded).Should().Equal("root[a][leaf]=x");
     }
 
     [PerfFact]
