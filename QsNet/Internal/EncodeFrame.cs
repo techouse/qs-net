@@ -66,7 +66,7 @@ internal sealed class EncodeFrame(
     public bool IsCycleTracked { get; set; }
     public object? CycleKey { get; set; }
     public KeyPathNode? AdjustedPath { get; set; }
-    public List<object?> ObjKeys { get; set; } = [];
-    public List<object?> Values { get; } = [];
+    public List<object?>? ObjKeys { get; set; }
+    public List<object?>? Values { get; set; }
     public int Index { get; set; }
 }
