@@ -5331,6 +5331,59 @@ public class EncodeTests
     }
 
     [Fact]
+    public void CharsetSentinel_WithCustomDelimiter_UsesAmpersandBeforeBody()
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["a"] = "b",
+            ["c"] = "d"
+        };
+
+        Qs.Encode(
+            data,
+            new EncodeOptions
+            {
+                Encode = false,
+                CharsetSentinel = true,
+                Delimiter = ";"
+            }
+        ).Should().Be("utf8=%E2%9C%93&a=b;c=d");
+    }
+
+    [Fact]
+    public void AddQueryPrefix_WithOnlySkippedPairs_ReturnsQuestionMark()
+    {
+        var data = new Dictionary<string, object?> { ["a"] = null };
+
+        Qs.Encode(
+            data,
+            new EncodeOptions
+            {
+                Encode = false,
+                AddQueryPrefix = true,
+                SkipNulls = true
+            }
+        ).Should().Be("?");
+    }
+
+    [Fact]
+    public void AddQueryPrefixAndCharsetSentinel_WithOnlySkippedPairs_ReturnsPrefixedSentinel()
+    {
+        var data = new Dictionary<string, object?> { ["a"] = null };
+
+        Qs.Encode(
+            data,
+            new EncodeOptions
+            {
+                Encode = false,
+                AddQueryPrefix = true,
+                CharsetSentinel = true,
+                SkipNulls = true
+            }
+        ).Should().Be("?utf8=%E2%9C%93");
+    }
+
+    [Fact]
     public void ShouldUseEmptyPrefixWhenAddQueryPrefixIsFalseAndPrefixIsNull()
     {
         var res = Encoder.Encode(
@@ -5565,6 +5618,56 @@ public class EncodeTests
         );
 
         encoded.Should().Be("a[b]=y");
+    }
+
+    [Fact]
+    public void DeepRepeatedKeyChain_WithAllowDots_ShouldPreserveOutputWhenFastPathBypassed()
+    {
+        const int depth = 128;
+        Dictionary<string, object?> current = new() { ["leaf"] = "x" };
+        for (var i = 0; i < depth; i++)
+            current = new Dictionary<string, object?> { ["a"] = current };
+
+        var encoded = Qs.Encode(
+            current,
+            new EncodeOptions
+            {
+                Encode = false,
+                AllowDots = true
+            }
+        );
+
+        var expected = new StringBuilder("a");
+        for (var i = 0; i < depth - 1; i++)
+            expected.Append(".a");
+        expected.Append(".leaf=x");
+
+        encoded.Should().Be(expected.ToString());
+    }
+
+    [Fact]
+    public void DeepRepeatedKeyChain_WithIdentityFilter_ShouldPreserveOutputWhenFastPathBypassed()
+    {
+        const int depth = 128;
+        Dictionary<string, object?> current = new() { ["leaf"] = "x" };
+        for (var i = 0; i < depth; i++)
+            current = new Dictionary<string, object?> { ["a"] = current };
+
+        var encoded = Qs.Encode(
+            current,
+            new EncodeOptions
+            {
+                Encode = false,
+                Filter = new FunctionFilter((_, value) => value)
+            }
+        );
+
+        var expected = new StringBuilder("a");
+        for (var i = 0; i < depth - 1; i++)
+            expected.Append("[a]");
+        expected.Append("[leaf]=x");
+
+        encoded.Should().Be(expected.ToString());
     }
 
     [Fact]
