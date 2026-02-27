@@ -134,6 +134,10 @@ internal static class Encoder
         );
 
         object? lastResult = null;
+        string? lastBracketKey = null;
+        string? lastBracketSegment = null;
+        string? lastDotKey = null;
+        string? lastDotSegment = null;
 
         while (stack.Count > 0)
         {
@@ -463,12 +467,20 @@ internal static class Encoder
 
                         KeyPathNode keyPath;
                         if (frame.Obj is IEnumerable and not string and not IDictionary)
+                        {
                             // Known list-format generators are mapped to lightweight segment appends.
-                            keyPath = BuildSequenceChildPath(frame.AdjustedPath!, encodedKey, frame.Generator);
+                            keyPath = ReferenceEquals(frame.Generator, IndicesGenerator)
+                                ? frame.AdjustedPath!.Append(GetBracketSegment(encodedKey))
+                                : BuildSequenceChildPath(frame.AdjustedPath!, encodedKey, frame.Generator);
+                        }
                         else if (frame.AllowDots)
-                            keyPath = frame.AdjustedPath!.Append("." + encodedKey);
+                        {
+                            keyPath = frame.AdjustedPath!.Append(GetDotSegment(encodedKey));
+                        }
                         else
-                            keyPath = frame.AdjustedPath!.Append("[" + encodedKey + "]");
+                        {
+                            keyPath = frame.AdjustedPath!.Append(GetBracketSegment(encodedKey));
+                        }
 
                         var childEncoder = frame is
                         { IsCommaGenerator: true, EncodeValuesOnly: true, Obj: IEnumerable and not string }
@@ -540,6 +552,28 @@ internal static class Encoder
                 completed.SideChannel.Exit(completed.CycleKey);
 
             lastResult = result;
+        }
+
+        string GetBracketSegment(string encodedKey)
+        {
+            if (string.Equals(lastBracketKey, encodedKey, StringComparison.Ordinal))
+                return lastBracketSegment!;
+
+            var segment = string.Concat("[", encodedKey, "]");
+            lastBracketKey = encodedKey;
+            lastBracketSegment = segment;
+            return segment;
+        }
+
+        string GetDotSegment(string encodedKey)
+        {
+            if (string.Equals(lastDotKey, encodedKey, StringComparison.Ordinal))
+                return lastDotSegment!;
+
+            var segment = string.Concat(".", encodedKey);
+            lastDotKey = encodedKey;
+            lastDotSegment = segment;
+            return segment;
         }
     }
 
