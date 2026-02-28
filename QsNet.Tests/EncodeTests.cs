@@ -5710,19 +5710,48 @@ public class EncodeTests
         ((List<object?>)encoded).Should().Equal("root[a][leaf]=x");
     }
 
+    [Fact]
+    public void ShouldApplyFormatterToNullValue_DirectEncoderCall_LinearMapFastPath()
+    {
+        var payload = new Dictionary<string, object?>
+        {
+            ["a"] = new Dictionary<string, object?>
+            {
+                ["leaf"] = null
+            }
+        };
+
+        var encoded = Encoder.Encode(
+            payload,
+            false,
+            new SideChannelFrame(),
+            "root",
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            null,
+            false,
+            Format.Rfc3986,
+            s => $"<{s}>",
+            false,
+            Encoding.UTF8
+        );
+
+        encoded.Should().BeOfType<List<object?>>();
+        ((List<object?>)encoded).Should().Equal("<root[a][leaf]>=<>");
+    }
+
     [PerfFact]
     [Trait("Category", "Performance")]
     public void ShouldKeepDeepEncodingGrowthAndAllocationsWithinSoftGuardrails()
     {
-        static Dictionary<string, object?> BuildNested(int depth)
-        {
-            Dictionary<string, object?> current = new() { ["leaf"] = "x" };
-            for (var i = 0; i < depth; i++)
-                current = new Dictionary<string, object?> { ["a"] = current };
-
-            return current;
-        }
-
         var options = new EncodeOptions { Encode = false };
         var depths = new[] { 2000, 5000, 12000 };
         var samples = new Dictionary<int, (double Seconds, long AllocBytes)>(depths.Length);
@@ -5759,6 +5788,16 @@ public class EncodeTests
         // Timing ratios are intentionally not asserted because they are noisy across machines/loads.
         // Allocation at 12k depth is the stable soft guardrail for catching major regressions.
         samples[12000].AllocBytes.Should().BeLessThan(250L * 1024 * 1024);
+        return;
+
+        static Dictionary<string, object?> BuildNested(int depth)
+        {
+            Dictionary<string, object?> current = new() { ["leaf"] = "x" };
+            for (var i = 0; i < depth; i++)
+                current = new Dictionary<string, object?> { ["a"] = current };
+
+            return current;
+        }
     }
 
     private sealed class YieldEnumerable : IEnumerable
