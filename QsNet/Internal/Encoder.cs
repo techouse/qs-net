@@ -467,20 +467,14 @@ internal static class Encoder
 
                         KeyPathNode keyPath;
                         if (frame.Obj is IEnumerable and not string and not IDictionary)
-                        {
                             // Known list-format generators are mapped to lightweight segment appends.
                             keyPath = ReferenceEquals(frame.Generator, IndicesGenerator)
                                 ? frame.AdjustedPath!.Append(GetBracketSegment(encodedKey))
                                 : BuildSequenceChildPath(frame.AdjustedPath!, encodedKey, frame.Generator);
-                        }
                         else if (frame.AllowDots)
-                        {
                             keyPath = frame.AdjustedPath!.Append(GetDotSegment(encodedKey));
-                        }
                         else
-                        {
                             keyPath = frame.AdjustedPath!.Append(GetBracketSegment(encodedKey));
-                        }
 
                         var childEncoder = frame is
                         { IsCommaGenerator: true, EncodeValuesOnly: true, Obj: IEnumerable and not string }
@@ -682,8 +676,6 @@ internal static class Encoder
                     $"{formatter(path.ToString())}={formatter(value)}"
                 };
                 return true;
-
-                return false;
             }
         }
         finally
