@@ -1,3 +1,15 @@
+## 1.2.3-wip
+
+* [FIX] add a guarded deep linear-map fast path in `Encoder` for `encode=false` single-key dictionary chains, preserving cycle detection, date serialization, and generic fallback behavior
+* [FIX] reduce encode-path allocations by making `EncodeFrame.ObjKeys`/`Values` lazy, reusing shared empty-frame results, and caching repeated key segments (`[key]` / `.key`) during traversal
+* [FIX] reduce top-level encode assembly overhead by streaming `Qs.Encode` output into a single `StringBuilder` while preserving existing delimiter/query-prefix/charset-sentinel semantics
+* [FIX] simplify `SideChannelFrame` to active-path reference tracking only and remove unused step-tracking state
+* [FIX] align linear fast-path null handling with the generic path by applying the formatter to both key and value sides
+* [CHORE] remove redundant `IndicesGenerator` special-casing in `BuildSequenceChildPath` and simplify encoder control flow
+* [CHORE] expand deep-encode benchmarks with explicit no-fast-path scenarios (`FilterIdentity`, `AllowDots`) for measurable parity checks
+* [CHORE] expand and refactor tests for fast-path parity/cycles/fallback cleanup, charset-sentinel/query-prefix edge cases, SideChannelFrame semantics, benchmark guardrails, and naming/organization consistency
+* [CHORE] apply repository hygiene updates (formatting/newlines, minor test cleanup, and `QsNet.Comparison` project-file formatting)
+
 ## 1.2.2
 
 * [CHORE] optimize decode by skipping dot-in-keys normalization when "%2E" is not present in key segments
