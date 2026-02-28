@@ -701,9 +701,6 @@ internal static class Encoder
         ListFormatGenerator generator
     )
     {
-        if (ReferenceEquals(generator, IndicesGenerator))
-            return adjustedPath.Append("[" + encodedKey + "]");
-
         if (ReferenceEquals(generator, BracketsGenerator))
             return adjustedPath.Append("[]");
 
