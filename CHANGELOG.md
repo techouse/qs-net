@@ -1,4 +1,4 @@
-## 1.2.3-wip
+## 1.2.3
 
 * [FIX] add a guarded deep linear-map fast path in `Encoder` when `EncodeOptions.Encode = false` for single-key dictionary chains, preserving cycle detection, date serialization, and generic fallback behavior
 * [FIX] reduce encode-path allocations by making `EncodeFrame.ObjKeys`/`Values` lazy, reusing shared empty-frame results, and caching repeated key segments (`[key]` / `.key`) during traversal
