@@ -5623,6 +5623,61 @@ public class EncodeTests
     }
 
     [Fact]
+    public void ShouldFallbackAndCleanupSideChannelAfterPartialLinearTraversal_LinearMapFastPath()
+    {
+        var branch = new Dictionary<string, object?>
+        {
+            ["b"] = 1,
+            ["c"] = 2
+        };
+        var payload = new Dictionary<string, object?> { ["a"] = branch };
+        var sideChannel = new SideChannelFrame();
+
+        List<string?> EncodeWithSharedSideChannel()
+        {
+            var encoded = Encoder.Encode(
+                payload,
+                false,
+                sideChannel,
+                string.Empty,
+                ListFormat.Indices.GetGenerator(),
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                null,
+                null,
+                null,
+                null,
+                false,
+                Format.Rfc3986,
+                s => s,
+                false,
+                Encoding.UTF8
+            );
+
+            return ((List<object?>)encoded).Select(x => x?.ToString()).ToList();
+        }
+
+        var first = EncodeWithSharedSideChannel();
+        first.Should().HaveCount(2);
+        first.Should().Contain("[a][b]=1");
+        first.Should().Contain("[a][c]=2");
+
+        var second = EncodeWithSharedSideChannel();
+        second.Should().HaveCount(2);
+        second.Should().Contain("[a][b]=1");
+        second.Should().Contain("[a][c]=2");
+
+        sideChannel.Enter(payload).Should().BeTrue();
+        sideChannel.Exit(payload);
+        sideChannel.Enter(branch).Should().BeTrue();
+        sideChannel.Exit(branch);
+    }
+
+    [Fact]
     public void ShouldPreserveOutputWhenFastPathBypassed_DeepRepeatedKeyChainWithAllowDots()
     {
         const int depth = 128;
