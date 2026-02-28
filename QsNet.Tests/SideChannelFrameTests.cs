@@ -7,7 +7,7 @@ namespace QsNet.Tests;
 public class SideChannelFrameTests
 {
     [Fact]
-    public void EnterExit_ShouldTrackActivePathWithReferenceSemantics()
+    public void ShouldTrackActivePathWithReferenceSemantics()
     {
         var frame = new SideChannelFrame();
         var key = new object();
@@ -19,7 +19,7 @@ public class SideChannelFrameTests
     }
 
     [Fact]
-    public void Enter_ShouldTreatDistinctReferencesAsDistinctEntries()
+    public void ShouldTreatDistinctReferencesAsDistinctEntries()
     {
         var frame = new SideChannelFrame();
         var first = new Token("x");
@@ -30,7 +30,7 @@ public class SideChannelFrameTests
     }
 
     [Fact]
-    public void Exit_ShouldIgnoreMissingEntries()
+    public void ShouldIgnoreMissingEntries()
     {
         var frame = new SideChannelFrame();
 
