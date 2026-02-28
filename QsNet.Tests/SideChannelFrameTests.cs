@@ -38,23 +38,18 @@ public class SideChannelFrameTests
         act.Should().NotThrow();
     }
 
-    private sealed class Token
+    private sealed class Token(string value)
     {
-        private readonly string value;
-
-        public Token(string value)
-        {
-            this.value = value;
-        }
+        private readonly string _value = value;
 
         public override bool Equals(object? obj)
         {
-            return obj is Token token && token.value == value;
+            return obj is Token token && token._value == _value;
         }
 
         public override int GetHashCode()
         {
-            return value.GetHashCode();
+            return _value.GetHashCode();
         }
     }
 }
