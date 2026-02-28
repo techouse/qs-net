@@ -5195,14 +5195,13 @@ public class EncodeTests
     public void ShouldUseCustomGeneratorFallbackForSequenceChildPath()
     {
         var list = new List<object?> { "x" };
-        ListFormatGenerator customGenerator = (p, k) => $"{p}.<{k}>";
 
         var res = Encoder.Encode(
             list,
             false,
             new SideChannelFrame(),
             "a",
-            customGenerator,
+            CustomGenerator,
             false,
             false,
             false,
@@ -5221,6 +5220,9 @@ public class EncodeTests
         );
 
         Parts(res).Should().Equal("a.<0>=x");
+        return;
+
+        string CustomGenerator(string p, string? k) => $"{p}.<{k}>";
     }
 
     [Fact]
