@@ -18,6 +18,7 @@ internal static class Encoder
     private static readonly ListFormatGenerator BracketsGenerator = ListFormat.Brackets.GetGenerator();
     private static readonly ListFormatGenerator RepeatGenerator = ListFormat.Repeat.GetGenerator();
     private static readonly ListFormatGenerator CommaGenerator = ListFormat.Comma.GetGenerator();
+    private static readonly List<object?> EmptyValues = [];
 
     /// <summary>
     ///     Encodes the given data into a query string format.
@@ -75,8 +76,35 @@ internal static class Encoder
         var isCommaGen = ReferenceEquals(gen, CommaGenerator);
         var crt = commaRoundTrip ?? isCommaGen;
         var compactNulls = commaCompactNulls && isCommaGen;
+        var keyPrefix = prefix ?? (addQueryPrefix ? "?" : "");
 
-        var keyPrefixPath = KeyPathNode.FromMaterialized(prefix ?? (addQueryPrefix ? "?" : ""));
+        if (
+            TryEncodeLinearMapChain(
+                data,
+                undefined,
+                sideChannel,
+                keyPrefix,
+                gen,
+                crt,
+                compactNulls,
+                allowEmptyLists,
+                strictNullHandling,
+                skipNulls,
+                encodeDotInKeys,
+                encoder,
+                serializeDate,
+                sort,
+                filter,
+                allowDots,
+                fmt,
+                encodeValuesOnly,
+                cs,
+                out var linearResult
+            )
+        )
+            return linearResult!;
+
+        var keyPrefixPath = KeyPathNode.FromMaterialized(keyPrefix);
 
         var stack = new Stack<EncodeFrame>();
         stack.Push(
@@ -106,6 +134,10 @@ internal static class Encoder
         );
 
         object? lastResult = null;
+        string? lastBracketKey = null;
+        string? lastBracketSegment = null;
+        string? lastDotKey = null;
+        string? lastDotSegment = null;
 
         while (stack.Count > 0)
         {
@@ -193,7 +225,7 @@ internal static class Encoder
 
                         if (frame.Undefined)
                         {
-                            FinishFrame(frame.Values);
+                            FinishFrame(EmptyValues);
                             continue;
                         }
 
@@ -305,8 +337,6 @@ internal static class Encoder
                         }
 
                         frame.ObjKeys = objKeys;
-                        if (frame.Values.Capacity < objKeys.Count)
-                            frame.Values.Capacity = objKeys.Count;
 
                         // Dot-encoding is applied as a cached path view so descendants can reuse it.
                         var pathForChildren = frame.EncodeDotInKeys
@@ -334,12 +364,16 @@ internal static class Encoder
                             return pathText ??= frame.Path.Materialize();
                         }
                     }
-                case EncodePhase.Iterate when frame.Index >= frame.ObjKeys.Count:
-                    FinishFrame(frame.Values);
-                    continue;
                 case EncodePhase.Iterate:
                     {
-                        var key = frame.ObjKeys[frame.Index++];
+                        var objKeys = frame.ObjKeys;
+                        if (objKeys is null || frame.Index >= objKeys.Count)
+                        {
+                            FinishFrame(frame.Values ?? EmptyValues);
+                            continue;
+                        }
+
+                        var key = objKeys[frame.Index++];
                         object? value = null;
                         var valueUndefined = true;
 
@@ -434,11 +468,13 @@ internal static class Encoder
                         KeyPathNode keyPath;
                         if (frame.Obj is IEnumerable and not string and not IDictionary)
                             // Known list-format generators are mapped to lightweight segment appends.
-                            keyPath = BuildSequenceChildPath(frame.AdjustedPath!, encodedKey, frame.Generator);
+                            keyPath = ReferenceEquals(frame.Generator, IndicesGenerator)
+                                ? frame.AdjustedPath!.Append(GetBracketSegment(encodedKey))
+                                : BuildSequenceChildPath(frame.AdjustedPath!, encodedKey, frame.Generator);
                         else if (frame.AllowDots)
-                            keyPath = frame.AdjustedPath!.Append("." + encodedKey);
+                            keyPath = frame.AdjustedPath!.Append(GetDotSegment(encodedKey));
                         else
-                            keyPath = frame.AdjustedPath!.Append("[" + encodedKey + "]");
+                            keyPath = frame.AdjustedPath!.Append(GetBracketSegment(encodedKey));
 
                         var childEncoder = frame is
                         { IsCommaGenerator: true, EncodeValuesOnly: true, Obj: IEnumerable and not string }
@@ -475,11 +511,23 @@ internal static class Encoder
                     }
                 case EncodePhase.AwaitChild:
                     {
+                        var values = frame.Values;
                         if (lastResult is List<object?> listResult)
-                            foreach (var item in listResult)
-                                frame.Values.Add(item);
+                        {
+                            if (listResult.Count != 0)
+                            {
+                                values ??= new List<object?>(listResult.Count);
+                                foreach (var item in listResult)
+                                    values.Add(item);
+                            }
+                        }
                         else
-                            frame.Values.Add(lastResult);
+                        {
+                            values ??= [];
+                            values.Add(lastResult);
+                        }
+
+                        frame.Values = values;
 
                         frame.Phase = EncodePhase.Iterate;
                         break;
@@ -499,6 +547,142 @@ internal static class Encoder
 
             lastResult = result;
         }
+
+        string GetBracketSegment(string encodedKey)
+        {
+            if (string.Equals(lastBracketKey, encodedKey, StringComparison.Ordinal))
+                return lastBracketSegment!;
+
+            var segment = string.Concat("[", encodedKey, "]");
+            lastBracketKey = encodedKey;
+            lastBracketSegment = segment;
+            return segment;
+        }
+
+        string GetDotSegment(string encodedKey)
+        {
+            if (string.Equals(lastDotKey, encodedKey, StringComparison.Ordinal))
+                return lastDotSegment!;
+
+            var segment = string.Concat(".", encodedKey);
+            lastDotKey = encodedKey;
+            lastDotSegment = segment;
+            return segment;
+        }
+    }
+
+    private static bool TryEncodeLinearMapChain(
+        object? data,
+        bool undefined,
+        SideChannelFrame sideChannel,
+        string prefix,
+        ListFormatGenerator generator,
+        bool commaRoundTrip,
+        bool compactNulls,
+        bool allowEmptyLists,
+        bool strictNullHandling,
+        bool skipNulls,
+        bool encodeDotInKeys,
+        ValueEncoder? encoder,
+        DateSerializer? serializeDate,
+        Comparison<object?>? sort,
+        IFilter? filter,
+        bool allowDots,
+        Formatter formatter,
+        bool encodeValuesOnly,
+        Encoding charset,
+        out object? result
+    )
+    {
+        result = null;
+
+        if (
+            undefined
+            || encoder is not null
+            || sort is not null
+            || filter is not null
+            || allowDots
+            || encodeDotInKeys
+            || encodeValuesOnly
+            || strictNullHandling
+            || skipNulls
+            || allowEmptyLists
+            || !ReferenceEquals(generator, IndicesGenerator)
+            || commaRoundTrip
+            || compactNulls
+            || data is not IDictionary
+        )
+            return false;
+
+        var path = new StringBuilder(prefix);
+        var current = data;
+        var entered = new List<object>();
+
+        try
+        {
+            while (true)
+            {
+                if (current is IDictionary map)
+                {
+                    if (!sideChannel.Enter(map))
+                        throw new InvalidOperationException("Cyclic object value");
+
+                    entered.Add(map);
+
+                    if (map.Count != 1)
+                        return false;
+
+                    DictionaryEntry only = default;
+                    var found = false;
+                    foreach (DictionaryEntry entry in map)
+                    {
+                        only = entry;
+                        found = true;
+                        break;
+                    }
+
+                    if (!found)
+                        return false;
+
+                    path.Append('[').Append(StringifyKey(only.Key)).Append(']');
+                    current = only.Value;
+                    continue;
+                }
+
+                if (current is DateTime dt)
+                {
+                    current = serializeDate is null ? dt.ToString("o") : serializeDate(dt);
+                    continue;
+                }
+
+                if (current is null)
+                {
+                    result = new List<object?>
+                    {
+                        $"{formatter(path.ToString())}={formatter(string.Empty)}"
+                    };
+                    return true;
+                }
+
+                if (!Utils.IsNonNullishPrimitive(current) && current is not byte[]) return false;
+                var value = current switch
+                {
+                    bool b => b ? "true" : "false",
+                    byte[] bytes => BytesToString(bytes, charset),
+                    _ => current.ToString() ?? string.Empty
+                };
+                result = new List<object?>
+                {
+                    $"{formatter(path.ToString())}={formatter(value)}"
+                };
+                return true;
+            }
+        }
+        finally
+        {
+            for (var i = entered.Count - 1; i >= 0; i--)
+                sideChannel.Exit(entered[i]);
+        }
     }
 
     private static KeyPathNode BuildSequenceChildPath(
@@ -507,9 +691,6 @@ internal static class Encoder
         ListFormatGenerator generator
     )
     {
-        if (ReferenceEquals(generator, IndicesGenerator))
-            return adjustedPath.Append("[" + encodedKey + "]");
-
         if (ReferenceEquals(generator, BracketsGenerator))
             return adjustedPath.Append("[]");
 

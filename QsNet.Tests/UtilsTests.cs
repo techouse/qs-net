@@ -2557,7 +2557,10 @@ public class UtilsTests
             )!;
         var converted = method.Invoke(
             null,
-            [src, new HashSet<object>(ReferenceEqualityComparer.Instance), new Dictionary<object, object?>(ReferenceEqualityComparer.Instance)]
+            [
+                src, new HashSet<object>(ReferenceEqualityComparer.Instance),
+                new Dictionary<object, object?>(ReferenceEqualityComparer.Instance)
+            ]
         ) as Dictionary<string, object?>;
 
         converted.Should().NotBeNull();
@@ -2580,7 +2583,7 @@ public class UtilsTests
     [Fact]
     public void Merge_NullTarget_With_SelfReferencing_NonGenericMap_Returns_Same_Instance()
     {
-        IDictionary map = new Hashtable();
+        var map = new Hashtable();
         map["self"] = map; // self-reference
 
         var result = Utils.Merge(null, map);
@@ -2604,19 +2607,13 @@ public class UtilsTests
         );
         method.Should().NotBeNull();
 
-        var list = (List<object?>)method!.Invoke(null, [Sequence()])!;
+        var list = (List<object?>)method.Invoke(null, [Sequence()])!;
         list.Should().Equal("a", 2);
     }
 
     [Fact]
     public void NormalizeDictionaryValue_HandlesEnumerableCacheVisitedAndMaterializationPaths()
     {
-        static IEnumerable Sequence()
-        {
-            yield return 1;
-            yield return new Hashtable { ["k"] = 2 };
-        }
-
         var method = typeof(Utils).GetMethod(
             "NormalizeDictionaryValue",
             BindingFlags.NonPublic | BindingFlags.Static,
@@ -2630,7 +2627,7 @@ public class UtilsTests
         var cache = new Dictionary<object, object?>(ReferenceEqualityComparer.Instance);
         var seq = Sequence();
 
-        var materialized = method!.Invoke(null, [seq, visited, cache]).Should().BeOfType<List<object?>>().Which;
+        var materialized = method.Invoke(null, [seq, visited, cache]).Should().BeOfType<List<object?>>().Which;
         materialized.Should().HaveCount(2);
         materialized[0].Should().Be(1);
         materialized[1].Should().BeOfType<Dictionary<string, object?>>().Which["k"].Should().Be(2);
@@ -2641,6 +2638,11 @@ public class UtilsTests
         var visitedOnly = new HashSet<object>(ReferenceEqualityComparer.Instance) { seqVisitedOnly };
         var cacheOnly = new Dictionary<object, object?>(ReferenceEqualityComparer.Instance);
         method.Invoke(null, [seqVisitedOnly, visitedOnly, cacheOnly]).Should().BeSameAs(seqVisitedOnly);
+        static IEnumerable Sequence()
+        {
+            yield return 1;
+            yield return new Hashtable { ["k"] = 2 };
+        }
     }
 
     [Fact]

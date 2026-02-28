@@ -7,42 +7,7 @@ namespace QsNet.Tests;
 public class SideChannelFrameTests
 {
     [Fact]
-    public void ShouldSetParentViaConstructor()
-    {
-        var parent = new SideChannelFrame();
-        var child = new SideChannelFrame(parent);
-
-        child.Parent.Should().BeSameAs(parent);
-    }
-
-    [Fact]
-    public void ShouldReturnFalseWhenKeyIsMissing()
-    {
-        var frame = new SideChannelFrame();
-
-        var found = frame.TryGet(new object(), out var step);
-
-        found.Should().BeFalse();
-        step.Should().Be(0);
-    }
-
-    [Fact]
-    public void ShouldAddAndUpdateStepForExistingKey()
-    {
-        var frame = new SideChannelFrame();
-        var key = new object();
-
-        frame.Set(key, 1);
-        frame.TryGet(key, out var first).Should().BeTrue();
-        first.Should().Be(1);
-
-        frame.Set(key, 2);
-        frame.TryGet(key, out var second).Should().BeTrue();
-        second.Should().Be(2);
-    }
-
-    [Fact]
-    public void EnterExit_ShouldTrackActivePathWithReferenceSemantics()
+    public void ShouldTrackActivePathWithReferenceSemantics()
     {
         var frame = new SideChannelFrame();
         var key = new object();
@@ -54,15 +19,37 @@ public class SideChannelFrameTests
     }
 
     [Fact]
-    public void ChildFrame_ShouldShareBackingStateWithParent()
+    public void ShouldTreatDistinctReferencesAsDistinctEntries()
     {
-        var key = new object();
-        var parent = new SideChannelFrame();
-        var child = new SideChannelFrame(parent);
+        var frame = new SideChannelFrame();
+        var first = new Token("x");
+        var second = new Token("x");
 
-        parent.Enter(key).Should().BeTrue();
-        child.Enter(key).Should().BeFalse();
-        child.Exit(key);
-        parent.Enter(key).Should().BeTrue();
+        frame.Enter(first).Should().BeTrue();
+        frame.Enter(second).Should().BeTrue();
+    }
+
+    [Fact]
+    public void ShouldIgnoreMissingEntries()
+    {
+        var frame = new SideChannelFrame();
+
+        var act = () => frame.Exit(new object());
+        act.Should().NotThrow();
+    }
+
+    private sealed class Token(string value)
+    {
+        private readonly string _value = value;
+
+        public override bool Equals(object? obj)
+        {
+            return obj is Token token && token._value == _value;
+        }
+
+        public override int GetHashCode()
+        {
+            return _value.GetHashCode();
+        }
     }
 }

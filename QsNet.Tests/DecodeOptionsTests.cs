@@ -267,7 +267,7 @@ public class DecodeOptionsTests
     {
         var original = new DecodeOptions { AllowDots = true, DecodeDotInKeys = false };
 
-        var copy = original.CopyWith(allowDots: false, decodeDotInKeys: true);
+        var copy = original.CopyWith(false, decodeDotInKeys: true);
 
         copy.DecodeDotInKeys.Should().BeTrue();
         copy.AllowDots.Should().BeFalse();

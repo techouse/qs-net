@@ -6,7 +6,7 @@ namespace QsNet.Tests;
 /// <summary>
 ///     Marks performance tests as opt-in so default CI/unit runs remain stable and fast.
 /// </summary>
-[AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Method)]
 internal sealed class PerfFactAttribute : FactAttribute
 {
     public PerfFactAttribute()

@@ -249,8 +249,20 @@ public static class Qs
         var commaCompactNulls = isCommaFormat && opts.CommaCompactNulls;
         ValueEncoder? valueEncoder = opts.Encode ? opts.GetEncoder : null;
 
-        // Collect "key=value" parts
-        var parts = new List<string>(objKeys.Count);
+        // Stream final output into a single builder to avoid intermediate joins/copies.
+        var sb = new StringBuilder(objKeys.Count * 8 + 16);
+        if (opts.AddQueryPrefix)
+            sb.Append('?');
+
+        var wroteSentinel = false;
+        if (opts.CharsetSentinel)
+        {
+            // Charset is validated to UTF-8/Latin1 in EncodeOptions.Validate.
+            sb.Append(opts.Charset.CodePage == 28591 ? Sentinel.Iso.GetEncoded() : Sentinel.Charset.GetEncoded());
+            wroteSentinel = true;
+        }
+
+        var wroteBodyPart = false;
 
         for (var i = 0; i < objKeys.Count; i++)
         {
@@ -297,35 +309,26 @@ public static class Qs
                     {
                         foreach (var p in en)
                             if (p is not null)
-                                parts.Add(p.ToString()!);
+                                AppendBodyPart(p.ToString() ?? string.Empty);
                         break;
                     }
                 case string { Length: > 0 } s:
-                    parts.Add(s);
+                    AppendBodyPart(s);
                     break;
             }
         }
 
-        var joined = string.Join(opts.Delimiter, parts);
-
-        // Build final output
-        var sb = new StringBuilder(joined.Length + 16);
-
-        if (opts.AddQueryPrefix)
-            sb.Append('?');
-
-        if (opts.CharsetSentinel)
-        {
-            // Charset is validated to UTF-8/Latin1 in EncodeOptions.Validate.
-            sb.Append(opts.Charset.CodePage == 28591 ? Sentinel.Iso.GetEncoded() : Sentinel.Charset.GetEncoded());
-            if (joined.Length > 0)
-                sb.Append('&');
-        }
-
-        if (joined.Length > 0)
-            sb.Append(joined);
-
         return sb.ToString();
+
+        void AppendBodyPart(string part)
+        {
+            if (wroteBodyPart)
+                sb.Append(opts.Delimiter);
+            else if (wroteSentinel) sb.Append('&');
+
+            sb.Append(part);
+            wroteBodyPart = true;
+        }
 
         static Dictionary<string, object?> CreateIndexDictionary(IEnumerable en)
         {

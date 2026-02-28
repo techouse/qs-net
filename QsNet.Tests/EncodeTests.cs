@@ -2003,14 +2003,12 @@ public class EncodeTests
     public void ShouldDetectCyclesUsingSharedSideChannelState()
     {
         var target = new Dictionary<string, object?> { ["a"] = "1" };
-        var parent = new SideChannelFrame();
-        parent.Set(target, 0);
-
-        var child = new SideChannelFrame(parent);
+        var sideChannel = new SideChannelFrame();
+        sideChannel.Enter(target).Should().BeTrue();
         Action act = () => Encoder.Encode(
             target,
             false,
-            child,
+            sideChannel,
             "root",
             ListFormat.Indices.GetGenerator(),
             false,
@@ -2031,6 +2029,7 @@ public class EncodeTests
         );
 
         act.Should().Throw<InvalidOperationException>().WithMessage("*Cyclic object value*");
+        sideChannel.Exit(target);
     }
 
     [Fact]
@@ -5047,27 +5046,27 @@ public class EncodeTests
 
     public static IEnumerable<object[]> ValidIntegralFilterKeys()
     {
-        yield return new object[] { 1, 1 };
-        yield return new object[] { 1L, 1 };
-        yield return new object[] { (short)1, 1 };
-        yield return new object[] { (sbyte)1, 1 };
-        yield return new object[] { (byte)1, 1 };
-        yield return new object[] { (ushort)1, 1 };
-        yield return new object[] { (uint)1, 1 };
-        yield return new object[] { (ulong)1, 1 };
-        yield return new object[] { "1", 1 };
+        yield return [1, 1];
+        yield return [1L, 1];
+        yield return [(short)1, 1];
+        yield return [(sbyte)1, 1];
+        yield return [(byte)1, 1];
+        yield return [(ushort)1, 1];
+        yield return [(uint)1, 1];
+        yield return [(ulong)1, 1];
+        yield return ["1", 1];
     }
 
     public static IEnumerable<object[]> InvalidIntegralFilterKeys()
     {
-        yield return new object[] { ((long)int.MaxValue) + 1L };
-        yield return new object[] { uint.MaxValue };
-        yield return new object[] { ulong.MaxValue };
-        yield return new object[] { true };
-        yield return new object[] { 1.9d };
-        yield return new object[] { "x" };
-        yield return new object[] { new object() };
-        yield return new object[] { null! };
+        yield return [int.MaxValue + 1L];
+        yield return [uint.MaxValue];
+        yield return [ulong.MaxValue];
+        yield return [true];
+        yield return [1.9d];
+        yield return ["x"];
+        yield return [new object()];
+        yield return [null!];
     }
 
     [Theory]
@@ -5080,8 +5079,8 @@ public class EncodeTests
         );
         method.Should().NotBeNull();
 
-        var args = new object?[] { key, -1 };
-        var ok = (bool)method!.Invoke(null, args)!;
+        var args = new[] { key, -1 };
+        var ok = (bool)method.Invoke(null, args)!;
 
         ok.Should().BeTrue();
         args[1].Should().Be(expectedIndex);
@@ -5097,8 +5096,8 @@ public class EncodeTests
         );
         method.Should().NotBeNull();
 
-        var args = new object?[] { key, 123 };
-        var ok = (bool)method!.Invoke(null, args)!;
+        var args = new[] { key, 123 };
+        var ok = (bool)method.Invoke(null, args)!;
 
         ok.Should().BeFalse();
         args[1].Should().Be(-1);
@@ -5196,14 +5195,13 @@ public class EncodeTests
     public void ShouldUseCustomGeneratorFallbackForSequenceChildPath()
     {
         var list = new List<object?> { "x" };
-        ListFormatGenerator customGenerator = (p, k) => $"{p}.<{k}>";
 
         var res = Encoder.Encode(
             list,
             false,
             new SideChannelFrame(),
             "a",
-            customGenerator,
+            CustomGenerator,
             false,
             false,
             false,
@@ -5222,6 +5220,12 @@ public class EncodeTests
         );
 
         Parts(res).Should().Equal("a.<0>=x");
+        return;
+
+        string CustomGenerator(string p, string? k)
+        {
+            return $"{p}.<{k}>";
+        }
     }
 
     [Fact]
@@ -5329,6 +5333,59 @@ public class EncodeTests
                 Charset = Encoding.Latin1
             }
         ).Should().Be("utf8=%26%2310003%3B&a=b");
+    }
+
+    [Fact]
+    public void ShouldUseAmpersandBeforeBodyWhenCharsetSentinelWithCustomDelimiter()
+    {
+        var data = new Dictionary<string, object?>
+        {
+            ["a"] = "b",
+            ["c"] = "d"
+        };
+
+        Qs.Encode(
+            data,
+            new EncodeOptions
+            {
+                Encode = false,
+                CharsetSentinel = true,
+                Delimiter = ";"
+            }
+        ).Should().Be("utf8=%E2%9C%93&a=b;c=d");
+    }
+
+    [Fact]
+    public void ShouldReturnQuestionMarkWhenAddQueryPrefixAndOnlySkippedPairs()
+    {
+        var data = new Dictionary<string, object?> { ["a"] = null };
+
+        Qs.Encode(
+            data,
+            new EncodeOptions
+            {
+                Encode = false,
+                AddQueryPrefix = true,
+                SkipNulls = true
+            }
+        ).Should().Be("?");
+    }
+
+    [Fact]
+    public void ShouldReturnPrefixedSentinelWhenAddQueryPrefixAndCharsetSentinelWithOnlySkippedPairs()
+    {
+        var data = new Dictionary<string, object?> { ["a"] = null };
+
+        Qs.Encode(
+            data,
+            new EncodeOptions
+            {
+                Encode = false,
+                AddQueryPrefix = true,
+                CharsetSentinel = true,
+                SkipNulls = true
+            }
+        ).Should().Be("?utf8=%E2%9C%93");
     }
 
     [Fact]
@@ -5473,11 +5530,202 @@ public class EncodeTests
         encoded.Should().EndWith("=x");
     }
 
-    [PerfFact]
-    [Trait("Category", "Performance")]
-    public void ShouldKeepDeepEncodingGrowthAndAllocationsWithinSoftGuardrails()
+    public class LinearMapFastPath
     {
-        static Dictionary<string, object?> BuildNested(int depth)
+        [Fact]
+        public void ShouldPreserveDeepChainOutputWhenEncodeIsFalse_LinearMapFastPath()
+        {
+            const int depth = 128;
+            var encoded = EncodeWithOptions(BuildDeepChain(depth), new EncodeOptions { Encode = false });
+            encoded.Should().Be(BuildExpectedDeepChain(depth));
+        }
+
+        [Fact]
+        public void ShouldApplyDateSerializerAtLeaf_LinearMapFastPath()
+        {
+            var payload = new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?>
+                {
+                    ["b"] = new DateTime(2020, 1, 2, 3, 4, 5, DateTimeKind.Utc)
+                }
+            };
+
+            var encoded = EncodeWithOptions(
+                payload,
+                new EncodeOptions
+                {
+                    Encode = false,
+                    DateSerializer = _ => "SERIALIZED"
+                }
+            );
+
+            encoded.Should().Be("a[b]=SERIALIZED");
+        }
+
+        [Fact]
+        public void ShouldEncodeBooleanLeafWhenEncodeIsFalse_LinearMapFastPath()
+        {
+            var payload = new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?>
+                {
+                    ["b"] = true
+                }
+            };
+
+            var encoded = EncodeWithOptions(payload, new EncodeOptions { Encode = false });
+            encoded.Should().Be("a[b]=true");
+        }
+
+        [Fact]
+        public void ShouldCleanupSideChannelWhenFastPathFallsBackAfterMalformedSingleEntryMap_LinearMapFastPath()
+        {
+            var malformed = new CountOneEmptyEnumerableDictionary();
+            var sideChannel = new SideChannelFrame();
+
+            var encoded = EncodeWithOptions(malformed, sideChannel);
+
+            encoded.Should().BeOfType<List<object?>>();
+            ((List<object?>)encoded).Should().BeEmpty();
+
+            sideChannel.Enter(malformed).Should().BeTrue();
+            sideChannel.Exit(malformed);
+        }
+
+        [Fact]
+        public void ShouldThrowOnCycle_LinearMapFastPath()
+        {
+            var root = new Dictionary<string, object?>();
+            var child = new Dictionary<string, object?>();
+            root["a"] = child;
+            child["a"] = root;
+
+            Action act = () => EncodeWithOptions(root, new EncodeOptions { Encode = false });
+            act.Should().Throw<InvalidOperationException>().WithMessage("*Cyclic object value*");
+        }
+
+        [Fact]
+        public void ShouldBeBypassedWhenAllowDotsIsTrue_LinearMapFastPath()
+        {
+            const int depth = 128;
+            var payload = BuildDeepChain(depth);
+            var encoded = EncodeWithOptions(payload, new EncodeOptions { Encode = false, AllowDots = true });
+
+            encoded.Should().Be(BuildExpectedDeepChain(depth, sep: ".a"));
+        }
+
+        [Fact]
+        public void ShouldBeBypassedWhenFilterIsProvided_LinearMapFastPath()
+        {
+            const int depth = 128;
+            var payload = BuildDeepChain(depth);
+
+            var encoded = EncodeWithOptions(
+                payload,
+                new EncodeOptions
+                {
+                    Encode = false,
+                    Filter = new FunctionFilter((key, value) =>
+                        key.EndsWith("[leaf]", StringComparison.Ordinal) ? "y" : value)
+                }
+            );
+
+            encoded.Should().Be(BuildExpectedDeepChain(depth, value: "y"));
+        }
+
+        [Fact]
+        public void ShouldFallbackAndCleanupSideChannelAfterPartialLinearTraversal_LinearMapFastPath()
+        {
+            var branch = new Dictionary<string, object?>
+            {
+                ["b"] = 1,
+                ["c"] = 2
+            };
+            var payload = new Dictionary<string, object?> { ["a"] = branch };
+            var sideChannel = new SideChannelFrame();
+
+            List<string?> EncodeWithSharedSideChannel()
+            {
+                var encoded = EncodeWithOptions(payload, sideChannel);
+                return ((List<object?>)encoded).Select(x => x?.ToString()).ToList();
+            }
+
+            var first = EncodeWithSharedSideChannel();
+            first.Should().HaveCount(2);
+            first.Should().Contain("[a][b]=1");
+            first.Should().Contain("[a][c]=2");
+
+            var second = EncodeWithSharedSideChannel();
+            second.Should().HaveCount(2);
+            second.Should().Contain("[a][b]=1");
+            second.Should().Contain("[a][c]=2");
+
+            sideChannel.Enter(payload).Should().BeTrue();
+            sideChannel.Exit(payload);
+            sideChannel.Enter(branch).Should().BeTrue();
+            sideChannel.Exit(branch);
+        }
+
+        [Fact]
+        public void ShouldPreserveOutputWhenFastPathBypassed_DeepRepeatedKeyChainWithAllowDots()
+        {
+            const int depth = 128;
+            var encoded = EncodeWithOptions(
+                BuildDeepChain(depth),
+                new EncodeOptions
+                {
+                    Encode = false,
+                    AllowDots = true
+                }
+            );
+
+            encoded.Should().Be(BuildExpectedDeepChain(depth, sep: ".a"));
+        }
+
+        [Fact]
+        public void ShouldPreserveOutputWhenFastPathBypassed_DeepRepeatedKeyChainWithIdentityFilter()
+        {
+            const int depth = 128;
+            var encoded = EncodeWithOptions(
+                BuildDeepChain(depth),
+                new EncodeOptions
+                {
+                    Encode = false,
+                    Filter = new FunctionFilter((_, value) => value)
+                }
+            );
+
+            encoded.Should().Be(BuildExpectedDeepChain(depth));
+        }
+
+        [Fact]
+        public void ShouldReturnListResultForContainerRoot_DirectEncoderCall_LinearMapFastPath()
+        {
+            var encoded = EncodeWithOptions(BuildDeepChain(1), new SideChannelFrame(), "root");
+
+            encoded.Should().BeOfType<List<object?>>();
+            ((List<object?>)encoded).Should().Equal("root[a][leaf]=x");
+        }
+
+        [Fact]
+        public void ShouldApplyFormatterToNullValue_DirectEncoderCall_LinearMapFastPath()
+        {
+            var payload = new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?>
+                {
+                    ["leaf"] = null
+                }
+            };
+
+            var encoded = EncodeWithOptions(payload, new SideChannelFrame(), "root", s => $"<{s}>");
+
+            encoded.Should().BeOfType<List<object?>>();
+            ((List<object?>)encoded).Should().Equal("<root[a][leaf]>=<>");
+        }
+
+        private static Dictionary<string, object?> BuildDeepChain(int depth)
         {
             Dictionary<string, object?> current = new() { ["leaf"] = "x" };
             for (var i = 0; i < depth; i++)
@@ -5486,6 +5734,135 @@ public class EncodeTests
             return current;
         }
 
+        private static string BuildExpectedDeepChain(
+            int depth,
+            string leaf = "leaf",
+            string sep = "[a]",
+            string value = "x"
+        )
+        {
+            var expected = new StringBuilder("a");
+            for (var i = 0; i < depth - 1; i++)
+                expected.Append(sep);
+
+            if (string.Equals(sep, ".a", StringComparison.Ordinal))
+                expected.Append('.').Append(leaf).Append('=').Append(value);
+            else
+                expected.Append('[').Append(leaf).Append("]=").Append(value);
+
+            return expected.ToString();
+        }
+
+        private static string EncodeWithOptions(object payload, EncodeOptions opts)
+        {
+            return Qs.Encode(payload, opts);
+        }
+
+        private static object EncodeWithOptions(
+            object payload,
+            SideChannelFrame sideChannel,
+            string prefix = "",
+            Formatter? formatter = null
+        )
+        {
+            return Encoder.Encode(
+                payload,
+                false,
+                sideChannel,
+                prefix,
+                ListFormat.Indices.GetGenerator(),
+                false,
+                false,
+                false,
+                false,
+                false,
+                false,
+                null,
+                null,
+                null,
+                null,
+                false,
+                Format.Rfc3986,
+                formatter ?? (s => s),
+                false,
+                Encoding.UTF8
+            );
+        }
+
+        private sealed class CountOneEmptyEnumerableDictionary : IDictionary
+        {
+            public object SyncRoot => this;
+            public bool IsSynchronized => false;
+            public bool IsFixedSize => true;
+            public bool IsReadOnly => true;
+            public int Count => 1;
+            public ICollection Keys => Array.Empty<object>();
+            public ICollection Values => Array.Empty<object>();
+
+            public object? this[object key]
+            {
+                get => null;
+                set => throw new NotSupportedException();
+            }
+
+            public void Add(object key, object? value)
+            {
+                throw new NotSupportedException();
+            }
+
+            public void Clear()
+            {
+                throw new NotSupportedException();
+            }
+
+            public bool Contains(object key)
+            {
+                return false;
+            }
+
+            public void CopyTo(Array array, int index)
+            {
+                ArgumentNullException.ThrowIfNull(array);
+            }
+
+            public IDictionaryEnumerator GetEnumerator()
+            {
+                return new EmptyDictionaryEnumerator();
+            }
+
+            public void Remove(object key)
+            {
+                throw new NotSupportedException();
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+
+            private sealed class EmptyDictionaryEnumerator : IDictionaryEnumerator
+            {
+                public DictionaryEntry Entry => throw new InvalidOperationException();
+                public object Key => throw new InvalidOperationException();
+                public object? Value => throw new InvalidOperationException();
+                public object Current => throw new InvalidOperationException();
+
+                public bool MoveNext()
+                {
+                    return false;
+                }
+
+                public void Reset()
+                {
+                }
+            }
+        }
+    }
+
+    [PerfFact]
+    [Trait("Category", "Performance")]
+    public void ShouldKeepDeepEncodingGrowthAndAllocationsWithinSoftGuardrails()
+    {
         var options = new EncodeOptions { Encode = false };
         var depths = new[] { 2000, 5000, 12000 };
         var samples = new Dictionary<int, (double Seconds, long AllocBytes)>(depths.Length);
@@ -5522,6 +5899,16 @@ public class EncodeTests
         // Timing ratios are intentionally not asserted because they are noisy across machines/loads.
         // Allocation at 12k depth is the stable soft guardrail for catching major regressions.
         samples[12000].AllocBytes.Should().BeLessThan(250L * 1024 * 1024);
+        return;
+
+        static Dictionary<string, object?> BuildNested(int depth)
+        {
+            Dictionary<string, object?> current = new() { ["leaf"] = "x" };
+            for (var i = 0; i < depth; i++)
+                current = new Dictionary<string, object?> { ["a"] = current };
+
+            return current;
+        }
     }
 
     private sealed class YieldEnumerable : IEnumerable
@@ -5586,7 +5973,6 @@ public class EncodeTests
 
     private sealed class ThrowingArgumentGetStringEncoding : DelegatingUtf8Encoding
     {
-
         public override string GetString(byte[] bytes, int index, int count)
         {
             throw new ArgumentException("decode failed");

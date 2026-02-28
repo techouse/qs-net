@@ -23,6 +23,16 @@ public class EncodeBenchmarks
 
     private Dictionary<string, object?> _payload = null!;
     private readonly EncodeOptions _options = new() { Encode = false };
+    private readonly EncodeOptions _optionsNoFastPathFilter = new()
+    {
+        Encode = false,
+        Filter = new FunctionFilter((_, value) => value)
+    };
+    private readonly EncodeOptions _optionsNoFastPathAllowDots = new()
+    {
+        Encode = false,
+        AllowDots = true
+    };
 
     [GlobalSetup]
     public void Setup()
@@ -34,6 +44,18 @@ public class EncodeBenchmarks
     public string Encode_DeepNesting()
     {
         return Qs.Encode(_payload, _options);
+    }
+
+    [Benchmark]
+    public string Encode_DeepNesting_NoFastPath_FilterIdentity()
+    {
+        return Qs.Encode(_payload, _optionsNoFastPathFilter);
+    }
+
+    [Benchmark]
+    public string Encode_DeepNesting_NoFastPath_AllowDots()
+    {
+        return Qs.Encode(_payload, _optionsNoFastPathAllowDots);
     }
 
     private static Dictionary<string, object?> BuildNested(int depth)
