@@ -5331,7 +5331,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void CharsetSentinel_WithCustomDelimiter_UsesAmpersandBeforeBody()
+    public void ShouldUseAmpersandBeforeBodyWhenCharsetSentinelWithCustomDelimiter()
     {
         var data = new Dictionary<string, object?>
         {
@@ -5351,7 +5351,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void AddQueryPrefix_WithOnlySkippedPairs_ReturnsQuestionMark()
+    public void ShouldReturnQuestionMarkWhenAddQueryPrefixAndOnlySkippedPairs()
     {
         var data = new Dictionary<string, object?> { ["a"] = null };
 
@@ -5367,7 +5367,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void AddQueryPrefixAndCharsetSentinel_WithOnlySkippedPairs_ReturnsPrefixedSentinel()
+    public void ShouldReturnPrefixedSentinelWhenAddQueryPrefixAndCharsetSentinelWithOnlySkippedPairs()
     {
         var data = new Dictionary<string, object?> { ["a"] = null };
 
@@ -5526,7 +5526,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void LinearMapFastPath_ShouldPreserveDeepChainOutputWhenEncodeIsFalse()
+    public void ShouldPreserveDeepChainOutputWhenEncodeIsFalse_LinearMapFastPath()
     {
         const int depth = 128;
         Dictionary<string, object?> current = new() { ["leaf"] = "x" };
@@ -5544,7 +5544,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void LinearMapFastPath_ShouldApplyDateSerializerAtLeaf()
+    public void ShouldApplyDateSerializerAtLeaf_LinearMapFastPath()
     {
         var payload = new Dictionary<string, object?>
         {
@@ -5567,7 +5567,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void LinearMapFastPath_ShouldThrowOnCycle()
+    public void ShouldThrowOnCycle_LinearMapFastPath()
     {
         var root = new Dictionary<string, object?>();
         var child = new Dictionary<string, object?>();
@@ -5579,7 +5579,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void LinearMapFastPath_ShouldBeBypassedWhenAllowDotsIsTrue()
+    public void ShouldBeBypassedWhenAllowDotsIsTrue_LinearMapFastPath()
     {
         var payload = new Dictionary<string, object?>
         {
@@ -5597,7 +5597,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void LinearMapFastPath_ShouldBeBypassedWhenFilterIsProvided()
+    public void ShouldBeBypassedWhenFilterIsProvided_LinearMapFastPath()
     {
         var payload = new Dictionary<string, object?>
         {
@@ -5621,7 +5621,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void DeepRepeatedKeyChain_WithAllowDots_ShouldPreserveOutputWhenFastPathBypassed()
+    public void ShouldPreserveOutputWhenFastPathBypassed_DeepRepeatedKeyChainWithAllowDots()
     {
         const int depth = 128;
         Dictionary<string, object?> current = new() { ["leaf"] = "x" };
@@ -5646,7 +5646,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void DeepRepeatedKeyChain_WithIdentityFilter_ShouldPreserveOutputWhenFastPathBypassed()
+    public void ShouldPreserveOutputWhenFastPathBypassed_DeepRepeatedKeyChainWithIdentityFilter()
     {
         const int depth = 128;
         Dictionary<string, object?> current = new() { ["leaf"] = "x" };
@@ -5671,7 +5671,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void LinearMapFastPath_DirectEncoderCall_ShouldReturnListResultForContainerRoot()
+    public void ShouldReturnListResultForContainerRoot_DirectEncoderCall_LinearMapFastPath()
     {
         var payload = new Dictionary<string, object?>
         {
