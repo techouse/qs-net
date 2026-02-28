@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title> | QsNet </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content=" | QsNet ">
+      
+      
+      <link rel="icon" href="../images/logo.png">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/techouse/qs-net/blob/v1.2.3/docs/docs/decoding.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../images/logo.png" alt="QsNet">
+            QsNet
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+
+<h2 id="decoding">Decoding</h2>
+<h3 id="nested-dictionaries">Nested dictionaries</h3>
+<pre><code class="lang-csharp">Qs.Decode(&quot;foo[bar]=baz&quot;);
+// =&gt; { &quot;foo&quot;: { &quot;bar&quot;: &quot;baz&quot; } }
+
+Qs.Decode(&quot;a%5Bb%5D=c&quot;);
+// =&gt; { &quot;a&quot;: { &quot;b&quot;: &quot;c&quot; } }
+
+Qs.Decode(&quot;foo[bar][baz]=foobarbaz&quot;);
+// =&gt; { &quot;foo&quot;: { &quot;bar&quot;: { &quot;baz&quot;: &quot;foobarbaz&quot; } } }
+</code></pre>
+<h3 id="depth-default-5">Depth (default: 5)</h3>
+<p>Beyond the configured depth, remaining bracket content is kept as literal text:</p>
+<pre><code class="lang-csharp">Qs.Decode(&quot;a[b][c][d][e][f][g][h][i]=j&quot;);
+// =&gt; { &quot;a&quot;: { &quot;b&quot;: { &quot;c&quot;: { &quot;d&quot;: { &quot;e&quot;: { &quot;f&quot;: { &quot;[g][h][i]&quot;: &quot;j&quot; } } } } } } }
+</code></pre>
+<p>Override depth:</p>
+<pre><code class="lang-csharp">Qs.Decode(&quot;a[b][c][d][e][f][g][h][i]=j&quot;, new DecodeOptions { Depth = 1 });
+// =&gt; { &quot;a&quot;: { &quot;b&quot;: { &quot;[c][d][e][f][g][h][i]&quot;: &quot;j&quot; } } }
+</code></pre>
+<h3 id="parameter-limit">Parameter limit</h3>
+<pre><code class="lang-csharp">Qs.Decode(&quot;a=b&amp;c=d&quot;, new DecodeOptions { ParameterLimit = 1 });
+// =&gt; { &quot;a&quot;: &quot;b&quot; }
+</code></pre>
+<h3 id="compatibility-notes">Compatibility notes</h3>
+<ul>
+<li>Deep decode/merge handling is iterative (stack-safe) to avoid recursion overflows on very deep inputs.</li>
+<li>Empty query segments and empty keys are ignored before <code>ParameterLimit</code> accounting.</li>
+<li>Comma-list limit behavior is deterministic:
+<ul>
+<li><code>ThrowOnLimitExceeded = true</code> throws on overflow.</li>
+<li><code>ThrowOnLimitExceeded = false</code> truncates to the remaining list capacity.</li>
+</ul>
+</li>
+<li>Some JavaScript <code>qs</code> edge-case limitations are intentionally fixed rather than mirrored.</li>
+</ul>
+<h3 id="ignore-leading-">Ignore leading <code>?</code></h3>
+<pre><code class="lang-csharp">Qs.Decode(&quot;?a=b&amp;c=d&quot;, new DecodeOptions { IgnoreQueryPrefix = true });
+// =&gt; { &quot;a&quot;: &quot;b&quot;, &quot;c&quot;: &quot;d&quot; }
+</code></pre>
+<h3 id="custom-delimiter-string-or-regex">Custom delimiter (string or regex)</h3>
+<pre><code class="lang-csharp">Qs.Decode(&quot;a=b;c=d&quot;, new DecodeOptions { Delimiter = new StringDelimiter(&quot;;&quot;) });
+// =&gt; { &quot;a&quot;: &quot;b&quot;, &quot;c&quot;: &quot;d&quot; }
+
+Qs.Decode(&quot;a=b;c=d&quot;, new DecodeOptions { Delimiter = new RegexDelimiter(&quot;[;,]&quot;) });
+// =&gt; { &quot;a&quot;: &quot;b&quot;, &quot;c&quot;: &quot;d&quot; }
+</code></pre>
+<h3 id="dot-notation-and-decode-dots-in-keys">Dot-notation and &quot;decode dots in keys&quot;</h3>
+<pre><code class="lang-csharp">Qs.Decode(&quot;a.b=c&quot;, new DecodeOptions { AllowDots = true });
+// =&gt; { &quot;a&quot;: { &quot;b&quot;: &quot;c&quot; } }
+
+Qs.Decode(
+    &quot;name%252Eobj.first=John&amp;name%252Eobj.last=Doe&quot;,
+    new DecodeOptions { DecodeDotInKeys = true }
+);
+// =&gt; { &quot;name.obj&quot;: { &quot;first&quot;: &quot;John&quot;, &quot;last&quot;: &quot;Doe&quot; } }
+</code></pre>
+<h3 id="empty-lists">Empty lists</h3>
+<pre><code class="lang-csharp">Qs.Decode(&quot;foo[]&amp;bar=baz&quot;, new DecodeOptions { AllowEmptyLists = true });
+// =&gt; { &quot;foo&quot;: [], &quot;bar&quot;: &quot;baz&quot; }
+</code></pre>
+<h3 id="duplicates">Duplicates</h3>
+<pre><code class="lang-csharp">Qs.Decode(&quot;foo=bar&amp;foo=baz&quot;);
+// =&gt; { &quot;foo&quot;: [&quot;bar&quot;, &quot;baz&quot;] }
+
+Qs.Decode(&quot;foo=bar&amp;foo=baz&quot;, new DecodeOptions { Duplicates = Duplicates.Combine });
+// =&gt; same as above
+
+Qs.Decode(&quot;foo=bar&amp;foo=baz&quot;, new DecodeOptions { Duplicates = Duplicates.First });
+// =&gt; { &quot;foo&quot;: &quot;bar&quot; }
+
+Qs.Decode(&quot;foo=bar&amp;foo=baz&quot;, new DecodeOptions { Duplicates = Duplicates.Last });
+// =&gt; { &quot;foo&quot;: &quot;baz&quot; }
+</code></pre>
+<h3 id="charset-and-sentinel">Charset and sentinel</h3>
+<pre><code class="lang-csharp">// Latin1
+Qs.Decode(&quot;a=%A7&quot;, new DecodeOptions { Charset = Encoding.Latin1 });
+// =&gt; { &quot;a&quot;: &quot;§&quot; }
+
+// Sentinels
+Qs.Decode(&quot;utf8=%E2%9C%93&amp;a=%C3%B8&quot;, new DecodeOptions { Charset = Encoding.Latin1, CharsetSentinel = true });
+// =&gt; { &quot;a&quot;: &quot;ø&quot; }
+
+Qs.Decode(&quot;utf8=%26%2310003%3B&amp;a=%F8&quot;, new DecodeOptions { Charset = Encoding.UTF8, CharsetSentinel = true });
+// =&gt; { &quot;a&quot;: &quot;ø&quot; }
+</code></pre>
+<h3 id="interpret-numeric-entities-1234">Interpret numeric entities (<code>&amp;#1234;</code>)</h3>
+<pre><code class="lang-csharp">Qs.Decode(
+    &quot;a=%26%239786%3B&quot;,
+    new DecodeOptions { Charset = Encoding.Latin1, InterpretNumericEntities = true }
+);
+// =&gt; { &quot;a&quot;: &quot;☺&quot; }
+</code></pre>
+<h3 id="lists">Lists</h3>
+<pre><code class="lang-csharp">Qs.Decode(&quot;a[]=b&amp;a[]=c&quot;);
+// =&gt; { &quot;a&quot;: [&quot;b&quot;, &quot;c&quot;] }
+
+Qs.Decode(&quot;a[1]=c&amp;a[0]=b&quot;);
+// =&gt; { &quot;a&quot;: [&quot;b&quot;, &quot;c&quot;] }
+
+Qs.Decode(&quot;a[1]=b&amp;a[15]=c&quot;);
+// =&gt; { &quot;a&quot;: [&quot;b&quot;, &quot;c&quot;] }
+
+Qs.Decode(&quot;a[]=&amp;a[]=b&quot;);
+// =&gt; { &quot;a&quot;: [&quot;&quot;, &quot;b&quot;] }
+</code></pre>
+<p><code>ListLimit</code> uses two related guards:</p>
+<ul>
+<li>Explicit numeric indices (<code>a[21]</code>) are limited by maximum allowed index (<code>index &lt;= ListLimit</code>).</li>
+<li>Implicit/comma/combined list growth (<code>a[]</code>, comma lists, duplicate combine paths) is limited by maximum list size before overflow conversion or exception.</li>
+</ul>
+<p>Large indices convert to a dictionary by default:</p>
+<pre><code class="lang-csharp">Qs.Decode(&quot;a[100]=b&quot;);
+// =&gt; { &quot;a&quot;: { 100: &quot;b&quot; } }
+</code></pre>
+<p>Disable list parsing:</p>
+<pre><code class="lang-csharp">Qs.Decode(&quot;a[]=b&quot;, new DecodeOptions { ParseLists = false });
+// =&gt; { &quot;a&quot;: { 0: &quot;b&quot; } }
+</code></pre>
+<p>Mixing notations merges into a dictionary:</p>
+<pre><code class="lang-csharp">Qs.Decode(&quot;a[0]=b&amp;a[b]=c&quot;);
+// =&gt; { &quot;a&quot;: { 0: &quot;b&quot;, &quot;b&quot;: &quot;c&quot; } }
+</code></pre>
+<p>Comma-separated values:</p>
+<pre><code class="lang-csharp">Qs.Decode(&quot;a=b,c&quot;, new DecodeOptions { Comma = true });
+// =&gt; { &quot;a&quot;: [&quot;b&quot;, &quot;c&quot;] }
+</code></pre>
+<h3 id="primitivescalar-values">Primitive/scalar values</h3>
+<p>All values decode as strings by default:</p>
+<pre><code class="lang-csharp">Qs.Decode(&quot;a=15&amp;b=true&amp;c=null&quot;);
+// =&gt; { &quot;a&quot;: &quot;15&quot;, &quot;b&quot;: &quot;true&quot;, &quot;c&quot;: &quot;null&quot; }
+</code></pre>
+<hr>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/techouse/qs-net/blob/v1.2.3/docs/docs/decoding.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

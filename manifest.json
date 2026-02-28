@@ -1,0 +1,514 @@
+{
+  "source_base_path": "/home/runner/work/qs-net/qs-net/docs",
+  "xrefmap": "xrefmap.yml",
+  "files": [
+    {
+      "type": "Resource",
+      "output": {
+        "resource": {
+          "relative_path": "index.json"
+        }
+      }
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Constants.HexTable.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Constants.HexTable.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Constants.HexTable",
+      "Summary": "<p sourcefile=\"api/QsNet.Constants.HexTable.yml\" sourcestartlinenumber=\"1\">Hex table of all 256 characters</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Constants.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Constants.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Constants",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Enums.DecodeKind.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Enums.DecodeKind.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Enums.DecodeKind",
+      "Summary": "<p sourcefile=\"api/QsNet.Enums.DecodeKind.yml\" sourcestartlinenumber=\"1\">Indicates the decoding context for a scalar token.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Enums.Duplicates.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Enums.Duplicates.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Enums.Duplicates",
+      "Summary": "<p sourcefile=\"api/QsNet.Enums.Duplicates.yml\" sourcestartlinenumber=\"1\">An enum of all available duplicate key handling strategies.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Enums.Format.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Enums.Format.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Enums.Format",
+      "Summary": "<p sourcefile=\"api/QsNet.Enums.Format.yml\" sourcestartlinenumber=\"1\">An enum of all available format options.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Enums.FormatExtensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Enums.FormatExtensions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Enums.FormatExtensions",
+      "Summary": "<p sourcefile=\"api/QsNet.Enums.FormatExtensions.yml\" sourcestartlinenumber=\"1\">Extension methods for Format enum to provide formatter functionality.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Enums.Formatter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Enums.Formatter.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Enums.Formatter",
+      "Summary": "<p sourcefile=\"api/QsNet.Enums.Formatter.yml\" sourcestartlinenumber=\"1\">A delegate for formatting string values.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Enums.ListFormat.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Enums.ListFormat.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Enums.ListFormat",
+      "Summary": "<p sourcefile=\"api/QsNet.Enums.ListFormat.yml\" sourcestartlinenumber=\"1\">An enum of all available list format options.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Enums.ListFormatExtensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Enums.ListFormatExtensions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Enums.ListFormatExtensions",
+      "Summary": "<p sourcefile=\"api/QsNet.Enums.ListFormatExtensions.yml\" sourcestartlinenumber=\"1\">Extension methods for ListFormat enum to provide generator functionality.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Enums.ListFormatGenerator.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Enums.ListFormatGenerator.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Enums.ListFormatGenerator",
+      "Summary": "<p sourcefile=\"api/QsNet.Enums.ListFormatGenerator.yml\" sourcestartlinenumber=\"1\">A delegate for generating list format strings.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Enums.Sentinel.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Enums.Sentinel.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Enums.Sentinel",
+      "Summary": "<p sourcefile=\"api/QsNet.Enums.Sentinel.yml\" sourcestartlinenumber=\"1\">An enum of all available sentinels.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Enums.SentinelExtensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Enums.SentinelExtensions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Enums.SentinelExtensions",
+      "Summary": "<p sourcefile=\"api/QsNet.Enums.SentinelExtensions.yml\" sourcestartlinenumber=\"1\">Extension methods for Sentinel enum to provide value and encoded functionality.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Enums.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Enums.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Enums",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Extensions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Extensions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Extensions",
+      "Summary": "<p sourcefile=\"api/QsNet.Extensions.yml\" sourcestartlinenumber=\"1\">Extensions for encoding and decoding query strings.\nProvides methods to convert between query strings and dictionaries.\nThis class is part of the QsNet library, which handles query string encoding and decoding.\nIt includes methods for both encoding a dictionary into a query string and decoding a query string\ninto a dictionary.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Models.DateSerializer.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Models.DateSerializer.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Models.DateSerializer",
+      "Summary": "<p sourcefile=\"api/QsNet.Models.DateSerializer.yml\" sourcestartlinenumber=\"1\">DateSerializer function that takes a DateTime and returns a String representation\nof the date.\nThis can be used to customize how DateTime objects are serialized in the encoded output. If\nno serializer is provided, the default ISO format will be used.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Models.DecodeOptions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Models.DecodeOptions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Models.DecodeOptions",
+      "Summary": "<p sourcefile=\"api/QsNet.Models.DecodeOptions.yml\" sourcestartlinenumber=\"1\">Options that configure the output of Qs.Decode.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Models.Decoder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Models.Decoder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Models.Decoder",
+      "Summary": "<p sourcefile=\"api/QsNet.Models.Decoder.yml\" sourcestartlinenumber=\"1\">A function that decodes a value from a query string or form data. It takes a value and an\noptional encoding, returning the decoded value.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Models.EncodeOptions.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Models.EncodeOptions.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Models.EncodeOptions",
+      "Summary": "<p sourcefile=\"api/QsNet.Models.EncodeOptions.yml\" sourcestartlinenumber=\"1\">Options that configure the output of Qs.Encode.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Models.FunctionFilter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Models.FunctionFilter.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Models.FunctionFilter",
+      "Summary": "<p sourcefile=\"api/QsNet.Models.FunctionFilter.yml\" sourcestartlinenumber=\"1\">A filter that applies a function to a key-value pair. The function takes the key as a string and\nthe value as object, and returns a transformed value.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Models.IDelimiter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Models.IDelimiter.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Models.IDelimiter",
+      "Summary": "<p sourcefile=\"api/QsNet.Models.IDelimiter.yml\" sourcestartlinenumber=\"1\">Represents a delimiter used for splitting key-value pairs.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Models.IFilter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Models.IFilter.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Models.IFilter",
+      "Summary": "<p sourcefile=\"api/QsNet.Models.IFilter.yml\" sourcestartlinenumber=\"1\">Represents a filter that can be applied to query string processing.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Models.IterableFilter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Models.IterableFilter.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Models.IterableFilter",
+      "Summary": "<p sourcefile=\"api/QsNet.Models.IterableFilter.yml\" sourcestartlinenumber=\"1\">A filter that applies to an IEnumerable. This can be used to filter or transform the elements of the\nIEnumerable.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Models.KindAwareDecoder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Models.KindAwareDecoder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Models.KindAwareDecoder",
+      "Summary": "<p sourcefile=\"api/QsNet.Models.KindAwareDecoder.yml\" sourcestartlinenumber=\"1\">A function that decodes a value from a query string or form data with key/value context.\nThe <xref href=\"QsNet.Enums.DecodeKind\" data-throw-if-not-resolved=\"false\"></xref> indicates whether the token is a key (or key segment) or a value.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Models.RegexDelimiter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Models.RegexDelimiter.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Models.RegexDelimiter",
+      "Summary": "<p sourcefile=\"api/QsNet.Models.RegexDelimiter.yml\" sourcestartlinenumber=\"1\">Regex-based delimiter for complex pattern matching.\nThis is useful for delimiters that require regular expression matching, such as \\s*;\\s* for\nsemicolon-separated values with optional whitespace. It uses the Regex.Split method for\nsplitting the input string.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Models.StringDelimiter.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Models.StringDelimiter.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Models.StringDelimiter",
+      "Summary": "<p sourcefile=\"api/QsNet.Models.StringDelimiter.yml\" sourcestartlinenumber=\"1\">String-based delimiter for better performance with simple delimiters.\nThis is suitable for common delimiters like <code sourcefile=\"api/QsNet.Models.StringDelimiter.yml\" sourcestartlinenumber=\"2\">&amp;</code>, <code sourcefile=\"api/QsNet.Models.StringDelimiter.yml\" sourcestartlinenumber=\"2\">,</code>, or <code sourcefile=\"api/QsNet.Models.StringDelimiter.yml\" sourcestartlinenumber=\"2\">;</code>. It uses the String.Split method\nfor efficient splitting.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Models.ValueEncoder.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Models.ValueEncoder.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Models.ValueEncoder",
+      "Summary": "<p sourcefile=\"api/QsNet.Models.ValueEncoder.yml\" sourcestartlinenumber=\"1\">ValueEncoder function that takes a value, encoding, and format, and returns a String\nrepresentation of the value.\nThe encoder can be used to customize how values are encoded in the query string. If no encoder is\nprovided, Utils.Encode will be used by default.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Models.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Models.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Models",
+      "Summary": null
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.Qs.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.Qs.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet.Qs",
+      "Summary": "<p sourcefile=\"api/QsNet.Qs.yml\" sourcestartlinenumber=\"1\">Provides static methods for encoding and decoding query strings and dictionaries.\nSupports conversion between query strings and Dictionary&lt;string, object?&gt; objects\nwith configurable parsing and encoding options.</p>\n"
+    },
+    {
+      "type": "ManagedReference",
+      "source_relative_path": "api/QsNet.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/QsNet.html"
+        }
+      },
+      "version": "",
+      "Uid": null,
+      "IsMRef": true,
+      "Title": "QsNet",
+      "Summary": null
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "api/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "api/toc.html"
+        },
+        ".json": {
+          "relative_path": "api/toc.json"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/decoding.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/decoding.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/encoding.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/encoding.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/installation.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/installation.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "docs/toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "docs/toc.html"
+        },
+        ".json": {
+          "relative_path": "docs/toc.json"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "index.md",
+      "output": {
+        ".html": {
+          "relative_path": "index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "logo.png",
+      "output": {
+        "resource": {
+          "relative_path": "images/logo.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "toc.yml",
+      "output": {
+        ".html": {
+          "relative_path": "toc.html"
+        },
+        ".json": {
+          "relative_path": "toc.json"
+        }
+      },
+      "version": ""
+    }
+  ],
+  "groups": [
+    {
+      "xrefmap": "xrefmap.yml"
+    }
+  ]
+}

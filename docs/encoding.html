@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title> | QsNet </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content=" | QsNet ">
+      
+      
+      <link rel="icon" href="../images/logo.png">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/techouse/qs-net/blob/v1.2.3/docs/docs/encoding.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../images/logo.png" alt="QsNet">
+            QsNet
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+
+<h2 id="encoding">Encoding</h2>
+<h3 id="basics">Basics</h3>
+<pre><code class="lang-csharp">Qs.Encode(new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = &quot;b&quot; });
+// =&gt; &quot;a=b&quot;
+
+Qs.Encode(new Dictionary&lt;string, object?&gt; 
+{ 
+    [&quot;a&quot;] = new Dictionary&lt;string, object?&gt; { [&quot;b&quot;] = &quot;c&quot; } 
+});
+// =&gt; &quot;a%5Bb%5D=c&quot;
+</code></pre>
+<p>Disable URI encoding for readability:</p>
+<pre><code class="lang-csharp">Qs.Encode(
+    new Dictionary&lt;string, object?&gt; 
+    { 
+        [&quot;a&quot;] = new Dictionary&lt;string, object?&gt; { [&quot;b&quot;] = &quot;c&quot; } 
+    },
+    new EncodeOptions { Encode = false }
+);
+// =&gt; &quot;a[b]=c&quot;
+</code></pre>
+<p>Values-only encoding:</p>
+<pre><code class="lang-csharp">Qs.Encode(
+    new Dictionary&lt;string, object?&gt;
+    {
+        [&quot;a&quot;] = &quot;b&quot;,
+        [&quot;c&quot;] = new List&lt;object?&gt; { &quot;d&quot;, &quot;e=f&quot; },
+        [&quot;f&quot;] = new List&lt;object?&gt;
+        {
+            new List&lt;object?&gt; { &quot;g&quot; },
+            new List&lt;object?&gt; { &quot;h&quot; },
+        },
+    },
+    new EncodeOptions { EncodeValuesOnly = true }
+);
+// =&gt; &quot;a=b&amp;c[0]=d&amp;c[1]=e%3Df&amp;f[0][0]=g&amp;f[1][0]=h&quot;
+</code></pre>
+<p>Custom encoder:</p>
+<pre><code class="lang-csharp">Qs.Encode(
+    new Dictionary&lt;string, object?&gt;
+    {
+        [&quot;a&quot;] = new Dictionary&lt;string, object?&gt; { [&quot;b&quot;] = &quot;č&quot; },
+    },
+    new EncodeOptions
+    {
+        Encoder = (str, _, _) =&gt; str?.ToString() == &quot;č&quot; ? &quot;c&quot; : str?.ToString() ?? &quot;&quot;,
+    }
+);
+// =&gt; &quot;a[b]=c&quot;
+</code></pre>
+<h3 id="list-formats">List formats</h3>
+<pre><code class="lang-csharp">var data = new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = new List&lt;object?&gt; { &quot;b&quot;, &quot;c&quot; } };
+var options = new EncodeOptions { Encode = false };
+
+// default (indices)
+Qs.Encode(data, options.CopyWith(listFormat: ListFormat.Indices));
+// =&gt; &quot;a[0]=b&amp;a[1]=c&quot;
+
+// brackets
+Qs.Encode(data, options.CopyWith(listFormat: ListFormat.Brackets));
+// =&gt; &quot;a[]=b&amp;a[]=c&quot;
+
+// repeat
+Qs.Encode(data, options.CopyWith(listFormat: ListFormat.Repeat));
+// =&gt; &quot;a=b&amp;a=c&quot;
+
+// comma
+Qs.Encode(data, options.CopyWith(listFormat: ListFormat.Comma));
+// =&gt; &quot;a=b,c&quot;
+</code></pre>
+<p><strong>Note:</strong> When <code>ListFormat.Comma</code> is used, you can set <code>EncodeOptions.CommaRoundTrip</code> to <code>true</code> or <code>false</code> so single-item lists append <code>[]</code> and round-trip through decoding. Set <code>EncodeOptions.CommaCompactNulls</code> to <code>true</code> with the comma format to drop <code>null</code> entries instead of keeping empty slots (for example, <code>[&quot;one&quot;, null, &quot;two&quot;]</code> becomes <code>one,two</code>).</p>
+<h3 id="compatibility-notes">Compatibility notes</h3>
+<ul>
+<li>Deep/nested object encoding is iterative (stack-safe), so very deep graphs do not recurse the call stack.</li>
+<li>With <code>EncodeOptions.Encode = false</code>, <code>byte[]</code> values are converted to strings using the selected charset (<code>UTF-8</code>/<code>Latin1</code>) instead of using runtime type names.</li>
+<li><code>FunctionFilter</code> output still flows through <code>DateSerializer</code> and comma-list temporal normalization.</li>
+<li>A few legacy JavaScript <code>qs</code> edge-case limitations are intentionally not mirrored when they conflict with safety or deterministic behavior.</li>
+</ul>
+<h3 id="nested-dictionaries">Nested dictionaries</h3>
+<pre><code class="lang-csharp">Qs.Encode(
+    new Dictionary&lt;string, object?&gt;
+    {
+        [&quot;a&quot;] = new Dictionary&lt;string, object?&gt;
+        {
+            [&quot;b&quot;] = new Dictionary&lt;string, object?&gt; { [&quot;c&quot;] = &quot;d&quot;, [&quot;e&quot;] = &quot;f&quot; },
+        },
+    },
+    new EncodeOptions { Encode = false }
+);
+// =&gt; &quot;a[b][c]=d&amp;a[b][e]=f&quot;
+</code></pre>
+<p>Dot notation:</p>
+<pre><code class="lang-csharp">Qs.Encode(
+    new Dictionary&lt;string, object?&gt;
+    {
+        [&quot;a&quot;] = new Dictionary&lt;string, object?&gt;
+        {
+            [&quot;b&quot;] = new Dictionary&lt;string, object?&gt; { [&quot;c&quot;] = &quot;d&quot;, [&quot;e&quot;] = &quot;f&quot; },
+        },
+    },
+    new EncodeOptions { Encode = false, AllowDots = true }
+);
+// =&gt; &quot;a.b.c=d&amp;a.b.e=f&quot;
+</code></pre>
+<p>Encode dots in keys:</p>
+<pre><code class="lang-csharp">Qs.Encode(
+    new Dictionary&lt;string, object?&gt;
+    {
+        [&quot;name.obj&quot;] = new Dictionary&lt;string, object?&gt;
+        {
+            [&quot;first&quot;] = &quot;John&quot;,
+            [&quot;last&quot;] = &quot;Doe&quot;,
+        },
+    },
+    new EncodeOptions { AllowDots = true, EncodeDotInKeys = true }
+);
+// =&gt; &quot;name%252Eobj.first=John&amp;name%252Eobj.last=Doe&quot;
+</code></pre>
+<p>Allow empty lists:</p>
+<pre><code class="lang-csharp">Qs.Encode(
+    new Dictionary&lt;string, object?&gt; { [&quot;foo&quot;] = new List&lt;object?&gt;(), [&quot;bar&quot;] = &quot;baz&quot; },
+    new EncodeOptions { Encode = false, AllowEmptyLists = true }
+);
+// =&gt; &quot;foo[]&amp;bar=baz&quot;
+</code></pre>
+<p>Empty strings and nulls:</p>
+<pre><code class="lang-csharp">Qs.Encode(new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = &quot;&quot; });
+// =&gt; &quot;a=&quot;
+</code></pre>
+<p>Return empty string for empty containers:</p>
+<pre><code class="lang-csharp">Qs.Encode(new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = new List&lt;object?&gt;() });        // =&gt; &quot;&quot;
+Qs.Encode(new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = new Dictionary&lt;string, object?&gt;() });    // =&gt; &quot;&quot;
+Qs.Encode(new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = new List&lt;object?&gt; { new Dictionary&lt;string, object?&gt;() } }); // =&gt; &quot;&quot;
+Qs.Encode(new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = new Dictionary&lt;string, object?&gt; { [&quot;b&quot;] = new List&lt;object?&gt;() } }); // =&gt; &quot;&quot;
+Qs.Encode(new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = new Dictionary&lt;string, object?&gt; { [&quot;b&quot;] = new Dictionary&lt;string, object?&gt;() } }); // =&gt; &quot;&quot;
+</code></pre>
+<p>Omit <code>Undefined</code>:</p>
+<pre><code class="lang-csharp">Qs.Encode(new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = null, [&quot;b&quot;] = Undefined.Create() });
+// =&gt; &quot;a=&quot;
+</code></pre>
+<p>Add query prefix:</p>
+<pre><code class="lang-csharp">Qs.Encode(
+    new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = &quot;b&quot;, [&quot;c&quot;] = &quot;d&quot; },
+    new EncodeOptions { AddQueryPrefix = true }
+);
+// =&gt; &quot;?a=b&amp;c=d&quot;
+</code></pre>
+<p>Custom delimiter:</p>
+<pre><code class="lang-csharp">Qs.Encode(
+    new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = &quot;b&quot;, [&quot;c&quot;] = &quot;d&quot; },
+    new EncodeOptions { Delimiter = &quot;;&quot; }
+);
+// =&gt; &quot;a=b;c=d&quot;
+</code></pre>
+<h3 id="dates">Dates</h3>
+<p>By default, <code>DateTime</code> is serialized using <code>ToString()</code> in ISO 8601 format.</p>
+<pre><code class="lang-csharp">var date = new DateTime(1970, 1, 1, 0, 0, 0, 7, DateTimeKind.Utc);
+
+Qs.Encode(
+    new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = date },
+    new EncodeOptions { Encode = false }
+);
+// =&gt; &quot;a=1970-01-01T00:00:00.0070000Z&quot;
+
+Qs.Encode(
+    new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = date },
+    new EncodeOptions
+    {
+        Encode = false,
+        DateSerializer = d =&gt; ((DateTimeOffset)d).ToUnixTimeMilliseconds().ToString(),
+    }
+);
+// =&gt; &quot;a=7&quot;
+</code></pre>
+<h3 id="sorting--filtering">Sorting &amp; filtering</h3>
+<pre><code class="lang-csharp">// Sort keys
+Qs.Encode(
+    new Dictionary&lt;string, object?&gt;
+    {
+        [&quot;a&quot;] = &quot;c&quot;,
+        [&quot;z&quot;] = &quot;y&quot;,
+        [&quot;b&quot;] = &quot;f&quot;,
+    },
+    new EncodeOptions
+    {
+        Encode = false,
+        Sort = (a, b) =&gt; string.Compare(a?.ToString(), b?.ToString(), StringComparison.Ordinal),
+    }
+);
+// =&gt; &quot;a=c&amp;b=f&amp;z=y&quot;
+
+// Filter by function (drop/transform values)
+var epochStart = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+var testDate = epochStart.AddMilliseconds(123);
+
+Qs.Encode(
+    new Dictionary&lt;string, object?&gt;
+    {
+        [&quot;a&quot;] = &quot;b&quot;,
+        [&quot;c&quot;] = &quot;d&quot;,
+        [&quot;e&quot;] = new Dictionary&lt;string, object?&gt;
+        {
+            [&quot;f&quot;] = testDate,
+            [&quot;g&quot;] = new List&lt;object?&gt; { 2 },
+        },
+    },
+    new EncodeOptions
+    {
+        Encode = false,
+        Filter = new FunctionFilter(
+            (prefix, value) =&gt;
+                prefix switch
+                {
+                    &quot;b&quot; =&gt; Undefined.Create(),
+                    &quot;e[f]&quot; =&gt; (long)((DateTime)value! - epochStart).TotalMilliseconds,
+                    &quot;e[g][0]&quot; =&gt; Convert.ToInt32(value) * 2,
+                    _ =&gt; value,
+                }
+        ),
+    }
+);
+// =&gt; &quot;a=b&amp;c=d&amp;e[f]=123&amp;e[g][0]=4&quot;
+
+// Filter by explicit list of keys/indices
+Qs.Encode(
+    new Dictionary&lt;string, object?&gt;
+    {
+        [&quot;a&quot;] = &quot;b&quot;,
+        [&quot;c&quot;] = &quot;d&quot;,
+        [&quot;e&quot;] = &quot;f&quot;,
+    },
+    new EncodeOptions
+    {
+        Encode = false,
+        Filter = new IterableFilter(new List&lt;object&gt; { &quot;a&quot;, &quot;e&quot; }),
+    }
+);
+// =&gt; &quot;a=b&amp;e=f&quot;
+
+Qs.Encode(
+    new Dictionary&lt;string, object?&gt;
+    {
+        [&quot;a&quot;] = new List&lt;object?&gt; { &quot;b&quot;, &quot;c&quot;, &quot;d&quot; },
+        [&quot;e&quot;] = &quot;f&quot;,
+    },
+    new EncodeOptions
+    {
+        Encode = false,
+        Filter = new IterableFilter(new List&lt;object&gt; { &quot;a&quot;, 0, 2 }),
+    }
+);
+// =&gt; &quot;a[0]=b&amp;a[2]=d&quot;
+</code></pre>
+<h3 id="null-handling">Null handling</h3>
+<pre><code class="lang-csharp">// Treat null values like empty strings by default
+Qs.Encode(new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = null, [&quot;b&quot;] = &quot;&quot; });
+// =&gt; &quot;a=&amp;b=&quot;
+
+// Cannot distinguish between parameters with and without equal signs
+Qs.Decode(&quot;a&amp;b=&quot;);
+// =&gt; { &quot;a&quot;: &quot;&quot;, &quot;b&quot;: &quot;&quot; }
+
+// Distinguish between null values and empty strings using strict null handling
+Qs.Encode(
+    new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = null, [&quot;b&quot;] = &quot;&quot; },
+    new EncodeOptions { StrictNullHandling = true }
+);
+// =&gt; &quot;a&amp;b=&quot;
+
+// Decode values without equals back to null using strict null handling
+Qs.Decode(&quot;a&amp;b=&quot;, new DecodeOptions { StrictNullHandling = true });
+// =&gt; { &quot;a&quot;: null, &quot;b&quot;: &quot;&quot; }
+
+// Completely skip rendering keys with null values using skip nulls
+Qs.Encode(
+    new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = &quot;b&quot;, [&quot;c&quot;] = null },
+    new EncodeOptions { SkipNulls = true }
+);
+// =&gt; &quot;a=b&quot;
+</code></pre>
+<h3 id="charset-handling">Charset handling</h3>
+<pre><code class="lang-csharp">// Encode using Latin1 charset
+Qs.Encode(
+    new Dictionary&lt;string, object?&gt; { [&quot;æ&quot;] = &quot;æ&quot; },
+    new EncodeOptions { Charset = Encoding.Latin1 }
+);
+// =&gt; &quot;%E6=%E6&quot;
+
+// Convert characters that don't exist in Latin1 to numeric entities
+Qs.Encode(
+    new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = &quot;☺&quot; },
+    new EncodeOptions { Charset = Encoding.Latin1 }
+);
+// =&gt; &quot;a=%26%239786%3B&quot;
+
+// Announce charset using charset sentinel option with UTF-8
+Qs.Encode(
+    new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = &quot;☺&quot; },
+    new EncodeOptions { CharsetSentinel = true }
+);
+// =&gt; &quot;utf8=%E2%9C%93&amp;a=%E2%98%BA&quot;
+
+// Announce charset using charset sentinel option with Latin1
+Qs.Encode(
+    new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = &quot;æ&quot; },
+    new EncodeOptions { Charset = Encoding.Latin1, CharsetSentinel = true }
+);
+// =&gt; &quot;utf8=%26%2310003%3B&amp;a=%E6&quot;
+</code></pre>
+<h3 id="rfc-3986-vs-rfc-1738-space-encoding">RFC 3986 vs RFC 1738 space encoding</h3>
+<pre><code class="lang-csharp">Qs.Encode(new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = &quot;b c&quot; });
+// =&gt; &quot;a=b%20c&quot;   (RFC 3986 default)
+
+Qs.Encode(new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = &quot;b c&quot; }, new EncodeOptions { Format = Format.Rfc3986 });
+// =&gt; &quot;a=b%20c&quot;
+
+Qs.Encode(new Dictionary&lt;string, object?&gt; { [&quot;a&quot;] = &quot;b c&quot; }, new EncodeOptions { Format = Format.Rfc1738 });
+// =&gt; &quot;a=b+c&quot;
+</code></pre>
+<hr>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/techouse/qs-net/blob/v1.2.3/docs/docs/encoding.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>QsNet | QsNet </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="QsNet | QsNet ">
+      
+      
+      <link rel="icon" href="images/logo.png">
+      <link rel="stylesheet" href="public/docfx.min.css">
+      <link rel="stylesheet" href="public/main.css">
+      <meta name="docfx:navrel" content="toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/techouse/qs-net/blob/v1.2.3/docs/index.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="landing" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="index.html">
+            <img id="logo" class="svg" src="images/logo.png" alt="QsNet">
+            QsNet
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+
+      <div class="content">
+        <div class="actionbar">
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="qsnet">QsNet</h1>
+
+<p>A query string encoding and decoding library for C#/.NET.</p>
+<p>Ported from <a href="https://www.npmjs.com/package/qs">qs</a> for JavaScript.</p>
+<p><a href="https://www.nuget.org/packages/QsNet"><img src="https://img.shields.io/nuget/v/QsNet" alt="NuGet Version"></a>
+<a href="https://github.com/techouse/QsNet/actions/workflows/test.yml"><img src="https://github.com/techouse/qs-net/actions/workflows/test.yml/badge.svg" alt="Test"></a>
+<a href="https://codecov.io/gh/techouse/qs-net"><img src="https://codecov.io/gh/techouse/qs-net/graph/badge.svg?token=ClCDNcsxqQ" alt="codecov"></a>
+<a href="https://github.com/techouse/qs-net/blob/main/LICENSE"><img src="https://img.shields.io/github/license/techouse/qs-net" alt="GitHub"></a>
+<a href="https://github.com/techouse/qs-net/stargazers"><img src="https://img.shields.io/github/stars/techouse/qs-net" alt="GitHub Repo stars"></a></p>
+<hr>
+<h2 id="highlights">Highlights</h2>
+<ul>
+<li>Nested dictionaries and lists: <code>foo[bar][baz]=qux</code> ⇄ <code>{ &quot;foo&quot;: { &quot;bar&quot;: { &quot;baz&quot;: &quot;qux&quot; } } }</code></li>
+<li>Multiple list formats (indices, brackets, repeat, comma)</li>
+<li>Dot-notation support (<code>a.b=c</code>) and <code>&quot;.&quot;</code>-encoding toggles</li>
+<li>UTF-8 and Latin1 charsets, plus optional charset sentinel (<code>utf8=✓</code>)</li>
+<li>Custom encoders/decoders, key sorting, filtering, and strict null handling</li>
+<li>Supports <code>DateTime</code> serialization via a pluggable serializer</li>
+<li>Extensive tests (xUnit + FluentAssertions), performance-minded implementation</li>
+</ul>
+<hr>
+<h2 id="usage">Usage</h2>
+<pre><code class="lang-csharp">using QsNet;
+
+// Decode
+Dictionary&lt;string, object?&gt; obj = Qs.Decode(&quot;foo[bar]=baz&amp;foo[list][]=a&amp;foo[list][]=b&quot;);
+// -&gt; { &quot;foo&quot;: { &quot;bar&quot;: &quot;baz&quot;, &quot;list&quot;: [&quot;a&quot;, &quot;b&quot;] } }
+
+// Encode
+string qs = Qs.Encode(new Dictionary&lt;string, object?&gt; 
+{ 
+    [&quot;foo&quot;] = new Dictionary&lt;string, object?&gt; { [&quot;bar&quot;] = &quot;baz&quot; } 
+});
+// -&gt; &quot;foo%5Bbar%5D=baz&quot;
+</code></pre>
+<hr>
+<h2 id="design-notes">Design notes</h2>
+<ul>
+<li><strong>Performance:</strong> The implementation mirrors qs semantics but is optimized for C#/.NET. Deep parsing, list compaction,
+and cycle-safe compaction are implemented iteratively where it matters.</li>
+<li><strong>Safety:</strong> Defaults (depth, parameterLimit) help mitigate abuse in user-supplied inputs; you can loosen them when you
+fully trust the source.</li>
+<li><strong>Interop:</strong> Exposes knobs similar to qs (filters, sorters, custom encoders/decoders) to make migrations
+straightforward.</li>
+</ul>
+<hr>
+<h2 id="other-ports">Other ports</h2>
+<table>
+<thead>
+<tr>
+<th>Port</th>
+<th>Repository</th>
+<th>Package</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dart</td>
+<td><a href="https://github.com/techouse/qs">techouse/qs</a></td>
+<td><a href="https://pub.dev/packages/qs_dart"><img src="https://img.shields.io/pub/v/qs_dart?logo=dart&amp;label=pub.dev" alt="pub.dev"></a></td>
+</tr>
+<tr>
+<td>Python</td>
+<td><a href="https://github.com/techouse/qs_codec">techouse/qs_codec</a></td>
+<td><a href="https://pypi.org/project/qs-codec/"><img src="https://img.shields.io/pypi/v/qs-codec?logo=python&amp;label=PyPI" alt="PyPI"></a></td>
+</tr>
+<tr>
+<td>Kotlin / JVM + Android AAR</td>
+<td><a href="https://github.com/techouse/qs-kotlin">techouse/qs-kotlin</a></td>
+<td><a href="https://central.sonatype.com/artifact/io.github.techouse/qs-kotlin"><img src="https://img.shields.io/maven-central/v/io.github.techouse/qs-kotlin?logo=kotlin&amp;label=Maven%20Central" alt="Maven Central"></a></td>
+</tr>
+<tr>
+<td>Swift / Objective-C</td>
+<td><a href="https://github.com/techouse/qs-swift">techouse/qs-swift</a></td>
+<td><a href="https://swiftpackageindex.com/techouse/qs-swift"><img src="https://img.shields.io/github/v/release/techouse/qs-swift?logo=swift&amp;label=SwiftPM" alt="SPM"></a></td>
+</tr>
+<tr>
+<td>Node.js (original)</td>
+<td><a href="https://github.com/ljharb/qs">ljharb/qs</a></td>
+<td><a href="https://www.npmjs.com/package/qs"><img src="https://img.shields.io/npm/v/qs?logo=javascript&amp;label=npm" alt="npm"></a></td>
+</tr>
+</tbody>
+</table>
+<hr>
+<p>Special thanks to the authors of <a href="https://www.npmjs.com/package/qs">qs</a> for JavaScript:</p>
+<ul>
+<li><a href="https://github.com/ljharb">Jordan Harband</a></li>
+<li><a href="https://github.com/visionmedia/node-querystring">TJ Holowaychuk</a></li>
+</ul>
+<hr>
+<h2 id="license">License</h2>
+<p>BSD 3-Clause © <a href="https://github.com/techouse">techouse</a></p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/techouse/qs-net/blob/v1.2.3/docs/index.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
