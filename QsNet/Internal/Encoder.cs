@@ -670,20 +670,18 @@ internal static class Encoder
                     return true;
                 }
 
-                if (Utils.IsNonNullishPrimitive(current) || current is byte[])
+                if (!Utils.IsNonNullishPrimitive(current) && current is not byte[]) return false;
+                var value = current switch
                 {
-                    var value = current switch
-                    {
-                        bool b => b ? "true" : "false",
-                        byte[] bytes => BytesToString(bytes, charset),
-                        _ => current.ToString() ?? string.Empty
-                    };
-                    result = new List<object?>
-                    {
-                        $"{formatter(path.ToString())}={formatter(value)}"
-                    };
-                    return true;
-                }
+                    bool b => b ? "true" : "false",
+                    byte[] bytes => BytesToString(bytes, charset),
+                    _ => current.ToString() ?? string.Empty
+                };
+                result = new List<object?>
+                {
+                    $"{formatter(path.ToString())}={formatter(value)}"
+                };
+                return true;
 
                 return false;
             }
