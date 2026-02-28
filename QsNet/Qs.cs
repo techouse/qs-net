@@ -323,13 +323,8 @@ public static class Qs
         void AppendBodyPart(string part)
         {
             if (wroteBodyPart)
-            {
                 sb.Append(opts.Delimiter);
-            }
-            else if (wroteSentinel)
-            {
-                sb.Append('&');
-            }
+            else if (wroteSentinel) sb.Append('&');
 
             sb.Append(part);
             wroteBodyPart = true;
