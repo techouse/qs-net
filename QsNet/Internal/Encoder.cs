@@ -659,7 +659,7 @@ internal static class Encoder
                 {
                     result = new List<object?>
                     {
-                        $"{formatter(path.ToString())}="
+                        $"{formatter(path.ToString())}={formatter(string.Empty)}"
                     };
                     return true;
                 }
