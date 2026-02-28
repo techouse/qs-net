@@ -5046,27 +5046,27 @@ public class EncodeTests
 
     public static IEnumerable<object[]> ValidIntegralFilterKeys()
     {
-        yield return new object[] { 1, 1 };
-        yield return new object[] { 1L, 1 };
-        yield return new object[] { (short)1, 1 };
-        yield return new object[] { (sbyte)1, 1 };
-        yield return new object[] { (byte)1, 1 };
-        yield return new object[] { (ushort)1, 1 };
-        yield return new object[] { (uint)1, 1 };
-        yield return new object[] { (ulong)1, 1 };
-        yield return new object[] { "1", 1 };
+        yield return [1, 1];
+        yield return [1L, 1];
+        yield return [(short)1, 1];
+        yield return [(sbyte)1, 1];
+        yield return [(byte)1, 1];
+        yield return [(ushort)1, 1];
+        yield return [(uint)1, 1];
+        yield return [(ulong)1, 1];
+        yield return ["1", 1];
     }
 
     public static IEnumerable<object[]> InvalidIntegralFilterKeys()
     {
-        yield return new object[] { ((long)int.MaxValue) + 1L };
-        yield return new object[] { uint.MaxValue };
-        yield return new object[] { ulong.MaxValue };
-        yield return new object[] { true };
-        yield return new object[] { 1.9d };
-        yield return new object[] { "x" };
-        yield return new object[] { new object() };
-        yield return new object[] { null! };
+        yield return [int.MaxValue + 1L];
+        yield return [uint.MaxValue];
+        yield return [ulong.MaxValue];
+        yield return [true];
+        yield return [1.9d];
+        yield return ["x"];
+        yield return [new object()];
+        yield return [null!];
     }
 
     [Theory]
@@ -5079,8 +5079,8 @@ public class EncodeTests
         );
         method.Should().NotBeNull();
 
-        var args = new object?[] { key, -1 };
-        var ok = (bool)method!.Invoke(null, args)!;
+        var args = new[] { key, -1 };
+        var ok = (bool)method.Invoke(null, args)!;
 
         ok.Should().BeTrue();
         args[1].Should().Be(expectedIndex);
@@ -5096,8 +5096,8 @@ public class EncodeTests
         );
         method.Should().NotBeNull();
 
-        var args = new object?[] { key, 123 };
-        var ok = (bool)method!.Invoke(null, args)!;
+        var args = new[] { key, 123 };
+        var ok = (bool)method.Invoke(null, args)!;
 
         ok.Should().BeFalse();
         args[1].Should().Be(-1);
@@ -5821,7 +5821,6 @@ public class EncodeTests
 
     private sealed class ThrowingArgumentGetStringEncoding : DelegatingUtf8Encoding
     {
-
         public override string GetString(byte[] bytes, int index, int count)
         {
             throw new ArgumentException("decode failed");
