@@ -5222,7 +5222,10 @@ public class EncodeTests
         Parts(res).Should().Equal("a.<0>=x");
         return;
 
-        string CustomGenerator(string p, string? k) => $"{p}.<{k}>";
+        string CustomGenerator(string p, string? k)
+        {
+            return $"{p}.<{k}>";
+        }
     }
 
     [Fact]
@@ -5569,6 +5572,58 @@ public class EncodeTests
     }
 
     [Fact]
+    public void ShouldEncodeBooleanLeafWhenEncodeIsFalse_LinearMapFastPath()
+    {
+        var payload = new Dictionary<string, object?>
+        {
+            ["a"] = new Dictionary<string, object?>
+            {
+                ["b"] = true
+            }
+        };
+
+        var encoded = Qs.Encode(payload, new EncodeOptions { Encode = false });
+
+        encoded.Should().Be("a[b]=true");
+    }
+
+    [Fact]
+    public void ShouldCleanupSideChannelWhenFastPathFallsBackAfterMalformedSingleEntryMap_LinearMapFastPath()
+    {
+        var malformed = new CountOneEmptyEnumerableDictionary();
+        var sideChannel = new SideChannelFrame();
+
+        var encoded = Encoder.Encode(
+            malformed,
+            false,
+            sideChannel,
+            string.Empty,
+            ListFormat.Indices.GetGenerator(),
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            null,
+            null,
+            null,
+            null,
+            false,
+            Format.Rfc3986,
+            s => s,
+            false,
+            Encoding.UTF8
+        );
+
+        encoded.Should().BeOfType<List<object?>>();
+        ((List<object?>)encoded).Should().BeEmpty();
+
+        sideChannel.Enter(malformed).Should().BeTrue();
+        sideChannel.Exit(malformed);
+    }
+
+    [Fact]
     public void ShouldThrowOnCycle_LinearMapFastPath()
     {
         var root = new Dictionary<string, object?>();
@@ -5852,6 +5907,75 @@ public class EncodeTests
                 current = new Dictionary<string, object?> { ["a"] = current };
 
             return current;
+        }
+    }
+
+    private sealed class CountOneEmptyEnumerableDictionary : IDictionary
+    {
+        public object SyncRoot => this;
+        public bool IsSynchronized => false;
+        public bool IsFixedSize => true;
+        public bool IsReadOnly => true;
+        public int Count => 1;
+        public ICollection Keys => Array.Empty<object>();
+        public ICollection Values => Array.Empty<object>();
+
+        public object? this[object key]
+        {
+            get => null;
+            set => throw new NotSupportedException();
+        }
+
+        public void Add(object key, object? value)
+        {
+            throw new NotSupportedException();
+        }
+
+        public void Clear()
+        {
+            throw new NotSupportedException();
+        }
+
+        public bool Contains(object key)
+        {
+            return false;
+        }
+
+        public void CopyTo(Array array, int index)
+        {
+            ArgumentNullException.ThrowIfNull(array);
+        }
+
+        public IDictionaryEnumerator GetEnumerator()
+        {
+            return new EmptyDictionaryEnumerator();
+        }
+
+        public void Remove(object key)
+        {
+            throw new NotSupportedException();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+
+        private sealed class EmptyDictionaryEnumerator : IDictionaryEnumerator
+        {
+            public DictionaryEntry Entry => throw new InvalidOperationException();
+            public object Key => throw new InvalidOperationException();
+            public object? Value => throw new InvalidOperationException();
+            public object Current => throw new InvalidOperationException();
+
+            public bool MoveNext()
+            {
+                return false;
+            }
+
+            public void Reset()
+            {
+            }
         }
     }
 
