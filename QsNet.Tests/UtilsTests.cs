@@ -2638,8 +2638,6 @@ public class UtilsTests
         var visitedOnly = new HashSet<object>(ReferenceEqualityComparer.Instance) { seqVisitedOnly };
         var cacheOnly = new Dictionary<object, object?>(ReferenceEqualityComparer.Instance);
         method.Invoke(null, [seqVisitedOnly, visitedOnly, cacheOnly]).Should().BeSameAs(seqVisitedOnly);
-        return;
-
         static IEnumerable Sequence()
         {
             yield return 1;
