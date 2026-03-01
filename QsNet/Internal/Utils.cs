@@ -1043,10 +1043,10 @@ internal static partial class Utils
     {
         switch (key)
         {
-            case int i when i >= 0:
+            case int i and >= 0:
                 index = i;
                 return true;
-            case long l when l is >= 0 and <= int.MaxValue:
+            case long l and >= 0 and <= int.MaxValue:
                 index = (int)l;
                 return true;
             case string s

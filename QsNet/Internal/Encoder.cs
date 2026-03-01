@@ -461,7 +461,7 @@ internal static class Encoder
                     if (frame is { AllowDots: true, EncodeDotInKeys: true } && keyStr.IndexOf('.') >= 0)
                         encodedKey = keyStr.Replace(".", "%2E");
 #else
-                        if (frame.AllowDots && frame.EncodeDotInKeys && keyStr.Contains('.', StringComparison.Ordinal))
+                        if (frame is { AllowDots: true, EncodeDotInKeys: true } && keyStr.Contains('.', StringComparison.Ordinal))
                             encodedKey = keyStr.Replace(".", "%2E", StringComparison.Ordinal);
 #endif
 
@@ -542,7 +542,7 @@ internal static class Encoder
         void FinishFrame(object? result)
         {
             var completed = stack.Pop();
-            if (completed.IsCycleTracked && completed.CycleKey is not null)
+            if (completed is { IsCycleTracked: true, CycleKey: not null })
                 completed.SideChannel.Exit(completed.CycleKey);
 
             lastResult = result;
