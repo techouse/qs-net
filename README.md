@@ -61,8 +61,8 @@ dotnet add package QsNet
 | Runtime        | Version  | CI Coverage                   | Status    |
 |----------------|----------|-------------------------------|-----------|
 | .NET           | 10 (LTS) | Full CI                       | Supported |
-| .NET           | 9 (STS)  | Full CI                       | Supported |
-| .NET           | 8 (LTS)  | Full CI                       | Supported |
+| .NET           | 9 (STS)  | Consumer smoke test           | Supported |
+| .NET           | 8 (LTS)  | Consumer smoke test           | Supported |
 | .NET           | 7        | Consumer smoke test           | Supported |
 | .NET           | 6 (LTS)  | Consumer smoke test           | Supported |
 | .NET           | 5        | Optional smoke (non-blocking) | EOL       |
