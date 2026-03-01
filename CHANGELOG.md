@@ -1,3 +1,7 @@
+## 1.3.0-wip
+
+* [CHORE] migrate primary target framework from `net8.0` to `net10.0` (retaining `netstandard2.0` for broad compatibility)
+
 ## 1.2.3
 
 * [FIX] add a guarded deep linear-map fast path in `Encoder` when `EncodeOptions.Encode = false` for single-key dictionary chains, preserving cycle detection, date serialization, and generic fallback behavior
