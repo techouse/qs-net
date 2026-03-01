@@ -538,9 +538,7 @@ internal static partial class Decoder
         if (string.IsNullOrEmpty(key) || key.IndexOf('.') < 0)
             return key;
 #else
-        if (string.IsNullOrEmpty(key))
-            return key;
-        if (!key.Contains('.'))
+        if (string.IsNullOrEmpty(key) || !key.Contains('.'))
             return key;
 #endif
 
