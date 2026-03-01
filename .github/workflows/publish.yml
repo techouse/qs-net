@@ -38,7 +38,7 @@ jobs:
       - name: Push to NuGet
         run: dotnet nuget push ./artifacts/QsNet.$VERSION.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
       - name: Upload package artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: QsNet.${{ env.VERSION }}
           path: |
@@ -62,7 +62,7 @@ jobs:
           VERSION=$(awk -F'[<>]' '/^[[:space:]]*<Version>/ {print $3}' QsNet/QsNet.csproj)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - name: Download package artifact
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v8
         with:
           name: QsNet.${{ env.VERSION }}
           path: ./artifacts
