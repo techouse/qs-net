@@ -50,22 +50,32 @@ jobs:
           path: ${{ runner.temp }}/nupkg/*.nupkg
           retention-days: 1
   test:
-    name: Test on ubuntu-latest
+    name: Test ${{ matrix.dotnet }} on ${{ matrix.os }}
     needs: lint
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            dotnet: '8.0.x'
+          - os: ubuntu-latest
+            dotnet: '9.0.x'
+          - os: ubuntu-latest
+            dotnet: '10.0.x'
     steps:
       - uses: actions/checkout@v6
       - name: Setup .NET SDK
         uses: actions/setup-dotnet@v5
         with:
-          dotnet-version: '10.0.x'
+          dotnet-version: ${{ matrix.dotnet }}
       - name: Cache NuGet
         uses: actions/cache@v5
         with:
           path: ~/.nuget/packages
-          key: nuget-${{ runner.os }}-10.0.x-${{ hashFiles('**/*.[cC][sS]proj') }}
+          key: nuget-${{ runner.os }}-${{ matrix.dotnet }}-${{ hashFiles('**/*.[cC][sS]proj') }}
           restore-keys: |
-            nuget-${{ runner.os }}-10.0.x-
+            nuget-${{ runner.os }}-${{ matrix.dotnet }}-
             nuget-${{ runner.os }}-
       - name: Restore
         run: dotnet restore
@@ -77,14 +87,14 @@ jobs:
         uses: actions/upload-artifact@v6
         if: always()
         with:
-          name: test-results
+          name: test-results-${{ matrix.dotnet }}
           path: '**/*.trx'
           overwrite: true
           retention-days: 7
       - name: Upload raw coverage
         uses: actions/upload-artifact@v6
         with:
-          name: coverage
+          name: coverage-${{ matrix.dotnet }}
           path: QsNet.Tests/TestResults/**/*.cobertura.xml
           if-no-files-found: error
           overwrite: true
