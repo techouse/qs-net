@@ -137,8 +137,9 @@ internal static partial class Decoder
         if (tmp.Contains('%'))
         {
             tmp = tmp.Replace("%5B", "[", StringComparison.OrdinalIgnoreCase)
-                     .Replace("%5D", "]", StringComparison.OrdinalIgnoreCase);
+                .Replace("%5D", "]", StringComparison.OrdinalIgnoreCase);
         }
+
         var cleanStr = tmp;
 #endif
 
@@ -330,7 +331,7 @@ internal static partial class Decoder
 #if NETSTANDARD2_0
                 chain[chain.Count - 1] == "[]"
 #else
-            chain[^1] == "[]"
+                chain[^1] == "[]"
 #endif
             )
             // Look only at the immediate parent segment, e.g. "[0]" in ["a", "[0]", "[]"]
@@ -338,10 +339,11 @@ internal static partial class Decoder
             {
 #if NETSTANDARD2_0
                 var parentSeg = chain[chain.Count - 2];
+                if (parentSeg.Length >= 2 && parentSeg[0] == '[' && parentSeg[parentSeg.Length - 1] == ']')
 #else
                 var parentSeg = chain[^2];
+                if (parentSeg is ['[', _, ..] && parentSeg[^1] == ']')
 #endif
-                if (parentSeg.Length >= 2 && parentSeg[0] == '[' && parentSeg[parentSeg.Length - 1] == ']')
                 {
 #if NETSTANDARD2_0
                     var idxStr = parentSeg.Substring(1, parentSeg.Length - 2);
@@ -420,7 +422,11 @@ internal static partial class Decoder
                 // that last ']' cannot be balancing any '[' from the inner text — it's the
                 // closing bracket from the synthetic wrapper that leaked into this inner slice.
                 // Trimming it recovers the literal remainder (e.g., "[[b[c]]" → cleanRoot "[b[c]" → trim → "[b[c").
+#if NETSTANDARD2_0
                 if (root.Length >= 2 && root[0] == '[' && root[root.Length - 1] == ']')
+#else
+                if (root is ['[', _, ..] && root[^1] == ']')
+#endif
                 {
                     var inner = cleanRoot;
                     int opens = 0, closes = 0;
@@ -435,7 +441,11 @@ internal static partial class Decoder
                                 break;
                         }
 
+#if NETSTANDARD2_0
                     if (opens > closes && inner.Length > 0 && inner[inner.Length - 1] == ']')
+#else
+                    if (opens > closes && inner.Length > 0 && inner[^1] == ']')
+#endif
                     {
 #if NETSTANDARD2_0
                         cleanRoot = inner.Substring(0, inner.Length - 1);
@@ -446,11 +456,13 @@ internal static partial class Decoder
                 }
 
 #if NETSTANDARD2_0
-                var decodedRoot = options.DecodeDotInKeys && cleanRoot.IndexOf("%2E", StringComparison.OrdinalIgnoreCase) >= 0
+                var decodedRoot =
+ options.DecodeDotInKeys && cleanRoot.IndexOf("%2E", StringComparison.OrdinalIgnoreCase) >= 0
                     ? ReplaceOrdinalIgnoreCase(cleanRoot, "%2E", ".")
                     : cleanRoot;
 #else
-                var decodedRoot = options.DecodeDotInKeys && cleanRoot.Contains("%2E", StringComparison.OrdinalIgnoreCase)
+                var decodedRoot = options.DecodeDotInKeys &&
+                                  cleanRoot.Contains("%2E", StringComparison.OrdinalIgnoreCase)
                     ? cleanRoot.Replace("%2E", ".", StringComparison.OrdinalIgnoreCase)
                     : cleanRoot;
 #endif
