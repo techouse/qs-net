@@ -58,10 +58,6 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            dotnet: '8.0.x'
-          - os: ubuntu-latest
-            dotnet: '9.0.x'
-          - os: ubuntu-latest
             dotnet: '10.0.x'
     steps:
       - uses: actions/checkout@v6
