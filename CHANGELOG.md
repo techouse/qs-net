@@ -1,4 +1,4 @@
-## 1.3.0-wip
+## 1.3.0
 
 * [CHORE] migrate primary target framework from `net8.0` to `net10.0` (retaining `netstandard2.0` for broad compatibility)
 
