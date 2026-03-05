@@ -1,7 +1,9 @@
-using System;
 using System.Text;
 using QsNet.Enums;
 using QsNet.Internal;
+#if NETSTANDARD2_0
+using System;
+#endif
 
 namespace QsNet.Models;
 
