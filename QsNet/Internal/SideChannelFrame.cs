@@ -1,5 +1,7 @@
-using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+#if NETSTANDARD2_0
+using System.Collections.Generic;
+#endif
 
 namespace QsNet.Internal;
 

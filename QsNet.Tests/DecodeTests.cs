@@ -4415,6 +4415,53 @@ public partial class DecodeTest
     }
 
     [Fact]
+    public void ShouldDecodeMixedStructuredAndFlatLikeMapInputWhenFlatComesFirst()
+    {
+        var options = new DecodeOptions();
+        var fromString = Qs.Decode("a=d&a[b]=c", options);
+        var fromMap = Qs.Decode(
+            new Dictionary<string, object?> { ["a"] = "d", ["a[b]"] = "c" },
+            options
+        );
+
+        fromString.Keys.Should().Equal(fromMap.Keys);
+        fromString.Should().BeEquivalentTo(fromMap);
+    }
+
+    [Fact]
+    public void ShouldPreserveLeadingBracketRootCollisionSemantics()
+    {
+        var options = new DecodeOptions();
+        var fromString = Qs.Decode("[a]=x&a=y", options);
+        var fromMap = Qs.Decode(
+            new Dictionary<string, object?> { ["[a]"] = "x", ["a"] = "y" },
+            options
+        );
+
+        fromString.Keys.Should().Equal(fromMap.Keys);
+        fromString.Should().BeEquivalentTo(fromMap);
+    }
+
+    [Fact]
+    public void ShouldDecodeFlatQueriesConsistentlyWithMapInput()
+    {
+        var options = new DecodeOptions();
+        var fromString = Qs.Decode("alpha=1&beta=2&gamma=3", options);
+        var fromMap = Qs.Decode(
+            new Dictionary<string, object?>
+            {
+                ["alpha"] = "1",
+                ["beta"] = "2",
+                ["gamma"] = "3"
+            },
+            options
+        );
+
+        fromString.Keys.Should().Equal(fromMap.Keys);
+        fromString.Should().BeEquivalentTo(fromMap);
+    }
+
+    [Fact]
     public void ShouldParseWithCustomEncoding()
     {
         // Register the encoding provider for code page encodings

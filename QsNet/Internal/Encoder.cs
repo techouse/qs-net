@@ -1,10 +1,12 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using QsNet.Enums;
 using QsNet.Models;
+#if NETSTANDARD2_0
+using System;
+using System.Collections.Generic;
+#endif
 
 namespace QsNet.Internal;
 
