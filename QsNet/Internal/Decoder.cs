@@ -1,11 +1,12 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using QsNet.Enums;
 using QsNet.Models;
+#if NETSTANDARD2_0
+using System;
+using System.Collections.Generic;
+#endif
 
 namespace QsNet.Internal;
 
@@ -144,18 +145,7 @@ internal static partial class Decoder
 #endif
 
         var limit = options.ParameterLimit == int.MaxValue ? (int?)null : options.ParameterLimit;
-
-        var allPartsSeq = options.Delimiter.Split(cleanStr);
-        var allParts = allPartsSeq as string[] ?? allPartsSeq.ToArray();
-        var parts = new List<string>(allParts.Length);
-
-        foreach (var part in allParts)
-        {
-            if (!HasNonEmptyRawKey(part))
-                continue;
-
-            parts.Add(part);
-        }
+        var parts = CollectNonEmptyParts(cleanStr, options.Delimiter);
 
         var obj = new Dictionary<string, object?>(parts.Count);
         var skipIndex = -1; // Keep track of where the utf8 sentinel was found
@@ -191,6 +181,7 @@ internal static partial class Decoder
             var pos = bracketEqualsPos == -1 ? part.IndexOf('=') : bracketEqualsPos + 1;
 
             string key;
+            var rawKey = string.Empty;
             object? value;
 
             if (pos == -1)
@@ -202,10 +193,10 @@ internal static partial class Decoder
             else
             {
 #if NETSTANDARD2_0
-                var rawKey = part.Substring(0, pos);
+                rawKey = part.Substring(0, pos);
                 key = options.DecodeKey(rawKey, charset) ?? string.Empty;
 #else
-                var rawKey = part[..pos];
+                rawKey = part[..pos];
                 key = options.DecodeKey(rawKey, charset) ?? string.Empty;
 #endif
                 if (key.Length == 0)
@@ -213,7 +204,7 @@ internal static partial class Decoder
             }
 
             accepted++;
-            if (limit != null && accepted > limit.Value)
+            if (accepted > limit)
             {
                 if (options.ThrowOnLimitExceeded)
                     throw new InvalidOperationException(
@@ -243,14 +234,23 @@ internal static partial class Decoder
 #else
                 parsedValue = ParseListValue(part[(pos + 1)..], options, currentLength);
 #endif
-                // ParseListValue uses Undefined.Instance as a drop sentinel when non-throw list capacity is exhausted.
-                if (parsedValue is Undefined)
-                    continue;
-
-                value = Utils.Apply<object?>(
-                    parsedValue,
-                    v => options.DecodeValue((string?)v, charset)
-                );
+                switch (parsedValue)
+                {
+                    // ParseListValue uses Undefined.Instance as a drop sentinel when non-throw list capacity is exhausted.
+                    case Undefined:
+                        continue;
+                    case IList<object?> parsedList:
+                        {
+                            var decodedList = new List<object?>(parsedList.Count);
+                            for (var listIndex = 0; listIndex < parsedList.Count; listIndex++)
+                                decodedList.Add(options.DecodeValue(parsedList[listIndex] as string, charset));
+                            value = decodedList;
+                            break;
+                        }
+                    default:
+                        value = options.DecodeValue(parsedValue as string, charset);
+                        break;
+                }
             }
 
             if (
@@ -266,11 +266,7 @@ internal static partial class Decoder
                 value = Utils.InterpretNumericEntities(tmpStr);
             }
 
-#if NETSTANDARD2_0
-            if (part.IndexOf("[]=", StringComparison.Ordinal) >= 0)
-#else
-            if (part.Contains("[]=", StringComparison.Ordinal))
-#endif
+            if (pos != -1 && rawKey.EndsWith("[]", StringComparison.Ordinal))
                 value = value is IEnumerable and not string ? new List<object?> { value } : value;
 
             if (hadExisting)
@@ -295,6 +291,81 @@ internal static partial class Decoder
     }
 
     /// <summary>
+    ///     Splits the query string by delimiter and keeps only tokens with non-empty raw keys.
+    /// </summary>
+    private static List<string> CollectNonEmptyParts(string input, IDelimiter delimiter)
+    {
+        return delimiter switch
+        {
+            StringDelimiter stringDelimiter => CollectNonEmptyStringParts(input, stringDelimiter.Value),
+            RegexDelimiter regexDelimiter => CollectNonEmptyEnumerableParts(regexDelimiter.Split(input)),
+            _ => CollectNonEmptyEnumerableParts(delimiter.Split(input))
+        };
+    }
+
+    /// <summary>
+    ///     Fast path for simple string delimiters using ordinal scanning.
+    /// </summary>
+    private static List<string> CollectNonEmptyStringParts(string input, string delimiter)
+    {
+        if (delimiter.Length == 0)
+            throw new ArgumentException("Delimiter must not be empty.");
+
+        var start = 0;
+        var delimiterLength = delimiter.Length;
+        var singleCharDelimiter = delimiterLength == 1;
+        var delimiterChar = singleCharDelimiter ? delimiter[0] : '\0';
+        var parts = singleCharDelimiter
+            ? new List<string>(CountCharOccurrences(input, delimiterChar) + 1)
+            : new List<string>();
+
+        while (true)
+        {
+            var next = singleCharDelimiter
+                ? input.IndexOf(delimiterChar, start)
+                : input.IndexOf(delimiter, start, StringComparison.Ordinal);
+
+            var end = next >= 0 ? next : input.Length;
+            if (end > start && HasNonEmptyRawKey(input, start, end))
+                parts.Add(input.Substring(start, end - start));
+
+            if (next < 0)
+                break;
+
+            start = next + delimiterLength;
+        }
+
+        return parts;
+    }
+
+    private static int CountCharOccurrences(string input, char value)
+    {
+        var count = 0;
+        foreach (var t in input)
+            if (t == value)
+                count++;
+
+        return count;
+    }
+
+    private static List<string> CollectNonEmptyEnumerableParts(IEnumerable<string> parts)
+    {
+        var outParts = parts is ICollection<string> collection
+            ? new List<string>(collection.Count)
+            : new List<string>();
+
+        foreach (var part in parts)
+        {
+            if (!HasNonEmptyRawKey(part))
+                continue;
+
+            outParts.Add(part);
+        }
+
+        return outParts;
+    }
+
+    /// <summary>
     ///     Determines whether a raw query-string token contains a non-empty key portion.
     /// </summary>
     /// <param name="part">The raw token (for example <c>key=value</c>).</param>
@@ -303,11 +374,22 @@ internal static partial class Decoder
     /// </returns>
     private static bool HasNonEmptyRawKey(string part)
     {
-        if (part.Length == 0)
+        return HasNonEmptyRawKey(part, 0, part.Length);
+    }
+
+    private static bool HasNonEmptyRawKey(string input, int start, int end)
+    {
+        if (end <= start)
             return false;
 
-        var bracketEqualsPos = part.IndexOf("]=", StringComparison.Ordinal);
-        var pos = bracketEqualsPos == -1 ? part.IndexOf('=') : bracketEqualsPos + 1;
+        var bracketEqualsPos = input.IndexOf("]=", start, end - start, StringComparison.Ordinal);
+        var pos = bracketEqualsPos == -1
+            ? input.IndexOf('=', start, end - start)
+            : bracketEqualsPos + 1;
+
+        if (pos >= 0)
+            pos -= start;
+
         return pos != 0;
     }
 
@@ -337,11 +419,12 @@ internal static partial class Decoder
             // Look only at the immediate parent segment, e.g. "[0]" in ["a", "[0]", "[]"]
             if (chain.Count > 1)
             {
+                string? parentSeg;
 #if NETSTANDARD2_0
-                var parentSeg = chain[chain.Count - 2];
+                parentSeg = chain[chain.Count - 2];
                 if (parentSeg.Length >= 2 && parentSeg[0] == '[' && parentSeg[parentSeg.Length - 1] == ']')
 #else
-                var parentSeg = chain[^2];
+                parentSeg = chain[^2];
                 if (parentSeg is ['[', _, ..] && parentSeg[^1] == ']')
 #endif
                 {
@@ -455,14 +538,15 @@ internal static partial class Decoder
                     }
                 }
 
+                string decodedRoot;
 #if NETSTANDARD2_0
-                var decodedRoot = options.DecodeDotInKeys && 
-                                  cleanRoot.IndexOf("%2E", StringComparison.OrdinalIgnoreCase) >= 0
+                decodedRoot = options.DecodeDotInKeys &&
+                              cleanRoot.IndexOf("%2E", StringComparison.OrdinalIgnoreCase) >= 0
                     ? ReplaceOrdinalIgnoreCase(cleanRoot, "%2E", ".")
                     : cleanRoot;
 #else
-                var decodedRoot = options.DecodeDotInKeys &&
-                                  cleanRoot.Contains("%2E", StringComparison.OrdinalIgnoreCase)
+                decodedRoot = options.DecodeDotInKeys &&
+                              cleanRoot.Contains("%2E", StringComparison.OrdinalIgnoreCase)
                     ? cleanRoot.Replace("%2E", ".", StringComparison.OrdinalIgnoreCase)
                     : cleanRoot;
 #endif
@@ -546,13 +630,14 @@ internal static partial class Decoder
     /// </summary>
     private static string DotToBracketTopLevel(string key)
     {
+        if (string.IsNullOrEmpty(key) ||
 #if NETSTANDARD2_0
-        if (string.IsNullOrEmpty(key) || key.IndexOf('.') < 0)
-            return key;
+            key.IndexOf('.') < 0
 #else
-        if (string.IsNullOrEmpty(key) || !key.Contains('.'))
-            return key;
+            !key.Contains('.')
 #endif
+           )
+            return key;
 
         var sb = new StringBuilder(key.Length + 4);
         var depth = 0;
@@ -634,10 +719,11 @@ internal static partial class Decoder
         var segments = new List<string>();
 
         var first = key.IndexOf('[');
+        string parent;
 #if NETSTANDARD2_0
-        var parent = first >= 0 ? key.Substring(0, first) : key;
+        parent = first >= 0 ? key.Substring(0, first) : key;
 #else
-        var parent = first >= 0 ? key[..first] : key;
+        parent = first >= 0 ? key[..first] : key;
 #endif
         if (!string.IsNullOrEmpty(parent))
             segments.Add(parent);
@@ -707,10 +793,11 @@ internal static partial class Decoder
             if (brokeUnterminated && first == 0)
                 return [originalKey];
 
+            string remainderFromOpen;
 #if NETSTANDARD2_0
-            var remainderFromOpen = key.Substring(open);
+            remainderFromOpen = key.Substring(open);
 #else
-            var remainderFromOpen = key[open..];
+            remainderFromOpen = key[open..];
 #endif
 
             // Wrap once: "[b[c" → "[[b[c]" (so downstream unwrapping yields "[b[c")
@@ -721,10 +808,11 @@ internal static partial class Decoder
         // Otherwise, handle any *trailing text* that comes after the last balanced group,
         // like "a[b]c" → remainder "c". Ignore a lone trailing '.' (degenerate top‑level dot).
         if (lastClose < 0 || lastClose + 1 >= key.Length) return segments;
+        string trailing;
 #if NETSTANDARD2_0
-        var trailing = key.Substring(lastClose + 1);
+        trailing = key.Substring(lastClose + 1);
 #else
-        var trailing = key[(lastClose + 1)..];
+        trailing = key[(lastClose + 1)..];
 #endif
         if (trailing == ".") return segments;
         if (strictDepth)

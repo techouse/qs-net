@@ -1,6 +1,4 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -9,6 +7,10 @@ using System.Web;
 using QsNet.Constants;
 using QsNet.Enums;
 using QsNet.Models;
+#if NETSTANDARD2_0
+using System;
+using System.Collections.Generic;
+#endif
 
 namespace QsNet.Internal;
 
@@ -779,15 +781,37 @@ internal static partial class Utils
             return null;
 
         encoding ??= Encoding.UTF8;
-        var strWithoutPlus = str.Replace('+', ' ');
+
+        bool hasPlus;
+        bool hasPercent;
+#if NETSTANDARD2_0
+        hasPlus = str.IndexOf('+') >= 0;
+        hasPercent = str.IndexOf('%') >= 0;
+#else
+        hasPlus = str.Contains('+');
+        hasPercent = str.Contains('%');
+#endif
+
+        if (!hasPlus && !hasPercent)
+            return str;
+
+        var strWithoutPlus = hasPlus ? str.Replace('+', ' ') : str;
 
         if (encoding.CodePage == 28591)
+        {
+            if (!hasPercent)
+                return strWithoutPlus;
+
             return MyRegex()
                 .Replace(strWithoutPlus,
 #pragma warning disable CS0618
                     match => Unescape(match.Value)
 #pragma warning restore CS0618
                 );
+        }
+
+        if (!hasPercent)
+            return strWithoutPlus;
 
         try
         {

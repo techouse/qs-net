@@ -1,14 +1,15 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using QsNet.Enums;
 using QsNet.Internal;
 using QsNet.Models;
 using Decoder = QsNet.Internal.Decoder;
 using Encoder = QsNet.Internal.Encoder;
+#if NETSTANDARD2_0
+using System;
+using System.Collections.Generic;
+#endif
 
 namespace QsNet;
 
@@ -58,64 +59,159 @@ public static class Qs
         if (opts is { ParseLists: true, ListLimit: > 0 } && tempObj.Count > opts.ListLimit)
             finalOptions = opts.CopyWith(parseLists: false);
 
-        // keep internal work in object-keyed maps
+        var decodeFromString = input is string;
+
         if (tempObj.Count == 0)
             return new Dictionary<string, object?>();
 
+        var structuredScan = StructuredKeyScan.Empty;
+        if (decodeFromString)
+        {
+            structuredScan = ScanStructuredKeys(tempObj, finalOptions);
+            if (!structuredScan.HasAnyStructuredSyntax)
+            {
+                var flatObj = new Dictionary<object, object?>(tempObj.Count);
+                foreach (var kv in tempObj)
+                    flatObj[kv.Key] = kv.Value;
+
+                var compactedFlat = Utils.Compact(flatObj, opts.AllowSparseLists);
+                return Utils.ToStringKeyDeepNonRecursive(compactedFlat);
+            }
+        }
+
+        // keep internal work in object-keyed maps
         var obj = new Dictionary<object, object?>(tempObj.Count);
 
-#if NETSTANDARD2_0
         foreach (var kv in tempObj)
         {
             var key = kv.Key;
             var value = kv.Value;
 
-            var parsed = Decoder.ParseKeys(key, value, finalOptions, input is string);
+            if (
+                decodeFromString
+                && !structuredScan.ContainsStructuredKey(key)
+                && !structuredScan.ContainsStructuredRoot(key)
+            )
+            {
+                obj[key] = obj.TryGetValue(key, out var existing)
+                    ? Utils.Merge(existing, value, finalOptions)
+                    : value;
+
+                continue;
+            }
+
+            var parsed = Decoder.ParseKeys(key, value, finalOptions, decodeFromString);
+
             if (parsed is null)
                 continue;
 
             if (obj.Count == 0 && parsed is IDictionary first)
             {
                 obj = Utils.ToObjectKeyedDictionary(first);
+
                 continue;
             }
 
             var merged = Utils.Merge(obj, parsed, finalOptions);
-
-            obj = merged switch
-            {
-                Dictionary<object, object?> d => d,
-                IDictionary id => Utils.ToObjectKeyedDictionary(id),
-                _ => obj
-            };
+            obj = NormalizeObjectMap(merged);
         }
-#else
-        foreach (var (key, value) in tempObj)
-        {
-            var parsed = Decoder.ParseKeys(key, value, finalOptions, input is string);
-            if (parsed is null)
-                continue;
-
-            if (obj.Count == 0 && parsed is IDictionary first)
-            {
-                obj = Utils.ToObjectKeyedDictionary(first);
-                continue;
-            }
-
-            var merged = Utils.Merge(obj, parsed, finalOptions);
-
-            obj = merged switch
-            {
-                Dictionary<object, object?> d => d,
-                IDictionary id => Utils.ToObjectKeyedDictionary(id),
-                _ => obj
-            };
-        }
-#endif
 
         // compact (still object-keyed), then convert the whole tree to string-keyed
         var compacted = Utils.Compact(obj, opts.AllowSparseLists);
         return Utils.ToStringKeyDeepNonRecursive(compacted);
+    }
+
+    private static Dictionary<object, object?> NormalizeObjectMap(object? merged)
+    {
+        return merged switch
+        {
+            Dictionary<object, object?> d => d,
+            IDictionary id => Utils.ToObjectKeyedDictionary(id),
+            _ => throw new InvalidOperationException(
+                $"NormalizeObjectMap expected a dictionary but received {merged?.GetType().FullName ?? "null"}."
+            )
+        };
+    }
+
+    private static StructuredKeyScan ScanStructuredKeys(
+        Dictionary<string, object?> tempObj,
+        DecodeOptions options
+    )
+    {
+        if (tempObj.Count == 0)
+            return StructuredKeyScan.Empty;
+
+        HashSet<string>? structuredRoots = null;
+        HashSet<string>? structuredKeys = null;
+        var allowDots = options.AllowDots;
+
+        foreach (var key in tempObj.Keys)
+        {
+            var splitAt = FirstStructuredSplitIndex(key, allowDots);
+            if (splitAt < 0)
+                continue;
+
+            structuredRoots ??= new HashSet<string>(StringComparer.Ordinal);
+            structuredKeys ??= new HashSet<string>(StringComparer.Ordinal);
+            structuredKeys.Add(key);
+
+            structuredRoots.Add(splitAt == 0 ? LeadingStructuredRoot(key, options) : key.Substring(0, splitAt));
+        }
+
+        return structuredKeys is null
+            ? StructuredKeyScan.Empty
+            : new StructuredKeyScan(true, structuredRoots, structuredKeys);
+    }
+
+    private static int FirstStructuredSplitIndex(string key, bool allowDots)
+    {
+        var splitAt = key.IndexOf('[');
+        if (!allowDots)
+            return splitAt;
+
+        var dotIndex = key.IndexOf('.');
+        if (dotIndex >= 0 && (splitAt < 0 || dotIndex < splitAt))
+            splitAt = dotIndex;
+
+#if NETSTANDARD2_0
+        if (key.IndexOf('%') < 0)
+#else
+        if (!key.Contains('%'))
+#endif
+            return splitAt;
+
+        var upper = key.IndexOf("%2E", StringComparison.Ordinal);
+        var lower = key.IndexOf("%2e", StringComparison.Ordinal);
+        var encodedDotIndex = upper >= 0
+            ? lower >= 0 ? Math.Min(upper, lower) : upper
+            : lower;
+
+        if (encodedDotIndex >= 0 && (splitAt < 0 || encodedDotIndex < splitAt))
+            splitAt = encodedDotIndex;
+
+        return splitAt;
+    }
+
+    private static string LeadingStructuredRoot(string key, DecodeOptions options)
+    {
+        var segments = Decoder.SplitKeyIntoSegments(
+            key,
+            options.AllowDots,
+            options.Depth,
+            options.StrictDepth
+        );
+
+        if (segments.Count == 0)
+            return key;
+
+        var first = segments[0];
+        if (first.Length == 0 || first[0] != '[')
+            return first;
+
+        var last = first.LastIndexOf(']');
+        var cleanRoot = last > 0 ? first.Substring(1, last - 1) : first.Substring(1);
+        // An empty cleanRoot comes from "[]"; treat it as array index 0 for root lookups.
+        return cleanRoot.Length == 0 ? "0" : cleanRoot;
     }
 
     /// <summary>
@@ -222,13 +318,19 @@ public static class Qs
                 }
                 catch
                 {
-                    // swallow filter exceptions like Kotlin code
+                    // swallow filter exceptions and continue with unfiltered object
                 }
 
                 break;
 
             case IterableFilter wl:
-                objKeys = wl.Iterable.Cast<object?>().ToList();
+                objKeys = wl.Iterable is ICollection collection
+                    ? new List<object?>(collection.Count)
+                    : new List<object?>();
+
+                foreach (var item in wl.Iterable)
+                    objKeys.Add(item);
+
                 break;
         }
 
