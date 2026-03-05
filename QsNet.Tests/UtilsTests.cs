@@ -3000,11 +3000,90 @@ public class UtilsTests
         }
     }
 
+    private sealed class TrackingThrowingEncoding : Encoding
+    {
+        public bool WasDecodePathUsed { get; private set; }
+
+        public override string EncodingName => "TrackingThrowingEncoding";
+
+        public override int GetByteCount(char[] chars, int index, int count)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override int GetBytes(char[] chars, int charIndex, int charCount, byte[] bytes, int byteIndex)
+        {
+            throw new NotSupportedException();
+        }
+
+        public override int GetCharCount(byte[] bytes, int index, int count)
+        {
+            WasDecodePathUsed = true;
+            throw new InvalidOperationException();
+        }
+
+        public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
+        {
+            WasDecodePathUsed = true;
+            throw new InvalidOperationException();
+        }
+
+        public override int GetMaxByteCount(int charCount)
+        {
+            return charCount * 2;
+        }
+
+        public override int GetMaxCharCount(int byteCount)
+        {
+            return byteCount;
+        }
+
+        public override Decoder GetDecoder()
+        {
+            return new TrackingThrowingDecoder(this);
+        }
+
+        public override byte[] GetPreamble()
+        {
+            return [];
+        }
+
+        private sealed class TrackingThrowingDecoder(TrackingThrowingEncoding owner) : Decoder
+        {
+            public override int GetCharCount(byte[] bytes, int index, int count)
+            {
+                owner.WasDecodePathUsed = true;
+                throw new InvalidOperationException("decoder failure");
+            }
+
+            public override int GetChars(byte[] bytes, int byteIndex, int byteCount, char[] chars, int charIndex)
+            {
+                owner.WasDecodePathUsed = true;
+                throw new InvalidOperationException("decoder failure");
+            }
+        }
+    }
+
     [Fact]
     public void Decode_ReturnsOriginalWhenUrlDecodeThrows()
     {
         const string encoded = "%41";
         Utils.Decode(encoded, new ThrowingEncoding()).Should().Be(encoded);
+    }
+
+    [Fact]
+    public void ShouldReturnOriginalWhenNoEscapesAndDecoderWouldThrow()
+    {
+        const string plain = "alpha-beta.gamma_123";
+        Utils.Decode(plain, new ThrowingEncoding()).Should().Be(plain);
+    }
+
+    [Fact]
+    public void ShouldReplacePlusWithoutInvokingUrlDecodeWhenNoPercent()
+    {
+        var trackingEncoding = new TrackingThrowingEncoding();
+        Utils.Decode("a+b+c", trackingEncoding).Should().Be("a b c");
+        trackingEncoding.WasDecodePathUsed.Should().BeFalse();
     }
 
     [Fact]
