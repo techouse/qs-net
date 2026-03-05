@@ -1,3 +1,12 @@
+## 1.3.2
+
+* [FIX] speed up `Qs.Decode` by pre-scanning structured keys and adding a flat-query fast path that bypasses `ParseKeys`/`Merge` when safe, while preserving existing decode semantics
+* [FIX] optimize `Decoder.ParseQueryStringValues` hot paths with low-allocation delimiter token collection, non-empty raw-key filtering during scan, and reduced per-token decode overhead
+* [FIX] optimize `Utils.Decode` by short-circuiting plain strings, avoiding unnecessary `UrlDecode` work when no percent-escapes are present, and only allocating `+` replacements when needed
+* [CHORE] extract structured key scan state into internal `StructuredKeyScan` with documentation and improve decode merge normalization/error surfacing
+* [CHORE] add regression coverage for mixed flat/structured ordering parity and decode fast-path behavior (`+` replacement without invoking decode paths)
+* [CHORE] scope framework-specific `using` directives for `netstandard2.0` compatibility cleanup across touched files
+
 ## 1.3.1
 
 * [CHORE] improve readability and consistency in Decoder
