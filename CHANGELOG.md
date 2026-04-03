@@ -1,3 +1,8 @@
+## 1.3.3
+
+* [FIX] align UTF-8 percent-decoding with `qs` fallback semantics by decoding valid `%XX` runs strictly and preserving malformed escapes / invalid UTF-8 components verbatim instead of partially decoding them
+* [CHORE] add dedicated `WptDerivedRegressionTests` coverage with curated `wpt/url` parser and stringifier cases for malformed escapes, space encoding (`RFC3986` / `RFC1738`), percent handling, NULs, and emoji
+
 ## 1.3.2
 
 * [FIX] speed up `Qs.Decode` by pre-scanning structured keys and adding a flat-query fast path that bypasses `ParseKeys`/`Merge` when safe, while preserving existing decode semantics
