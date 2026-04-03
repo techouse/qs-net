@@ -34,6 +34,7 @@ internal static partial class Utils
     }
 
     private static readonly ConditionalWeakTable<object, OverflowState> OverflowTable = new();
+    private static readonly Encoding StrictUtf8Encoding = new UTF8Encoding(false, true);
 
     // Regex for "%XX" percent-encoded bytes.
 #if NETSTANDARD2_0
@@ -813,6 +814,9 @@ internal static partial class Utils
         if (!hasPercent)
             return strWithoutPlus;
 
+        if (encoding.CodePage == Encoding.UTF8.CodePage)
+            return DecodeUtf8OrOriginal(strWithoutPlus);
+
         try
         {
             return HttpUtility.UrlDecode(strWithoutPlus, encoding);
@@ -821,6 +825,99 @@ internal static partial class Utils
         {
             return strWithoutPlus;
         }
+    }
+
+    /// <summary>
+    ///     Decodes contiguous <c>%XX</c> byte runs as UTF-8 and preserves qs-style fallback behavior.
+    /// </summary>
+    /// <param name="str">The already plus-normalized input component.</param>
+    /// <returns>
+    ///     The decoded string when all percent-encoded byte runs are valid UTF-8; otherwise the original
+    ///     input unchanged.
+    /// </returns>
+    /// <remarks>
+    ///     This avoids <see cref="HttpUtility.UrlDecode(string, Encoding)" /> partially decoding malformed
+    ///     sequences. When an invalid escape or invalid UTF-8 run is encountered, qs keeps the original
+    ///     component verbatim, so this helper does the same.
+    /// </remarks>
+    private static string DecodeUtf8OrOriginal(string str)
+    {
+        var sb = new StringBuilder(str.Length);
+        var i = 0;
+
+        while (i < str.Length)
+        {
+            if (str[i] != '%')
+            {
+                sb.Append(str[i]);
+                i++;
+                continue;
+            }
+
+            var start = i;
+            var byteCount = 0;
+            while (i + 2 < str.Length && str[i] == '%' && IsHexDigit(str[i + 1]) && IsHexDigit(str[i + 2]))
+            {
+                byteCount++;
+                i += 3;
+            }
+
+            if (byteCount == 0)
+                // A lone '%' or non-hex escape means the component is malformed; keep it verbatim.
+                return str;
+
+            var bytes = new byte[byteCount];
+            var cursor = start;
+            for (var byteIndex = 0; byteIndex < byteCount; byteIndex++)
+            {
+                bytes[byteIndex] = (byte)((HexValue(str[cursor + 1]) << 4) | HexValue(str[cursor + 2]));
+                cursor += 3;
+            }
+
+            try
+            {
+                sb.Append(StrictUtf8Encoding.GetString(bytes, 0, bytes.Length));
+            }
+            catch (DecoderFallbackException)
+            {
+                // Invalid UTF-8 bytes should round-trip unchanged instead of decoding partially.
+                return str;
+            }
+        }
+
+        return sb.ToString();
+    }
+
+    /// <summary>
+    ///     Determines whether a character is an ASCII hexadecimal digit.
+    /// </summary>
+    /// <param name="ch">The character to inspect.</param>
+    /// <returns><see langword="true" /> when the character is in <c>0-9</c>, <c>A-F</c>, or <c>a-f</c>.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static bool IsHexDigit(char ch)
+    {
+        return ch is >= '0' and <= '9'
+               or >= 'A' and <= 'F'
+               or >= 'a' and <= 'f';
+    }
+
+    /// <summary>
+    ///     Converts a single ASCII hexadecimal digit to its numeric value.
+    /// </summary>
+    /// <param name="ch">The hexadecimal digit to convert.</param>
+    /// <returns>The integer value represented by <paramref name="ch" />.</returns>
+    /// <remarks>
+    ///     Callers are expected to validate the input with <see cref="IsHexDigit" /> first.
+    /// </remarks>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int HexValue(char ch)
+    {
+        return ch switch
+        {
+            >= '0' and <= '9' => ch - '0',
+            >= 'A' and <= 'F' => ch - 'A' + 10,
+            _ => ch - 'a' + 10
+        };
     }
 
     /// <summary>
