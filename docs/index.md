@@ -67,6 +67,7 @@ string qs = Qs.Encode(new Dictionary<string, object?>
 | Python                     | [techouse/qs_codec](https://github.com/techouse/qs_codec)   | [![PyPI](https://img.shields.io/pypi/v/qs-codec?logo=python&label=PyPI)](https://pypi.org/project/qs-codec/)                                                                                  |
 | Kotlin / JVM + Android AAR | [techouse/qs-kotlin](https://github.com/techouse/qs-kotlin) | [![Maven Central](https://img.shields.io/maven-central/v/io.github.techouse/qs-kotlin?logo=kotlin&label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.techouse/qs-kotlin) |
 | Swift / Objective-C        | [techouse/qs-swift](https://github.com/techouse/qs-swift)   | [![SPM](https://img.shields.io/github/v/release/techouse/qs-swift?logo=swift&label=SwiftPM)](https://swiftpackageindex.com/techouse/qs-swift)                                                 |
+| Rust                       | [techouse/qs_rust](https://github.com/techouse/qs_rust)     | [![crates.io](https://img.shields.io/crates/v/qs_rust?logo=rust&label=crates.io)](https://crates.io/crates/qs_rust)                                                                           |
 | Node.js (original)         | [ljharb/qs](https://github.com/ljharb/qs)                   | [![npm](https://img.shields.io/npm/v/qs?logo=javascript&label=npm)](https://www.npmjs.com/package/qs)                                                                                         |
 
 ---
