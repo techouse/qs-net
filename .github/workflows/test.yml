@@ -105,13 +105,20 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version: 24
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: QsNet.Comparison/js/package.json
+          run_install: false
+          cache: true
+          cache_dependency_path: QsNet.Comparison/js/pnpm-lock.yaml
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
       - name: Install JS dependencies
-        run: npm install
+        run: pnpm install --frozen-lockfile
         working-directory: QsNet.Comparison/js
       - name: Run C# comparison
         run: dotnet run --project QsNet.Comparison -c Release > cs.out
