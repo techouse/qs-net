@@ -251,9 +251,12 @@ public static class Qs
             }
 
             var existing = result[bucketKey];
+            var isBracketArrayKey = decodedKey.EndsWith("[]", StringComparison.Ordinal);
             switch (options.Duplicates)
             {
                 case Duplicates.Combine:
+                case Duplicates.First when isBracketArrayKey:
+                case Duplicates.Last when isBracketArrayKey:
                     result[bucketKey] = Utils.CombineWithLimit(existing, value, options);
                     break;
                 case Duplicates.Last:

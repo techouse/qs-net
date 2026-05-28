@@ -29,6 +29,7 @@ public class DecodeOptionsTests
             InterpretNumericEntities = true,
             ParameterLimit = 200,
             ParseLists = true,
+            StrictMerge = false,
             StrictNullHandling = true
         };
 
@@ -49,6 +50,7 @@ public class DecodeOptionsTests
         newOptions.InterpretNumericEntities.Should().BeTrue();
         newOptions.ParameterLimit.Should().Be(200);
         newOptions.ParseLists.Should().BeTrue();
+        newOptions.StrictMerge.Should().BeFalse();
         newOptions.StrictNullHandling.Should().BeTrue();
 
         newOptions.Should().BeEquivalentTo(options);
@@ -91,6 +93,7 @@ public class DecodeOptionsTests
             interpretNumericEntities: false,
             parameterLimit: 200,
             parseLists: true,
+            strictMerge: false,
             strictNullHandling: false
         );
 
@@ -108,6 +111,7 @@ public class DecodeOptionsTests
         newOptions.InterpretNumericEntities.Should().BeFalse();
         newOptions.ParameterLimit.Should().Be(200);
         newOptions.ParseLists.Should().BeTrue();
+        newOptions.StrictMerge.Should().BeFalse();
         newOptions.StrictNullHandling.Should().BeFalse();
     }
 

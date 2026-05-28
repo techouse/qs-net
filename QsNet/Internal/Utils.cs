@@ -275,7 +275,15 @@ internal static partial class Utils
 
                                         var k = StringifyKey(currentSource);
                                         if (k.Length > 0)
+                                        {
+                                            if (opts.StrictMerge)
+                                            {
+                                                Complete(frame, new List<object?> { mutable, currentSource });
+                                                continue;
+                                            }
+
                                             mutable[k] = true;
+                                        }
 
                                         Complete(frame, mutable);
                                         continue;
@@ -1148,10 +1156,20 @@ internal static partial class Utils
     /// <param name="obj">Object to mark.</param>
     /// <param name="maxIndex">Current maximum index.</param>
     /// <returns>The same object instance for fluent call sites.</returns>
-    private static object MarkOverflow(object obj, int maxIndex)
+    internal static object MarkOverflow(object obj, int maxIndex)
     {
         SetOverflowMaxIndex(obj, maxIndex);
         return obj;
+    }
+
+    /// <summary>
+    ///     Converts a positional list into an overflow-marked dictionary keyed by numeric-string indices.
+    /// </summary>
+    /// <param name="list">List to convert.</param>
+    /// <returns>An overflow dictionary preserving all list values and the highest index.</returns>
+    internal static Dictionary<object, object?> MarkListOverflow(List<object?> list)
+    {
+        return (Dictionary<object, object?>)MarkOverflow(ListToIndexMap(list), list.Count - 1);
     }
 
     /// <summary>
@@ -1231,6 +1249,28 @@ internal static partial class Utils
             target[nextIndex.ToString(CultureInfo.InvariantCulture)] = b;
             SetOverflowMaxIndex(target, nextIndex);
             return target;
+        }
+
+        if (IsOverflow(b) && a is IEnumerable<object?> aEnumerable)
+        {
+            var targetList = aEnumerable as List<object?> ?? CopyToList(aEnumerable);
+            var target = ListToIndexMap(targetList);
+            var nextIndex = targetList.Count - 1;
+            var source = (IDictionary)b!;
+            var numericEntries = new SortedDictionary<int, object?>();
+
+            foreach (DictionaryEntry entry in source)
+            {
+                if (TryGetArrayIndex(entry.Key, out var idx))
+                    numericEntries[idx] = entry.Value;
+                else
+                    target[entry.Key] = entry.Value;
+            }
+
+            foreach (var entry in numericEntries)
+                target[(++nextIndex).ToString(CultureInfo.InvariantCulture)] = entry.Value;
+
+            return MarkOverflow(target, Math.Max(nextIndex, GetOverflowMaxIndex(source)));
         }
 
         var combined = Combine<object?>(a, b);

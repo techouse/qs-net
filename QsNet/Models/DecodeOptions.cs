@@ -65,8 +65,8 @@ public sealed class DecodeOptions
 
     /// <summary>
     ///     Controls list growth limits during decoding.
-    ///     For explicit numeric indices (for example <c>a[21]</c>), values with index greater than this
-    ///     limit are treated as dictionary entries instead of list entries.
+    ///     For explicit numeric indices (for example <c>a[20]</c>), values with index greater than or
+    ///     equal to this limit are treated as dictionary entries instead of list entries.
     ///     For implicit/comma/combined list growth (for example <c>a[]=1&amp;a[]=2</c>), this is enforced
     ///     as a maximum list size before overflow conversion or exception (when
     ///     <see cref="ThrowOnLimitExceeded" /> is true).
@@ -143,6 +143,13 @@ public sealed class DecodeOptions
     ///     allowing you to catch and handle such cases.
     /// </summary>
     public bool StrictDepth { get; init; }
+
+    /// <summary>
+    ///     Set to true to wrap object/primitive merge conflicts in a list.
+    ///     Set to false to preserve the legacy behavior where non-empty primitive values merge into
+    ///     objects as keys with value true.
+    /// </summary>
+    public bool StrictMerge { get; init; } = true;
 
     /// <summary>
     ///     Set to true to decode values without = to null.
@@ -262,6 +269,7 @@ public sealed class DecodeOptions
     /// <param name="strictDepth">Set to override StrictDepth</param>
     /// <param name="strictNullHandling">Set to override StrictNullHandling</param>
     /// <param name="throwOnLimitExceeded">Set to override ThrowOnLimitExceeded</param>
+    /// <param name="strictMerge">Set to override StrictMerge</param>
     /// <returns>A new DecodeOptions instance with the specified changes</returns>
     public DecodeOptions CopyWith(
         bool? allowDots = null,
@@ -283,7 +291,8 @@ public sealed class DecodeOptions
         bool? parseLists = null,
         bool? strictDepth = null,
         bool? strictNullHandling = null,
-        bool? throwOnLimitExceeded = null
+        bool? throwOnLimitExceeded = null,
+        bool? strictMerge = null
     )
     {
         var finalDecodeDotInKeys = decodeDotInKeys.GetValueOrDefault(DecodeDotInKeys);
@@ -311,6 +320,7 @@ public sealed class DecodeOptions
             InterpretNumericEntities = interpretNumericEntities.GetValueOrDefault(InterpretNumericEntities),
             ParseLists = parseLists.GetValueOrDefault(ParseLists),
             StrictDepth = strictDepth.GetValueOrDefault(StrictDepth),
+            StrictMerge = strictMerge.GetValueOrDefault(StrictMerge),
             StrictNullHandling = strictNullHandling.GetValueOrDefault(StrictNullHandling),
             ThrowOnLimitExceeded = throwOnLimitExceeded.GetValueOrDefault(ThrowOnLimitExceeded)
         };
