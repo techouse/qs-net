@@ -4744,6 +4744,59 @@ public partial class DecodeTest
     }
 
     [Fact]
+    public void ShouldAppendIncomingCommaOverflowAsSingleElementWhenExistingValueIsList()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 3,
+            ThrowOnLimitExceeded = false,
+            ParseLists = true,
+            Duplicates = Duplicates.Combine
+        };
+
+        var result = Qs.Decode("a=1,2&a=3,4,5,6", opts);
+
+        var dict = Assert.IsType<Dictionary<string, object?>>(result);
+        var list = Assert.IsType<List<object?>>(dict["a"]);
+        list[0].Should().Be("1");
+        list[1].Should().Be("2");
+
+        var overflow = Assert.IsAssignableFrom<IDictionary<string, object?>>(list[2]);
+        overflow.Should().BeEquivalentTo(new Dictionary<string, object?>
+        {
+            ["0"] = "3",
+            ["1"] = "4",
+            ["2"] = "5",
+            ["3"] = "6"
+        });
+    }
+
+    [Fact]
+    public void ShouldAppendCommaListAsSingleElementWhenExistingValueIsOverflowMap()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 2,
+            ThrowOnLimitExceeded = false,
+            ParseLists = true,
+            Duplicates = Duplicates.Combine
+        };
+
+        var result = Qs.Decode("a=1,2,3&a=4,5", opts);
+
+        var dict = Assert.IsType<Dictionary<string, object?>>(result);
+        var map = Assert.IsAssignableFrom<IDictionary<string, object?>>(dict["a"]);
+        map["0"].Should().Be("1");
+        map["1"].Should().Be("2");
+        map["2"].Should().Be("3");
+
+        var nested = Assert.IsType<List<object?>>(map["3"]);
+        nested.Select(x => x?.ToString()).Should().Equal("4", "5");
+    }
+
+    [Fact]
     public void ShouldCombineBeforeOverflowWhenCommaValueIsWithinLimit()
     {
         var opts = new DecodeOptions
