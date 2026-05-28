@@ -1251,28 +1251,6 @@ internal static partial class Utils
             return target;
         }
 
-        if (IsOverflow(b) && a is IEnumerable<object?> aEnumerable)
-        {
-            var targetList = aEnumerable as List<object?> ?? CopyToList(aEnumerable);
-            var target = ListToIndexMap(targetList);
-            var nextIndex = targetList.Count - 1;
-            var source = (IDictionary)b!;
-            var numericEntries = new SortedDictionary<int, object?>();
-
-            foreach (DictionaryEntry entry in source)
-            {
-                if (TryGetArrayIndex(entry.Key, out var idx))
-                    numericEntries[idx] = entry.Value;
-                else
-                    target[entry.Key] = entry.Value;
-            }
-
-            foreach (var entry in numericEntries)
-                target[(++nextIndex).ToString(CultureInfo.InvariantCulture)] = entry.Value;
-
-            return MarkOverflow(target, Math.Max(nextIndex, GetOverflowMaxIndex(source)));
-        }
-
         var combined = Combine<object?>(a, b);
         if (combined.Count <= options.ListLimit)
             return combined;
