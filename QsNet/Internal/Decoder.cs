@@ -70,7 +70,7 @@ internal static partial class Decoder
                     var end = idx >= 0 ? idx : str.Length;
                     if (enforceListLimit && options.ThrowOnLimitExceeded)
                     {
-                        if (list.Count >= options.ListLimit)
+                        if (currentListLength + list.Count >= options.ListLimit)
                             throw new InvalidOperationException(
                                 $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
                             );
