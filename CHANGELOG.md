@@ -1,3 +1,13 @@
+## 1.3.4
+
+* [FEAT] add `DecodeOptions.StrictMerge` (default `true`) to match `qs` `strictMerge`, wrapping object/scalar merge conflicts as arrays while preserving the legacy object-then-scalar merge behavior when set to `false`
+* [FIX] align duplicate handling with `qs` 6.15.2 so bracket-array assignments combine under `Duplicates.First` / `Duplicates.Last` while ordinary duplicate scalar keys still honor the configured strategy
+* [FIX] align `ListLimit` / `arrayLimit` semantics with `qs`: explicit numeric indices are list entries only when `index < ListLimit`, overflow indices become dictionaries or throw, and `ListLimit = 0` with `ThrowOnLimitExceeded` rejects both indexed and bracket-push arrays
+* [FIX] preserve comma-split overflow values as dictionaries instead of truncating, keep bracket-array comma values as a single outer array element, and preserve `qs` overflow-combine shapes for nested comma/list overflow cases
+* [FIX] use `EncodeOptions.Delimiter` after the charset sentinel instead of hardcoding `&`, and cover strict-null RFC1738 formatting, iterable filter null entries, comma/null encode behavior, and percent-encoded bracket-text round trips
+* [DOCS] document `StrictMerge`, corrected `ListLimit` wording, and bracket-array duplicate behavior in README and decoding docs
+* [CHORE] bump the comparison harness `qs` dependency to 6.15.2 and expand decode/encode regression coverage for the new upstream parity cases
+
 ## 1.3.3
 
 * [FIX] align UTF-8 percent-decoding with `qs` fallback semantics by decoding valid `%XX` runs strictly and preserving malformed escapes / invalid UTF-8 components verbatim instead of partially decoding them
