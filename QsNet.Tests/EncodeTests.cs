@@ -5912,7 +5912,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void Encode_StrictNullHandling_FormatsRfc1738BareKey()
+    public void Should_FormatRfc1738BareKeyWhenStrictNullHandling()
     {
         Qs.Encode(
                 new Dictionary<string, object?> { ["a b"] = null },
@@ -5923,7 +5923,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void Encode_FilterIterable_SkipsNullEntries()
+    public void Should_SkipNullEntriesWhenFilterIterable()
     {
         Qs.Encode(
                 new Dictionary<string, object?>
@@ -5939,7 +5939,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void Encode_CommaEncodeValuesOnly_HandlesNullEntriesLikeQs()
+    public void Should_HandleNullEntriesLikeQsWhenCommaEncodeValuesOnly()
     {
         var options = new EncodeOptions { ListFormat = ListFormat.Comma, EncodeValuesOnly = true };
 
@@ -5963,7 +5963,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void Encode_RoundTripsKeysContainingPercentEncodedBracketText()
+    public void Should_RoundTripKeysContainingPercentEncodedBracketText()
     {
         var cases = new[]
         {
