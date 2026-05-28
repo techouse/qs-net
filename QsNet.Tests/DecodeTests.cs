@@ -2665,7 +2665,7 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void Decode_Duplicates_BracketNotationAlwaysCombines()
+    public void ShouldCombineDuplicatesWhenUsingBracketNotation()
     {
         Qs.Decode("a=1&a=2&b[]=1&b[]=2", new DecodeOptions { Duplicates = Duplicates.Last })
             .Should()
@@ -2687,7 +2687,7 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void Decode_StrictMerge_DefaultWrapsObjectPrimitiveConflicts()
+    public void ShouldWrapObjectPrimitiveConflictsWhenStrictMergeIsDefault()
     {
         Qs.Decode("a[b]=c&a=d")
             .Should()
@@ -2715,7 +2715,7 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void Decode_StrictMerge_FalseKeepsLegacyObjectThenPrimitiveMerge()
+    public void ShouldKeepLegacyObjectThenPrimitiveMergeWhenStrictMergeIsFalse()
     {
         var options = new DecodeOptions { StrictMerge = false };
 
@@ -2956,7 +2956,7 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void Decode_ListLimit_ThrowsForExplicitIndexAtLimitWhenThrowOn()
+    public void ShouldThrowForExplicitIndexAtListLimitWhenThrowOnLimitExceeded()
     {
         var options = new DecodeOptions { ListLimit = 0, ThrowOnLimitExceeded = true };
 
@@ -4744,7 +4744,7 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void Decode_CommaSplit_CombinesBeforeOverflowWhenIncomingValueIsWithinLimit()
+    public void ShouldCombineBeforeOverflowWhenCommaValueIsWithinLimit()
     {
         var opts = new DecodeOptions
         {
@@ -4769,7 +4769,7 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void Decode_CommaSplit_ConvertsToOverflowMapWhenSumExceedsLimit_AndThrowOff()
+    public void ShouldConvertCommaSplitToOverflowMapWhenCombinedLengthExceedsLimit()
     {
         var opts = new DecodeOptions
         {
@@ -4795,7 +4795,7 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void Decode_CommaSplit_AppendsIncomingValuesToOverflowMapWhenAlreadyAtLimit_AndThrowOff()
+    public void ShouldAppendCommaValuesToOverflowMapWhenAlreadyAtLimit()
     {
         var opts = new DecodeOptions
         {
@@ -4821,7 +4821,7 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void Decode_CommaSplit_BracketedKey_TreatsCommaValueAsOneOuterElement_AndThrowOff()
+    public void ShouldTreatCommaValueAsOneOuterElementWhenBracketedKey()
     {
         var opts = new DecodeOptions
         {
@@ -4863,7 +4863,7 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void Decode_BracketSingle_CommaSplit_DoesNotApplyInnerListLimit()
+    public void ShouldNotApplyInnerListLimitForBracketSingleCommaSplit()
     {
         var opts = new DecodeOptions
         {
@@ -4895,7 +4895,7 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void EncodedBracketText_DecodesWithoutMungingLiteralPercentSequences()
+    public void ShouldDecodeEncodedBracketTextWithoutMungingLiteralPercentSequences()
     {
         Qs.Decode("a%25255Bb=c")
             .Should()
@@ -5475,7 +5475,7 @@ public partial class DecodeTest
     #region Decode comma limit
 
     [Fact]
-    public void Decode_CommaSplit_AllowedWhenSumEqualsLimit()
+    public void ShouldAllowCommaSplitWhenCombinedLengthEqualsLimit()
     {
         var opts = new DecodeOptions
         {
@@ -5496,7 +5496,7 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void Decode_CommaSplit_ThrowsWhenSumExceedsLimitAndThrowOn()
+    public void ShouldThrowWhenCommaSplitCombinedLengthExceedsLimitAndThrowOn()
     {
         var opts = new DecodeOptions
         {
