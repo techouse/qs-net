@@ -429,7 +429,7 @@ public static class Qs
         {
             if (wroteBodyPart)
                 sb.Append(opts.Delimiter);
-            else if (wroteSentinel) sb.Append('&');
+            else if (wroteSentinel) sb.Append(opts.Delimiter);
 
             sb.Append(part);
             wroteBodyPart = true;
