@@ -1373,7 +1373,7 @@ public class UtilsTests
         var obj = new Dictionary<object, object?> { ["0"] = "a", ["1"] = "b" };
         Utils.IsOverflow(obj).Should().BeFalse();
 
-        var merged = Utils.Merge(obj, "c");
+        var merged = Utils.Merge(obj, "c", new DecodeOptions { StrictMerge = false });
         merged.Should()
             .BeEquivalentTo(
                 new Dictionary<object, object?>
@@ -2159,7 +2159,7 @@ public class UtilsTests
 
         var x = new Dictionary<string, object?> { { "foo", "baz" } };
         Utils
-            .Merge(x, "bar")
+            .Merge(x, "bar", new DecodeOptions { StrictMerge = false })
             .Should()
             .BeEquivalentTo(new Dictionary<string, object?> { { "foo", "baz" }, { "bar", true } });
     }

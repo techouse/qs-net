@@ -45,14 +45,16 @@ internal static partial class Decoder
     /// <param name="value">The value to parse, which can be a string or any other type.</param>
     /// <param name="options">The decoding options that affect how the value is parsed.</param>
     /// <param name="currentListLength">The current length of the list being parsed, used for limit checks.</param>
+    /// <param name="enforceListLimit">Whether to enforce comma-split list limits for this value.</param>
     /// <returns>The parsed value, which may be a List or the original value if no parsing is needed.</returns>
     private static object? ParseListValue(
         object? value,
         DecodeOptions options,
-        int currentListLength
+        int currentListLength,
+        bool enforceListLimit = true
     )
     {
-        if (options.ListLimit < 0)
+        if (options.ListLimit < 0 && !options.Comma)
             return value;
 
         if (value is string str && options.Comma && str.Length != 0)
@@ -60,39 +62,34 @@ internal static partial class Decoder
             var idx = str.IndexOf(',');
             if (idx >= 0)
             {
-                var remaining = options.ListLimit - currentListLength;
                 var list = new List<object?>();
                 var start = 0;
 
                 while (true)
                 {
                     var end = idx >= 0 ? idx : str.Length;
-                    if (options.ThrowOnLimitExceeded)
+                    if (enforceListLimit && options.ThrowOnLimitExceeded)
                     {
                         if (currentListLength + list.Count >= options.ListLimit)
                             throw new InvalidOperationException(
                                 $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
                             );
-                        list.Add(str.Substring(start, end - start));
                     }
-                    else
-                    {
-                        if (remaining <= 0)
-                            // Signal ParseQueryStringValues to drop this entire incoming pair (see parsedValue is Undefined -> continue).
-                            return Undefined.Instance;
-                        if (list.Count < remaining)
-                            list.Add(str.Substring(start, end - start));
-                    }
+
+                    list.Add(str.Substring(start, end - start));
 
                     if (idx < 0)
                         break;
 
                     start = idx + 1;
                     idx = str.IndexOf(',', start);
-
-                    if (!options.ThrowOnLimitExceeded && list.Count >= remaining && idx >= 0)
-                        return list;
                 }
+
+                if (
+                    enforceListLimit
+                    && list.Count > options.ListLimit
+                )
+                    return Utils.MarkListOverflow(list);
 
                 return list;
             }
@@ -213,6 +210,7 @@ internal static partial class Decoder
                 break;
             }
 
+            var isBracketArrayKey = pos != -1 && rawKey.EndsWith("[]", StringComparison.Ordinal);
             var hadExisting = obj.TryGetValue(key, out var existingVal);
             if (pos == -1)
             {
@@ -222,7 +220,7 @@ internal static partial class Decoder
             {
                 // Only count existing when combining; Last/First do not increase length.
                 var currentLength = 0;
-                if (hadExisting && options.Duplicates == Duplicates.Combine)
+                if (hadExisting && (options.Duplicates == Duplicates.Combine || isBracketArrayKey))
                 {
                     if (existingVal is IList<object?> l) currentLength = l.Count;
                     else if (!Utils.IsEmpty(existingVal)) currentLength = 1;
@@ -230,9 +228,9 @@ internal static partial class Decoder
 
                 object? parsedValue;
 #if NETSTANDARD2_0
-                parsedValue = ParseListValue(part.Substring(pos + 1), options, currentLength);
+                parsedValue = ParseListValue(part.Substring(pos + 1), options, currentLength, !isBracketArrayKey);
 #else
-                parsedValue = ParseListValue(part[(pos + 1)..], options, currentLength);
+                parsedValue = ParseListValue(part[(pos + 1)..], options, currentLength, !isBracketArrayKey);
 #endif
                 switch (parsedValue)
                 {
@@ -245,6 +243,16 @@ internal static partial class Decoder
                             for (var listIndex = 0; listIndex < parsedList.Count; listIndex++)
                                 decodedList.Add(options.DecodeValue(parsedList[listIndex] as string, charset));
                             value = decodedList;
+                            break;
+                        }
+                    case IDictionary parsedMap:
+                        {
+                            var decodedMap = new Dictionary<object, object?>(parsedMap.Count);
+                            foreach (DictionaryEntry entry in parsedMap)
+                                decodedMap[entry.Key] = options.DecodeValue(entry.Value as string, charset);
+                            if (Utils.IsOverflow(parsedMap))
+                                Utils.MarkOverflow(decodedMap, GetMaxIndex(decodedMap));
+                            value = decodedMap;
                             break;
                         }
                     default:
@@ -266,13 +274,15 @@ internal static partial class Decoder
                 value = Utils.InterpretNumericEntities(tmpStr);
             }
 
-            if (pos != -1 && rawKey.EndsWith("[]", StringComparison.Ordinal))
+            if (isBracketArrayKey)
                 value = value is IEnumerable and not string ? new List<object?> { value } : value;
 
             if (hadExisting)
                 switch (options.Duplicates)
                 {
                     case Duplicates.Combine:
+                    case Duplicates.First when isBracketArrayKey:
+                    case Duplicates.Last when isBracketArrayKey:
                         obj[key] = Utils.CombineWithLimit(existingVal, value, options);
                         break;
                     case Duplicates.Last:
@@ -346,6 +356,16 @@ internal static partial class Decoder
                 count++;
 
         return count;
+    }
+
+    private static int GetMaxIndex(IDictionary map)
+    {
+        var max = -1;
+        foreach (DictionaryEntry entry in map)
+            if (int.TryParse(entry.Key?.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var idx)
+                && idx > max)
+                max = idx;
+        return max;
     }
 
     private static List<string> CollectNonEmptyEnumerableParts(IEnumerable<string> parts)
@@ -563,18 +583,25 @@ internal static partial class Decoder
                 else
                     switch (isBracketedNumeric)
                     {
-                        case true when idx >= 0 && idx <= options.ListLimit:
+                        case true when idx >= 0 && idx < options.ListLimit:
                             {
-                                // Build a list up to idx (0 is allowed when ListLimit == 0)
+                                // Build a list up to idx.
                                 var list = new List<object?>(idx + 1);
                                 for (var j = 0; j <= idx; j++)
                                     list.Add(j == idx ? leaf : Undefined.Instance);
                                 obj = list;
                                 break;
                             }
+                        case true when idx >= 0 && options.ThrowOnLimitExceeded:
+                            throw new InvalidOperationException(
+                                $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
+                            );
                         case true:
                             // Not a list (e.g., idx > ListLimit) → map with the string key (e.g., "2", "99999999")
-                            obj = new Dictionary<object, object?> { [decodedRoot] = leaf };
+                            obj = Utils.MarkOverflow(
+                                new Dictionary<object, object?> { [decodedRoot] = leaf },
+                                idx
+                            );
                             break;
                         default:
                             // Non-numeric or non-bracketed → map with string key

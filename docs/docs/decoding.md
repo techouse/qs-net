@@ -98,6 +98,31 @@ Qs.Decode("foo=bar&foo=baz", new DecodeOptions { Duplicates = Duplicates.Last })
 // => { "foo": "baz" }
 ```
 
+Bracket-array keys always combine, even when plain duplicate keys are configured
+to keep only the first or last value:
+
+```csharp
+Qs.Decode("foo[]=bar&foo[]=baz", new DecodeOptions { Duplicates = Duplicates.First });
+// => { "foo": ["bar", "baz"] }
+```
+
+### Strict merge
+
+Object/primitive merge conflicts wrap into a list by default:
+
+```csharp
+Qs.Decode("a[b]=c&a=d");
+// => { "a": [{ "b": "c" }, "d"] }
+```
+
+Set `StrictMerge` to `false` to preserve the legacy QsNet behavior for
+object-then-primitive conflicts:
+
+```csharp
+Qs.Decode("a[b]=c&a=d", new DecodeOptions { StrictMerge = false });
+// => { "a": { "b": "c", "d": true } }
+```
+
 ### Charset and sentinel
 
 ```csharp
@@ -139,9 +164,11 @@ Qs.Decode("a[]=&a[]=b");
 // => { "a": ["", "b"] }
 ```
 
-`ListLimit` uses two related guards:
-- Explicit numeric indices (`a[21]`) are limited by maximum allowed index (`index <= ListLimit`).
-- Implicit/comma/combined list growth (`a[]`, comma lists, duplicate combine paths) is limited by maximum list size before overflow conversion or exception.
+`ListLimit` is the maximum element count for lists. Explicit numeric indices are
+list entries only when `index < ListLimit`; an index at or above the limit
+becomes a dictionary entry by default, or throws when `ThrowOnLimitExceeded` is
+true. Implicit list growth, comma lists, and duplicate-combine paths use the same
+element count before overflow conversion or exception.
 
 Large indices convert to a dictionary by default:
 

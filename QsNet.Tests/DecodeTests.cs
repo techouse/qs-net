@@ -1182,29 +1182,29 @@ public partial class DecodeTest
     [Fact]
     public void Decode_LimitsSpecificListIndices_ToListLimit()
     {
-        Qs.Decode("a[20]=a", new DecodeOptions { ListLimit = 20 })
+        Qs.Decode("a[19]=a", new DecodeOptions { ListLimit = 20 })
             .Should()
             .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "a" } });
 
-        Qs.Decode("a[21]=a", new DecodeOptions { ListLimit = 20 })
+        Qs.Decode("a[20]=a", new DecodeOptions { ListLimit = 20 })
             .Should()
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["21"] = "a" }
+                    ["a"] = new Dictionary<string, object?> { ["20"] = "a" }
                 }
             );
 
-        Qs.Decode("a[20]=a")
+        Qs.Decode("a[19]=a")
             .Should()
             .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "a" } });
 
-        Qs.Decode("a[21]=a")
+        Qs.Decode("a[20]=a")
             .Should()
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["21"] = "a" }
+                    ["a"] = new Dictionary<string, object?> { ["20"] = "a" }
                 }
             );
     }
@@ -1214,7 +1214,11 @@ public partial class DecodeTest
     {
         Qs.Decode("a[2]=x", new DecodeOptions { ListLimit = 2 })
             .Should()
-            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "x" } });
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new Dictionary<string, object?> { ["2"] = "x" }
+                });
 
         Qs.Decode("a[]=1&a[]=2&a[]=3", new DecodeOptions { ListLimit = 2 })
             .Should()
@@ -1832,7 +1836,12 @@ public partial class DecodeTest
 
         Qs.Decode("a[0]=b", new DecodeOptions { ListLimit = 0 })
             .Should()
-            .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "b" } });
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "b" }
+                }
+            );
 
         Qs.Decode("a[-1]=b", new DecodeOptions { ListLimit = -1 })
             .Should()
@@ -2656,6 +2665,82 @@ public partial class DecodeTest
     }
 
     [Fact]
+    public void ShouldCombineDuplicatesWhenUsingBracketNotation()
+    {
+        Qs.Decode("a=1&a=2&b[]=1&b[]=2", new DecodeOptions { Duplicates = Duplicates.Last })
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = "2",
+                    ["b"] = new List<object?> { "1", "2" }
+                });
+
+        Qs.Decode("a=1&a=2&b[]=1&b[]=2", new DecodeOptions { Duplicates = Duplicates.First })
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = "1",
+                    ["b"] = new List<object?> { "1", "2" }
+                });
+    }
+
+    [Fact]
+    public void ShouldWrapObjectPrimitiveConflictsWhenStrictMergeIsDefault()
+    {
+        Qs.Decode("a[b]=c&a=d")
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new List<object?>
+                    {
+                        new Dictionary<string, object?> { ["b"] = "c" },
+                        "d"
+                    }
+                });
+
+        Qs.Decode("a=d&a[b]=c")
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new List<object?>
+                    {
+                        "d",
+                        new Dictionary<string, object?> { ["b"] = "c" }
+                    }
+                });
+    }
+
+    [Fact]
+    public void ShouldKeepLegacyObjectThenPrimitiveMergeWhenStrictMergeIsFalse()
+    {
+        var options = new DecodeOptions { StrictMerge = false };
+
+        Qs.Decode("a[b]=c&a=d", options)
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new Dictionary<string, object?>
+                    {
+                        ["b"] = "c",
+                        ["d"] = true
+                    }
+                });
+
+        Qs.Decode("a[b]=c&a=", options)
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
+                });
+    }
+
+    [Fact]
     public void Decode_StrictDepth_ThrowsExceptionForMultipleNestedObjectsWithStrictDepthTrue()
     {
         var options = new DecodeOptions { Depth = 1, StrictDepth = true };
@@ -2868,6 +2953,18 @@ public partial class DecodeTest
 
         Action act = () => Qs.Decode("a[]=1&a[]=2&a[]=3&a[]=4", options);
         act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void ShouldThrowForExplicitIndexAtListLimitWhenThrowOnLimitExceeded()
+    {
+        var options = new DecodeOptions { ListLimit = 0, ThrowOnLimitExceeded = true };
+
+        Action explicitIndex = () => Qs.Decode("a[0]=b", options);
+        explicitIndex.Should().Throw<InvalidOperationException>();
+
+        Action bracketPush = () => Qs.Decode("a[]=b", options);
+        bracketPush.Should().Throw<InvalidOperationException>();
     }
 
     [Fact]
@@ -3433,29 +3530,29 @@ public partial class DecodeTest
         var options = new DecodeOptions();
         var options20 = new DecodeOptions { ListLimit = 20 };
 
-        Qs.Decode("a[20]=a", options20)
+        Qs.Decode("a[19]=a", options20)
             .Should()
             .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "a" } });
 
-        Qs.Decode("a[21]=a", options20)
+        Qs.Decode("a[20]=a", options20)
             .Should()
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["21"] = "a" }
+                    ["a"] = new Dictionary<string, object?> { ["20"] = "a" }
                 }
             );
 
-        Qs.Decode("a[20]=a", options)
+        Qs.Decode("a[19]=a", options)
             .Should()
             .BeEquivalentTo(new Dictionary<string, object?> { ["a"] = new List<object?> { "a" } });
 
-        Qs.Decode("a[21]=a", options)
+        Qs.Decode("a[20]=a", options)
             .Should()
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["21"] = "a" }
+                    ["a"] = new Dictionary<string, object?> { ["20"] = "a" }
                 }
             );
     }
@@ -4402,7 +4499,7 @@ public partial class DecodeTest
     [Fact]
     public void ShouldAddKeysToObjects()
     {
-        var options = new DecodeOptions();
+        var options = new DecodeOptions { StrictMerge = false };
 
         Qs.Decode("a[b]=c&a=d", options)
             .Should()
@@ -4647,7 +4744,85 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void Decode_CommaSplit_TruncatesWhenSumExceedsLimit_AndThrowOff()
+    public void ShouldAppendIncomingCommaOverflowAsSingleElementWhenExistingValueIsList()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 3,
+            ThrowOnLimitExceeded = false,
+            ParseLists = true,
+            Duplicates = Duplicates.Combine
+        };
+
+        var result = Qs.Decode("a=1,2&a=3,4,5,6", opts);
+
+        var dict = Assert.IsType<Dictionary<string, object?>>(result);
+        var list = Assert.IsType<List<object?>>(dict["a"]);
+        list[0].Should().Be("1");
+        list[1].Should().Be("2");
+
+        var overflow = Assert.IsAssignableFrom<IDictionary<string, object?>>(list[2]);
+        overflow.Should().BeEquivalentTo(new Dictionary<string, object?>
+        {
+            ["0"] = "3",
+            ["1"] = "4",
+            ["2"] = "5",
+            ["3"] = "6"
+        });
+    }
+
+    [Fact]
+    public void ShouldAppendCommaListAsSingleElementWhenExistingValueIsOverflowMap()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 2,
+            ThrowOnLimitExceeded = false,
+            ParseLists = true,
+            Duplicates = Duplicates.Combine
+        };
+
+        var result = Qs.Decode("a=1,2,3&a=4,5", opts);
+
+        var dict = Assert.IsType<Dictionary<string, object?>>(result);
+        var map = Assert.IsAssignableFrom<IDictionary<string, object?>>(dict["a"]);
+        map["0"].Should().Be("1");
+        map["1"].Should().Be("2");
+        map["2"].Should().Be("3");
+
+        var nested = Assert.IsType<List<object?>>(map["3"]);
+        nested.Select(x => x?.ToString()).Should().Equal("4", "5");
+    }
+
+    [Fact]
+    public void ShouldCombineBeforeOverflowWhenCommaValueIsWithinLimit()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 3,
+            ThrowOnLimitExceeded = false,
+            ParseLists = true,
+            Duplicates = Duplicates.Combine
+        };
+
+        var result = Qs.Decode("a=1&a=2,3,4", opts);
+
+        var dict = Assert.IsType<Dictionary<string, object?>>(result);
+        var map = Assert.IsAssignableFrom<IDictionary<string, object?>>(dict["a"]);
+        map.Should().BeEquivalentTo(new Dictionary<string, object?>
+        {
+            ["0"] = "1",
+            ["1"] = "2",
+            ["2"] = "3",
+            ["3"] = "4"
+        });
+    }
+
+    [Fact]
+    public void ShouldConvertCommaSplitToOverflowMapWhenCombinedLengthExceedsLimit()
     {
         var opts = new DecodeOptions
         {
@@ -4661,12 +4836,19 @@ public partial class DecodeTest
         var result = Qs.Decode("a=1,2&a=3,4,5", opts);
 
         var dict = Assert.IsType<Dictionary<string, object?>>(result);
-        var list = Assert.IsType<List<object?>>(dict["a"]);
-        list.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
+        var map = Assert.IsAssignableFrom<IDictionary<string, object?>>(dict["a"]);
+        map.Should().BeEquivalentTo(new Dictionary<string, object?>
+        {
+            ["0"] = "1",
+            ["1"] = "2",
+            ["2"] = "3",
+            ["3"] = "4",
+            ["4"] = "5"
+        });
     }
 
     [Fact]
-    public void Decode_CommaSplit_DropsIncomingValuesWhenAlreadyAtLimit_AndThrowOff()
+    public void ShouldAppendCommaValuesToOverflowMapWhenAlreadyAtLimit()
     {
         var opts = new DecodeOptions
         {
@@ -4680,12 +4862,19 @@ public partial class DecodeTest
         var result = Qs.Decode("a=1,2,3&a=4,5", opts);
 
         var dict = Assert.IsType<Dictionary<string, object?>>(result);
-        var list = Assert.IsType<List<object?>>(dict["a"]);
-        list.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
+        var map = Assert.IsAssignableFrom<IDictionary<string, object?>>(dict["a"]);
+        map.Should().BeEquivalentTo(new Dictionary<string, object?>
+        {
+            ["0"] = "1",
+            ["1"] = "2",
+            ["2"] = "3",
+            ["3"] = "4",
+            ["4"] = "5"
+        });
     }
 
     [Fact]
-    public void Decode_CommaSplit_BracketedKey_DropsIncomingWhenListAlreadyAtLimit_AndThrowOff()
+    public void ShouldTreatCommaValueAsOneOuterElementWhenBracketedKey()
     {
         var opts = new DecodeOptions
         {
@@ -4699,8 +4888,11 @@ public partial class DecodeTest
         var result = Qs.Decode("a[]=1&a[]=2&a[]=3,4", opts);
 
         var dict = Assert.IsType<Dictionary<string, object?>>(result);
-        var list = Assert.IsType<List<object?>>(dict["a"]);
-        list.Select(x => x?.ToString()).Should().Equal("1", "2");
+        var map = Assert.IsAssignableFrom<IDictionary<string, object?>>(dict["a"]);
+        map["0"].Should().Be("1");
+        map["1"].Should().Be("2");
+        var nested = Assert.IsType<List<object?>>(map["2"]);
+        nested.Select(x => x?.ToString()).Should().Equal("3", "4");
     }
 
     [Fact]
@@ -4723,6 +4915,22 @@ public partial class DecodeTest
         inner.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
     }
 
+    [Fact]
+    public void ShouldNotApplyInnerListLimitForBracketSingleCommaSplit()
+    {
+        var opts = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 1,
+            ThrowOnLimitExceeded = true
+        };
+
+        var decoded = Assert.IsType<Dictionary<string, object?>>(Qs.Decode("foo[]=1,2,3,4", opts));
+        var outer = Assert.IsType<List<object?>>(decoded["foo"]);
+        var inner = Assert.IsType<List<object?>>(outer[0]);
+        inner.Select(x => x?.ToString()).Should().Equal("1", "2", "3", "4");
+    }
+
     #region Nested brackets
 
     [Fact]
@@ -4736,6 +4944,26 @@ public partial class DecodeTest
                     {
                         ["b[]"] = "c"
                     }
+                });
+    }
+
+    [Fact]
+    public void ShouldDecodeEncodedBracketTextWithoutMungingLiteralPercentSequences()
+    {
+        Qs.Decode("a%25255Bb=c")
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a%255Bb"] = "c" });
+
+        Qs.Decode("a%25255Db=c")
+            .Should()
+            .BeEquivalentTo(new Dictionary<string, object?> { ["a%255Db"] = "c" });
+
+        Qs.Decode("a%5Bb%25255Bc%5D=d")
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new Dictionary<string, object?> { ["b%255Bc"] = "d" }
                 });
     }
 
@@ -5300,7 +5528,7 @@ public partial class DecodeTest
     #region Decode comma limit
 
     [Fact]
-    public void Decode_CommaSplit_AllowedWhenSumEqualsLimit()
+    public void ShouldAllowCommaSplitWhenCombinedLengthEqualsLimit()
     {
         var opts = new DecodeOptions
         {
@@ -5321,7 +5549,7 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void Decode_CommaSplit_ThrowsWhenSumExceedsLimitAndThrowOn()
+    public void ShouldThrowWhenCommaSplitCombinedLengthExceedsLimitAndThrowOn()
     {
         var opts = new DecodeOptions
         {
@@ -5388,7 +5616,7 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void Decode_GHSA_w7fw_mjwx_w883_CommaExceedsLimit_ThrowOff_Truncates()
+    public void Decode_GHSA_w7fw_mjwx_w883_CommaExceedsLimit_ThrowOff_ConvertsToOverflowMap()
     {
         var opts = new DecodeOptions
         {
@@ -5398,14 +5626,19 @@ public partial class DecodeTest
         };
 
         var decoded = Assert.IsType<Dictionary<string, object?>>(Qs.Decode("a=1,2,3,4", opts));
-        var list = Assert.IsType<List<object?>>(decoded["a"]);
+        var map = Assert.IsAssignableFrom<IDictionary<string, object?>>(decoded["a"]);
 
-        // Intentional divergence from JS qs: keep allocation bounded by truncating.
-        list.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
+        map.Should().BeEquivalentTo(new Dictionary<string, object?>
+        {
+            ["0"] = "1",
+            ["1"] = "2",
+            ["2"] = "3",
+            ["3"] = "4"
+        });
     }
 
     [Fact]
-    public void Decode_GHSA_w7fw_mjwx_w883_LargeCommaPayload_RespectsListLimitBound()
+    public void Decode_GHSA_w7fw_mjwx_w883_CommaOverflowPreservesAllValues()
     {
         var opts = new DecodeOptions
         {
@@ -5414,12 +5647,13 @@ public partial class DecodeTest
             ThrowOnLimitExceeded = false
         };
 
-        var payload = "a=" + new string(',', 10_000);
+        var payload = "a=1,2,3,4,5,6";
 
         var decoded = Assert.IsType<Dictionary<string, object?>>(Qs.Decode(payload, opts));
-        var list = Assert.IsType<List<object?>>(decoded["a"]);
+        var map = Assert.IsAssignableFrom<IDictionary<string, object?>>(decoded["a"]);
 
-        list.Should().HaveCount(5);
+        map.Should().HaveCount(6);
+        map["5"].Should().Be("6");
     }
 
     #endregion

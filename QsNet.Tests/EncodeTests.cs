@@ -5336,7 +5336,7 @@ public class EncodeTests
     }
 
     [Fact]
-    public void ShouldUseAmpersandBeforeBodyWhenCharsetSentinelWithCustomDelimiter()
+    public void ShouldUseConfiguredDelimiterBeforeBodyWhenCharsetSentinelWithCustomDelimiter()
     {
         var data = new Dictionary<string, object?>
         {
@@ -5352,7 +5352,7 @@ public class EncodeTests
                 CharsetSentinel = true,
                 Delimiter = ";"
             }
-        ).Should().Be("utf8=%E2%9C%93&a=b;c=d");
+        ).Should().Be("utf8=%E2%9C%93;a=b;c=d");
     }
 
     [Fact]
@@ -5909,6 +5909,75 @@ public class EncodeTests
 
             return current;
         }
+    }
+
+    [Fact]
+    public void Should_FormatRfc1738BareKeyWhenStrictNullHandling()
+    {
+        Qs.Encode(
+                new Dictionary<string, object?> { ["a b"] = null },
+                new EncodeOptions { StrictNullHandling = true, Format = Format.Rfc1738 }
+            )
+            .Should()
+            .Be("a+b");
+    }
+
+    [Fact]
+    public void Should_SkipNullEntriesWhenFilterIterable()
+    {
+        Qs.Encode(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = "b",
+                    ["null"] = "x",
+                    ["c"] = "d"
+                },
+                new EncodeOptions { Filter = new IterableFilter(new object?[] { "a", null, "c" }) }
+            )
+            .Should()
+            .Be("a=b&c=d");
+    }
+
+    [Fact]
+    public void Should_HandleNullEntriesLikeQsWhenCommaEncodeValuesOnly()
+    {
+        var options = new EncodeOptions { ListFormat = ListFormat.Comma, EncodeValuesOnly = true };
+
+        Qs.Encode(new Dictionary<string, object?> { ["a"] = new object?[] { null, "b" } }, options)
+            .Should().Be("a=,b");
+
+        Qs.Encode(new Dictionary<string, object?> { ["a"] = new object?[] { null } }, options)
+            .Should().Be("a=");
+
+        Qs.Encode(
+                new Dictionary<string, object?> { ["a"] = new object?[] { null } },
+                options.CopyWith(strictNullHandling: true)
+            )
+            .Should().Be("a");
+
+        Qs.Encode(
+                new Dictionary<string, object?> { ["a"] = new object?[] { null } },
+                options.CopyWith(skipNulls: true)
+            )
+            .Should().BeEmpty();
+    }
+
+    [Fact]
+    public void Should_RoundTripKeysContainingPercentEncodedBracketText()
+    {
+        var cases = new[]
+        {
+            new Dictionary<string, object?> { ["a%5Bb"] = "c" },
+            new Dictionary<string, object?> { ["a%5Db"] = "c" },
+            new Dictionary<string, object?> { ["a%255Bb"] = "c" },
+            new Dictionary<string, object?> { ["a%255Db"] = "c" },
+            new Dictionary<string, object?> { ["a"] = new Dictionary<string, object?> { ["b%5Bc"] = "d" } },
+            new Dictionary<string, object?> { ["a"] = new Dictionary<string, object?> { ["b%255Bc"] = "d" } },
+            new Dictionary<string, object?> { ["a%5B%255Bb"] = "c" }
+        };
+
+        foreach (var testCase in cases)
+            Qs.Decode(Qs.Encode(testCase)).Should().BeEquivalentTo(testCase);
     }
 
     private sealed class YieldEnumerable : IEnumerable
