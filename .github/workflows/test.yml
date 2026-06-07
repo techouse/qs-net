@@ -396,7 +396,7 @@ jobs:
       - name: Generate consolidated report
         run: reportgenerator -reports:"**/coverage.cobertura.xml" -targetdir:"coverage/report" -reporttypes:"Html;Cobertura;JsonSummary"
       - name: Upload to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@v7
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
