@@ -212,7 +212,7 @@ Before submitting your PR, please verify:
 
 ## Releasing (maintainers)
 
-1. Update version in `QsNet.csproj` (`<Version>` property).
+1. Update version in `Directory.Build.props` (`<QsNetPackageVersion>` property).
 2. Update `CHANGELOG.md` with release notes.
 3. Ensure `dotnet test` and `dotnet build --configuration Release` pass.
 4. Create a git tag: `git tag v1.x.y`

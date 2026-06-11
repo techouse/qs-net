@@ -21,11 +21,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - name: Get name, version, and group from csproj files
+      - name: Get package version
         id: get_version
         run: |
           set -e
-          VERSION=$(awk -F'[<>]' '/^[[:space:]]*<Version>/ {print $3}' QsNet/QsNet.csproj)
+          VERSION=$(awk -F'[<>]' '/^[[:space:]]*<QsNetPackageVersion>/ {print $3}' Directory.Build.props)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
@@ -34,9 +34,13 @@ jobs:
       - name: Restore
         run: dotnet restore
       - name: Build & Pack
-        run: dotnet pack QsNet/QsNet.csproj -c Release -o ./artifacts
+        run: |
+          dotnet pack QsNet/QsNet.csproj -c Release -o ./artifacts
+          dotnet pack QsNet.AspNetCore/QsNet.AspNetCore.csproj -c Release -o ./artifacts
       - name: Push to NuGet
-        run: dotnet nuget push ./artifacts/QsNet.$VERSION.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+        run: |
+          dotnet nuget push ./artifacts/QsNet.$VERSION.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push ./artifacts/QsNet.AspNetCore.$VERSION.nupkg --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
       - name: Upload package artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -44,6 +48,8 @@ jobs:
           path: |
             ./artifacts/QsNet.${{ env.VERSION }}.nupkg
             ./artifacts/QsNet.${{ env.VERSION }}.snupkg
+            ./artifacts/QsNet.AspNetCore.${{ env.VERSION }}.nupkg
+            ./artifacts/QsNet.AspNetCore.${{ env.VERSION }}.snupkg
           retention-days: 7
   release:
     needs:
@@ -55,11 +61,11 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v6
-      - name: Get name, version, and group from csproj files
+      - name: Get package version
         id: get_version
         run: |
           set -e
-          VERSION=$(awk -F'[<>]' '/^[[:space:]]*<Version>/ {print $3}' QsNet/QsNet.csproj)
+          VERSION=$(awk -F'[<>]' '/^[[:space:]]*<QsNetPackageVersion>/ {print $3}' Directory.Build.props)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
       - name: Download package artifact
         uses: actions/download-artifact@v8
@@ -73,6 +79,7 @@ jobs:
           CHANGELOG_PATH=$RUNNER_TEMP/CHANGELOG.md
           awk '/^##[[:space:]].*/ { if (count == 1) exit; count++; print } count == 1 && !/^##[[:space:]].*/ { print }' CHANGELOG.md | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}' > $CHANGELOG_PATH
           echo -en "\n[https://www.nuget.org/packages/QsNet](https://www.nuget.org/packages/QsNet)" >> $CHANGELOG_PATH
+          echo -en "\n[https://www.nuget.org/packages/QsNet.AspNetCore](https://www.nuget.org/packages/QsNet.AspNetCore)" >> $CHANGELOG_PATH
           echo "CHANGELOG_PATH=$CHANGELOG_PATH" >> $GITHUB_ENV
       - name: Create release
         id: create_release
@@ -84,6 +91,8 @@ jobs:
           files: |
             ./artifacts/QsNet.${{ env.VERSION }}.nupkg
             ./artifacts/QsNet.${{ env.VERSION }}.snupkg
+            ./artifacts/QsNet.AspNetCore.${{ env.VERSION }}.nupkg
+            ./artifacts/QsNet.AspNetCore.${{ env.VERSION }}.snupkg
       - name: Clean up
         id: clean_up
         if: ${{ always() }}

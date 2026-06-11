@@ -1,19 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
+        <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
         <LangVersion>latest</LangVersion>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <PackageId>QsNet</PackageId>
+        <PackageId>QsNet.AspNetCore</PackageId>
         <Version>$(QsNetPackageVersion)</Version>
         <Authors>Klemen Tusar</Authors>
         <PackageTags>
             querystring;query-string;query;parameters;url;uri;http;
             parser;encoder;decoder;encoding;decoding;
             form-urlencoded;percent-encoding;nested;arrays;brackets;
-            qs;aspnetcore
+            qs;aspnetcore;aspnet-core;minimal-api
         </PackageTags>
-        <Description>A query string encoding and decoding library for C#/.NET. Ported from qs for JavaScript.</Description>
+        <Description>ASP.NET Core helpers for QsNet qs-style nested query strings.</Description>
         <PackageProjectUrl>https://techouse.github.io/qs-net/</PackageProjectUrl>
         <RepositoryUrl>https://github.com/techouse/qs-net</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
@@ -33,19 +34,19 @@
         <TreatWarningsAsErrors Condition="'$(CI)' == 'true'">true</TreatWarningsAsErrors>
 
         <PackageReleaseNotes>See CHANGELOG: https://github.com/techouse/qs-net/releases</PackageReleaseNotes>
-        <Title>QsNet - Query-string encoding/decoding for .NET</Title>
+        <Title>QsNet.AspNetCore - ASP.NET Core helpers for QsNet</Title>
         <PackageIcon>logo.png</PackageIcon>
     </PropertyGroup>
 
-    <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
-        <ImplicitUsings>enable</ImplicitUsings>
-    </PropertyGroup>
     <ItemGroup>
         <None Include="..\README.md" Pack="true" PackagePath="\"/>
         <None Include="..\LICENSE" Pack="true" PackagePath="\"/>
         <None Include="..\logo.png" Pack="true" PackagePath="\"/>
-        <InternalsVisibleTo Include="QsNet.Tests"/>
-        <InternalsVisibleTo Include="QsNet.Benchmarks"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
+        <ProjectReference Include="..\QsNet\QsNet.csproj"/>
     </ItemGroup>
 
     <ItemGroup>
