@@ -217,11 +217,7 @@ Before submitting your PR, please verify:
 3. Ensure `dotnet test` and `dotnet build --configuration Release` pass.
 4. Create a git tag: `git tag v1.x.y`
 5. Push tag: `git push origin v1.x.y`
-6. Build and publish to NuGet:
-   ```bash
-   dotnet pack --configuration Release
-   dotnet nuget push bin/Release/QsNet.*.nupkg --source https://api.nuget.org/v3/index.json
-   ```
+6. The `publish.yml` workflow packs and publishes both NuGet packages using NuGet trusted publishing. The repository or environment variable `NUGET_USER` must match the nuget.org profile name for the trusted publishing policy owner.
 7. Create GitHub release with release notes:
    - Added/Changed/Fixed
    - Breaking changes (if any)
