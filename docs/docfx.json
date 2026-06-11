@@ -4,12 +4,14 @@
     {
       "src": [
         {
-          "src": "../QsNet",
+          "src": "..",
           "files": [
-            "**/*.csproj"
+            "QsNet/QsNet.csproj",
+            "QsNet.AspNetCore/QsNet.AspNetCore.csproj"
           ],
           "exclude": [
-            "**/QsNet.Tests/**"
+            "**/QsNet.Tests/**",
+            "**/QsNet.AspNetCore.Tests/**"
           ]
         }
       ],

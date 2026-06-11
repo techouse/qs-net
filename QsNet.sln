@@ -7,6 +7,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsNet.Tests", "QsNet.Tests\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsNet.Comparison", "QsNet.Comparison\QsNet.Comparison.csproj", "{C16E57F3-2A36-4284-A4C8-C5B17E1B4A5D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsNet.AspNetCore", "QsNet.AspNetCore\QsNet.AspNetCore.csproj", "{8E33E5C6-6B1B-4A77-A882-6E3B5B184A1C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsNet.AspNetCore.Tests", "QsNet.AspNetCore.Tests\QsNet.AspNetCore.Tests.csproj", "{B2A8590B-532B-40E0-9D6D-8D5E07C931F6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -25,5 +29,13 @@ Global
 		{C16E57F3-2A36-4284-A4C8-C5B17E1B4A5D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C16E57F3-2A36-4284-A4C8-C5B17E1B4A5D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C16E57F3-2A36-4284-A4C8-C5B17E1B4A5D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8E33E5C6-6B1B-4A77-A882-6E3B5B184A1C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8E33E5C6-6B1B-4A77-A882-6E3B5B184A1C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8E33E5C6-6B1B-4A77-A882-6E3B5B184A1C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8E33E5C6-6B1B-4A77-A882-6E3B5B184A1C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B2A8590B-532B-40E0-9D6D-8D5E07C931F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B2A8590B-532B-40E0-9D6D-8D5E07C931F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B2A8590B-532B-40E0-9D6D-8D5E07C931F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B2A8590B-532B-40E0-9D6D-8D5E07C931F6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

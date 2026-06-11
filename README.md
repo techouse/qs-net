@@ -51,6 +51,19 @@ dotnet add package QsNet
 <PackageReference Include="QsNet" Version="<version>"/>
 ```
 
+### ASP.NET Core integration
+
+Install the optional ASP.NET Core helper package in ASP.NET Core 10 / `net10.0`
+applications:
+
+```bash
+dotnet add package QsNet.AspNetCore
+```
+
+```xml
+<PackageReference Include="QsNet.AspNetCore" Version="<version>"/>
+```
+
 ---
 
 ## Requirements
@@ -89,6 +102,24 @@ string qs = Qs.Encode(new Dictionary<string, object?>
 });
 // -> "foo%5Bbar%5D=baz"
 ```
+
+### ASP.NET Core helpers
+
+```csharp
+using QsNet.AspNetCore;
+
+string url = "/api/search".AddQueryString(new Dictionary<string, object?>
+{
+    ["filter"] = new Dictionary<string, object?> { ["name"] = "Alice" }
+});
+// -> "/api/search?filter%5Bname%5D=Alice"
+
+Dictionary<string, object?> query = httpContext.Request.ToQueryMap();
+```
+
+`QsNet.AspNetCore` appends the already encoded QsNet output directly, preserving
+fragments and bracket notation without re-encoding through ASP.NET Core
+`QueryHelpers`.
 
 ---
 

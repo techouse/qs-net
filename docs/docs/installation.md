@@ -18,8 +18,22 @@ dotnet add package QsNet
 <PackageReference Include="QsNet" Version="<version>" />
 ```
 
+## ASP.NET Core integration
+
+For ASP.NET Core 10 / `net10.0` applications, install the optional integration
+package:
+
+```bash
+dotnet add package QsNet.AspNetCore
+```
+
+```xml
+<PackageReference Include="QsNet.AspNetCore" Version="<version>" />
+```
+
 ---
 
 ## Requirements
 
-- .NET **8.0+**
+- `QsNet`: `net10.0`, `netstandard2.0`
+- `QsNet.AspNetCore`: `net10.0`
