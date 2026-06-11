@@ -1,5 +1,5 @@
 <Project>
     <PropertyGroup>
-        <QsNetPackageVersion>1.3.4</QsNetPackageVersion>
+        <QsNetPackageVersion>1.4.0</QsNetPackageVersion>
     </PropertyGroup>
 </Project>

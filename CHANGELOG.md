@@ -1,3 +1,9 @@
+## 1.4.0
+
+* [FEAT] add optional `QsNet.AspNetCore` package targeting `net10.0` with `Microsoft.AspNetCore.App` framework reference while keeping the core `QsNet` package framework-agnostic
+* [FEAT] add ASP.NET Core-friendly `AddQueryString` helpers for `string` / `Uri` and `ToQueryMap` helpers for `HttpRequest` / `QueryString`, preserving fragments and appending QsNet output without ASP.NET Core re-encoding
+* [DOCS] document ASP.NET Core installation/usage, add DocFX coverage for the integration package, centralize package versioning in `Directory.Build.props`, and update CI/publish flows to pack and publish both packages
+
 ## 1.3.4
 
 * [FEAT] add `DecodeOptions.StrictMerge` (default `true`) to match `qs` `strictMerge`, wrapping object/scalar merge conflicts as arrays while preserving the legacy object-then-scalar merge behavior when set to `false`
