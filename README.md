@@ -64,6 +64,19 @@ dotnet add package QsNet.AspNetCore
 <PackageReference Include="QsNet.AspNetCore" Version="<version>"/>
 ```
 
+### Flurl integration
+
+Install the optional Flurl helper package in applications that build URLs with
+Flurl:
+
+```bash
+dotnet add package QsNet.Flurl
+```
+
+```xml
+<PackageReference Include="QsNet.Flurl" Version="<version>"/>
+```
+
 ---
 
 ## Requirements
@@ -120,6 +133,26 @@ Dictionary<string, object?> query = httpContext.Request.ToQueryMap();
 `QsNet.AspNetCore` appends the already encoded QsNet output directly, preserving
 fragments and bracket notation without re-encoding through ASP.NET Core
 `QueryHelpers`.
+
+### Flurl helpers
+
+```csharp
+using Flurl;
+using QsNet.Flurl;
+
+var url = "https://api.example.com"
+    .AppendPathSegment("products")
+    .AppendQsQueryParams(new
+    {
+        filter = new { name = "Alice" },
+        tags = new[] { "one", "two" },
+    });
+// -> "https://api.example.com/products?filter%5Bname%5D=Alice&tags%5B0%5D=one&tags%5B1%5D=two"
+```
+
+`QsNet.Flurl` writes QsNet's already encoded output through Flurl's `Url.Query`
+instead of Flurl's normal query-parameter APIs, avoiding double-encoding of
+qs-style bracket notation.
 
 ---
 

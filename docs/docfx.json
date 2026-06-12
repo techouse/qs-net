@@ -7,11 +7,13 @@
           "src": "..",
           "files": [
             "QsNet/QsNet.csproj",
-            "QsNet.AspNetCore/QsNet.AspNetCore.csproj"
+            "QsNet.AspNetCore/QsNet.AspNetCore.csproj",
+            "QsNet.Flurl/QsNet.Flurl.csproj"
           ],
           "exclude": [
             "**/QsNet.Tests/**",
-            "**/QsNet.AspNetCore.Tests/**"
+            "**/QsNet.AspNetCore.Tests/**",
+            "**/QsNet.Flurl.Tests/**"
           ]
         }
       ],
