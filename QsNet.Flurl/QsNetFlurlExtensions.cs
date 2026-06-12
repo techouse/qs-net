@@ -66,7 +66,10 @@ public static class QsNetFlurlExtensions
 
         var query = EncodeQueryString(values, options);
         if (query.Length == 0)
+        {
+            url.Query = null;
             return url;
+        }
 
         url.Query = query;
         return url;

@@ -37,6 +37,16 @@ public class QsNetFlurlExtensionsTests
     }
 
     [Fact]
+    public void SetQsQueryParams_ShouldClearExistingQueryWhenEncodedQueryIsEmpty()
+    {
+        var result = "https://example.com/search?existing=1".SetQsQueryParams(
+            new Dictionary<string, object?>()
+        );
+
+        result.ToString().Should().Be("https://example.com/search");
+    }
+
+    [Fact]
     public void AppendQsQueryParams_ShouldPreserveFragment()
     {
         var result = "https://example.com/search?existing=1#results".AppendQsQueryParams(
@@ -94,6 +104,17 @@ public class QsNetFlurlExtensionsTests
 
         result.Should().BeSameAs(url);
         result.ToString().Should().Be("https://example.com/search?existing=1#results");
+    }
+
+    [Fact]
+    public void SetQsQueryParams_ShouldReturnSameUrlAndClearExistingQueryWhenEncodedQueryIsEmpty()
+    {
+        var url = new Url("https://example.com/search?existing=1#results");
+
+        var result = url.SetQsQueryParams(new Dictionary<string, object?>());
+
+        result.Should().BeSameAs(url);
+        result.ToString().Should().Be("https://example.com/search#results");
     }
 
     [Fact]
