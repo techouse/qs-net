@@ -168,19 +168,15 @@ public static class QsNetFlurlExtensions
 
         try
         {
-            if (value is IDictionary<string, object?> stringDictionary)
-                return ConvertStringDictionary(stringDictionary, activePath);
-
-            if (value is IDictionary dictionary)
-                return ConvertDictionary(dictionary, activePath);
-
-            if (value is IEnumerable<KeyValuePair<string, object?>> pairs)
-                return ConvertPairs(pairs, activePath);
-
-            if (value is IEnumerable enumerable && value is not string and not byte[])
-                return ConvertEnumerable(enumerable, activePath);
-
-            return ConvertObject(value, activePath);
+            return value switch
+            {
+                IDictionary<string, object?> stringDictionary => ConvertStringDictionary(stringDictionary, activePath),
+                IDictionary dictionary => ConvertDictionary(dictionary, activePath),
+                IEnumerable<KeyValuePair<string, object?>> pairs => ConvertPairs(pairs, activePath),
+                IEnumerable enumerable and not string and not byte[] => ConvertEnumerable(enumerable,
+                    activePath),
+                _ => ConvertObject(value, activePath)
+            };
         }
         finally
         {
@@ -255,8 +251,7 @@ public static class QsNetFlurlExtensions
             if (property.GetIndexParameters().Length != 0)
                 continue;
 
-            var getter = property.GetGetMethod(false);
-            if (getter is null)
+            if (property.GetGetMethod(false) is null)
                 continue;
 
             result[property.Name] = NormalizeValue(property.GetValue(value, null), activePath);
@@ -298,7 +293,7 @@ public static class QsNetFlurlExtensions
         {
         }
 
-        public new bool Equals(object? x, object? y) => ReferenceEquals(x, y);
+        bool IEqualityComparer<object>.Equals(object? x, object? y) => ReferenceEquals(x, y);
 
         public int GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj);
     }
