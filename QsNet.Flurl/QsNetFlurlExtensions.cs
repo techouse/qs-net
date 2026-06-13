@@ -173,8 +173,7 @@ public static class QsNetFlurlExtensions
                 IDictionary<string, object?> stringDictionary => ConvertStringDictionary(stringDictionary, activePath),
                 IDictionary dictionary => ConvertDictionary(dictionary, activePath),
                 IEnumerable<KeyValuePair<string, object?>> pairs => ConvertPairs(pairs, activePath),
-                IEnumerable enumerable and not string and not byte[] => ConvertEnumerable(enumerable,
-                    activePath),
+                IEnumerable enumerable and not string and not byte[] => ConvertEnumerable(enumerable, activePath),
                 _ => ConvertObject(value, activePath)
             };
         }
