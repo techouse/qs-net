@@ -1,6 +1,8 @@
+#if NETSTANDARD2_0
 using System;
-using System.Collections;
 using System.Collections.Generic;
+#endif
+using System.Collections;
 using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
