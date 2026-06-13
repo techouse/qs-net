@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using FluentAssertions;
@@ -135,6 +136,45 @@ public class QsNetFlurlExtensionsTests
         );
 
         result.ToString().Should().Be("https://example.com/search?tags%5B0%5D=a&tags%5B1%5D=b");
+    }
+
+    [Fact]
+    public void AppendQsQueryParams_ShouldEncodeStringDictionaryInput()
+    {
+        var values = new Dictionary<string, object?>
+        {
+            ["filter"] = new Dictionary<string, object?> { ["name"] = "John" },
+        };
+
+        var result = "https://example.com/search".AppendQsQueryParams(values);
+
+        result.ToString().Should().Be("https://example.com/search?filter%5Bname%5D=John");
+    }
+
+    [Fact]
+    public void AppendQsQueryParams_ShouldEncodeNonGenericDictionaryInput()
+    {
+        var values = new Hashtable
+        {
+            ["filter"] = new Hashtable { ["name"] = "John" },
+        };
+
+        var result = "https://example.com/search".AppendQsQueryParams(values);
+
+        result.ToString().Should().Be("https://example.com/search?filter%5Bname%5D=John");
+    }
+
+    [Fact]
+    public void AppendQsQueryParams_ShouldEncodeKeyValuePairSequenceInput()
+    {
+        var values = new List<KeyValuePair<string, object?>>
+        {
+            new("filter", new Dictionary<string, object?> { ["name"] = "John" }),
+        };
+
+        var result = "https://example.com/search".AppendQsQueryParams(values);
+
+        result.ToString().Should().Be("https://example.com/search?filter%5Bname%5D=John");
     }
 
     [Fact]
