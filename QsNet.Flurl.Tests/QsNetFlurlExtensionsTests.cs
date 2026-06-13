@@ -167,6 +167,16 @@ public class QsNetFlurlExtensionsTests
     }
 
     [Fact]
+    public void SetQsQueryParams_ShouldWorkWithUriOverload()
+    {
+        var uri = new Uri("https://example.com/search?existing=1#results");
+
+        var result = uri.SetQsQueryParams(new { a = "b" });
+
+        result.ToString().Should().Be("https://example.com/search?a=b#results");
+    }
+
+    [Fact]
     public void AppendQsQueryParams_ShouldMutateAndReturnSameUrlInstance()
     {
         var url = new Url("https://example.com/search");
