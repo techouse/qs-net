@@ -191,7 +191,7 @@ public class QsNetFlurlExtensionsTests
     public void AppendQsQueryParams_ShouldPassEncodeOptionsThroughAndForceNoQueryPrefix()
     {
         var result = "https://example.com/search".AppendQsQueryParams(
-            new { tags = new[] { "a", "b" } },
+            new { tags = (string[])["a", "b"] },
             new EncodeOptions(ListFormat.Repeat) { AddQueryPrefix = true }
         );
 
@@ -214,11 +214,11 @@ public class QsNetFlurlExtensionsTests
     [Fact]
     public void AppendQsQueryParams_ShouldSupportFlurlHttpChainingWithoutPackageDependency()
     {
-        Func<Task<ProductSearchResponse>> requestFactory = () =>
+        Func<Task<object?>> requestFactory = () =>
             "https://api.example.com"
                 .AppendPathSegment("products")
                 .AppendQsQueryParams(new { filter = new { where = new { name = "John" } } })
-                .GetJsonAsync<ProductSearchResponse>();
+                .GetJsonAsync<object?>();
 
         requestFactory.Should().NotBeNull();
     }
@@ -267,11 +267,6 @@ public class QsNetFlurlExtensionsTests
 
         result.Query.Should().Contain("first%5Bname%5D=John");
         result.Query.Should().Contain("second%5Bname%5D=John");
-    }
-
-    private sealed class ProductSearchResponse
-    {
-        public IReadOnlyList<string> Products { get; init; } = Array.Empty<string>();
     }
 
     private sealed class CyclicValue
