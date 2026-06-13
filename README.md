@@ -77,6 +77,22 @@ dotnet add package QsNet.Flurl
 <PackageReference Include="QsNet.Flurl" Version="<version>"/>
 ```
 
+### Refit integration
+
+Install the optional Refit query wrapper package in applications that pass
+pre-serialized QsNet query strings through Refit query parameters:
+
+```bash
+dotnet add package QsNet.Refit
+```
+
+```xml
+<PackageReference Include="QsNet.Refit" Version="<version>"/>
+```
+
+`QsNet.Refit` does not depend on Refit at runtime. Install `Refit` separately in
+the application or test project that declares the Refit API interface.
+
 ---
 
 ## Requirements
@@ -153,6 +169,35 @@ var url = "https://api.example.com"
 `QsNet.Flurl` writes QsNet's already encoded output through Flurl's `Url.Query`
 instead of Flurl's normal query-parameter APIs, avoiding double-encoding of
 qs-style bracket notation.
+
+### Refit helpers
+
+```csharp
+using QsNet.Models;
+using QsNet.Refit;
+using Refit;
+
+public interface IUsersApi
+{
+    [Get("/users")]
+    [QueryUriFormat(UriFormat.Unescaped)]
+    Task<List<User>> GetUsers([Query] QsQuery query);
+}
+
+await api.GetUsers(QsQuery.From(
+    new
+    {
+        Roles = new[]
+        {
+            new { Name = "Developer", Level = 1 },
+        },
+    },
+    new EncodeOptions { AllowDots = true }));
+// -> "/users?Roles%5B0%5D.Name=Developer&Roles%5B0%5D.Level=1"
+```
+
+`QsNet.Refit` formalizes a wrapper workaround for complex nested query strings.
+It does not change Refit's native `[Query]` object serializer for DTOs.
 
 ---
 

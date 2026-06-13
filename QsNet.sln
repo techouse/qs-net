@@ -15,6 +15,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsNet.Flurl", "QsNet.Flurl\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsNet.Flurl.Tests", "QsNet.Flurl.Tests\QsNet.Flurl.Tests.csproj", "{75C93610-FB96-4B83-A05C-B6987F66B8FF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsNet.Refit", "QsNet.Refit\QsNet.Refit.csproj", "{AAC1F4B8-001B-4EF9-BD03-E3DD9882854D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QsNet.Refit.Tests", "QsNet.Refit.Tests\QsNet.Refit.Tests.csproj", "{38E7490C-93DA-4101-A8D4-C06A9395574B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -49,5 +53,13 @@ Global
 		{75C93610-FB96-4B83-A05C-B6987F66B8FF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{75C93610-FB96-4B83-A05C-B6987F66B8FF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{75C93610-FB96-4B83-A05C-B6987F66B8FF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AAC1F4B8-001B-4EF9-BD03-E3DD9882854D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AAC1F4B8-001B-4EF9-BD03-E3DD9882854D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AAC1F4B8-001B-4EF9-BD03-E3DD9882854D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AAC1F4B8-001B-4EF9-BD03-E3DD9882854D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{38E7490C-93DA-4101-A8D4-C06A9395574B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{38E7490C-93DA-4101-A8D4-C06A9395574B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{38E7490C-93DA-4101-A8D4-C06A9395574B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{38E7490C-93DA-4101-A8D4-C06A9395574B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

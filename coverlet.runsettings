@@ -9,6 +9,7 @@
           <Include>[QsNet]QsNet.*</Include>
           <Include>[QsNet.AspNetCore]QsNet.AspNetCore.*</Include>
           <Include>[QsNet.Flurl]QsNet.Flurl.*</Include>
+          <Include>[QsNet.Refit]QsNet.Refit.*</Include>
           <IncludeTestAssembly>false</IncludeTestAssembly>
           <!-- exclude designer/auto-generated -->
           <ExcludeByFile>**/*Designer.cs;**/*Generated*.cs;**/obj/**/RegexGenerator.g.cs</ExcludeByFile>

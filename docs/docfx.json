@@ -8,12 +8,14 @@
           "files": [
             "QsNet/QsNet.csproj",
             "QsNet.AspNetCore/QsNet.AspNetCore.csproj",
-            "QsNet.Flurl/QsNet.Flurl.csproj"
+            "QsNet.Flurl/QsNet.Flurl.csproj",
+            "QsNet.Refit/QsNet.Refit.csproj"
           ],
           "exclude": [
             "**/QsNet.Tests/**",
             "**/QsNet.AspNetCore.Tests/**",
-            "**/QsNet.Flurl.Tests/**"
+            "**/QsNet.Flurl.Tests/**",
+            "**/QsNet.Refit.Tests/**"
           ]
         }
       ],

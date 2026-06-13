@@ -8,3 +8,5 @@
   href: aspnet-core.md
 - name: Flurl
   href: flurl.md
+- name: Refit
+  href: refit.md
