@@ -236,10 +236,7 @@ public static class QsNetFlurlExtensions
         return result;
     }
 
-    private static Dictionary<string, object?> ConvertObject(
-        object value,
-        HashSet<object> activePath
-    )
+    private static Dictionary<string, object?> ConvertObject(object value, HashSet<object> activePath)
     {
         var properties = value.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
         var result = new Dictionary<string, object?>(properties.Length);
