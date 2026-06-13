@@ -37,11 +37,13 @@ public static class QsNetFlurlExtensions
             return url;
 
         var existingQuery = url.Query;
-        url.Query = string.IsNullOrEmpty(existingQuery)
-            ? query
-            : existingQuery[existingQuery.Length - 1] == '&'
-                ? string.Concat(existingQuery, query)
-                : string.Concat(existingQuery, "&", query);
+
+        if (string.IsNullOrEmpty(existingQuery))
+            url.Query = query;
+        else if (existingQuery[existingQuery.Length - 1] == '&')
+            url.Query = string.Concat(existingQuery, query);
+        else
+            url.Query = string.Concat(existingQuery, "&", query);
 
         return url;
     }
