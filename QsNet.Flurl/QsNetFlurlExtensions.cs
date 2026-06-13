@@ -217,9 +217,6 @@ public static class QsNetFlurlExtensions
         var result = new Dictionary<string, object?>(dictionary.Count);
         foreach (DictionaryEntry entry in dictionary)
         {
-            if (entry.Key is null)
-                continue;
-
             var key = Convert.ToString(entry.Key, CultureInfo.InvariantCulture);
             if (key is null)
                 continue;
