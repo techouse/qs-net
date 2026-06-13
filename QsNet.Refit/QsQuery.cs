@@ -28,9 +28,6 @@ public readonly struct QsQuery : IDictionary
 {
     private static readonly QueryPair[] EmptyPairs = [];
 
-    private readonly string? _value;
-    private readonly QueryPair[]? _pairs;
-
     /// <summary>
     ///     Initializes a new instance of the <see cref="QsQuery" /> struct.
     /// </summary>
@@ -39,16 +36,16 @@ public readonly struct QsQuery : IDictionary
     public QsQuery(object? value, EncodeOptions? options = null)
     {
         var encoded = QsQueryEncoder.Encode(value, options);
-        _value = encoded.Value;
-        _pairs = encoded.Pairs;
+        Value = encoded.Value;
+        Pairs = encoded.Pairs;
     }
 
     /// <summary>
     ///     Gets the encoded qs-style query string.
     /// </summary>
-    public string Value => _value ?? string.Empty;
+    public string Value => field ?? string.Empty;
 
-    private QueryPair[] Pairs => _pairs ?? EmptyPairs;
+    private QueryPair[] Pairs => field ?? EmptyPairs;
 
     /// <summary>
     ///     Creates a query wrapper from the specified value.
@@ -126,8 +123,7 @@ public readonly struct QsQuery : IDictionary
     private static string? GetValue(QueryPair[] pairs, object key)
     {
         if (
-            key is QueryPairKey pairKey
-            && pairKey.Index >= 0
+            key is QueryPairKey { Index: >= 0 } pairKey
             && pairKey.Index < pairs.Length
             && string.Equals(pairs[pairKey.Index].Key, pairKey.Key, StringComparison.Ordinal)
         )
@@ -137,10 +133,10 @@ public readonly struct QsQuery : IDictionary
         if (stringKey is null)
             return null;
 
-        for (var i = 0; i < pairs.Length; i++)
+        foreach (var queryPair in pairs)
         {
-            if (string.Equals(pairs[i].Key, stringKey, StringComparison.Ordinal))
-                return pairs[i].Value;
+            if (string.Equals(queryPair.Key, stringKey, StringComparison.Ordinal))
+                return queryPair.Value;
         }
 
         return null;
@@ -149,8 +145,7 @@ public readonly struct QsQuery : IDictionary
     private static bool ContainsKey(QueryPair[] pairs, object key)
     {
         if (
-            key is QueryPairKey pairKey
-            && pairKey.Index >= 0
+            key is QueryPairKey { Index: >= 0 } pairKey
             && pairKey.Index < pairs.Length
             && string.Equals(pairs[pairKey.Index].Key, pairKey.Key, StringComparison.Ordinal)
         )
@@ -160,9 +155,9 @@ public readonly struct QsQuery : IDictionary
         if (stringKey is null)
             return false;
 
-        for (var i = 0; i < pairs.Length; i++)
+        foreach (var queryPair in pairs)
         {
-            if (string.Equals(pairs[i].Key, stringKey, StringComparison.Ordinal))
+            if (string.Equals(queryPair.Key, stringKey, StringComparison.Ordinal))
                 return true;
         }
 
@@ -271,56 +266,32 @@ public readonly struct QsQuery<T> : IDictionary
         new("QsQuery is read-only.");
 }
 
-internal readonly struct EncodedQuery
+internal readonly struct EncodedQuery(string value, QueryPair[] pairs)
 {
-    public EncodedQuery(string value, QueryPair[] pairs)
-    {
-        Value = value;
-        Pairs = pairs;
-    }
+    public string Value { get; } = value;
 
-    public string Value { get; }
-
-    public QueryPair[] Pairs { get; }
+    public QueryPair[] Pairs { get; } = pairs;
 }
 
-internal readonly struct QueryPair
+internal readonly struct QueryPair(string key, string? value)
 {
-    public QueryPair(string key, string? value)
-    {
-        Key = key;
-        Value = value;
-    }
+    public string Key { get; } = key;
 
-    public string Key { get; }
-
-    public string? Value { get; }
+    public string? Value { get; } = value;
 }
 
-internal sealed class QueryPairKey
+internal sealed class QueryPairKey(string key, int index)
 {
-    public QueryPairKey(string key, int index)
-    {
-        Key = key;
-        Index = index;
-    }
+    public string Key { get; } = key;
 
-    public string Key { get; }
-
-    public int Index { get; }
+    public int Index { get; } = index;
 
     public override string ToString() => Key;
 }
 
-internal sealed class QueryPairEnumerator : IDictionaryEnumerator
+internal sealed class QueryPairEnumerator(QueryPair[] pairs) : IDictionaryEnumerator
 {
-    private readonly QueryPair[] _pairs;
     private int _index = -1;
-
-    public QueryPairEnumerator(QueryPair[] pairs)
-    {
-        _pairs = pairs;
-    }
 
     public DictionaryEntry Entry => CreateEntry();
 
@@ -332,11 +303,11 @@ internal sealed class QueryPairEnumerator : IDictionaryEnumerator
 
     public bool MoveNext()
     {
-        if (_index >= _pairs.Length)
+        if (_index >= pairs.Length)
             return false;
 
         _index++;
-        return _index < _pairs.Length;
+        return _index < pairs.Length;
     }
 
     public void Reset()
@@ -346,10 +317,10 @@ internal sealed class QueryPairEnumerator : IDictionaryEnumerator
 
     private DictionaryEntry CreateEntry()
     {
-        if (_index < 0 || _index >= _pairs.Length)
+        if (_index < 0 || _index >= pairs.Length)
             throw new InvalidOperationException("Enumeration has either not started or has already finished.");
 
-        return new DictionaryEntry(new QueryPairKey(_pairs[_index].Key, _index), _pairs[_index].Value);
+        return new DictionaryEntry(new QueryPairKey(pairs[_index].Key, _index), pairs[_index].Value);
     }
 }
 
@@ -396,8 +367,8 @@ internal static class QsQueryEncoder
                         "QsQuery cannot represent key-only query pairs because Refit query parameters require key/value pairs."
                     );
                 }
-                else
-                    pairs.Add(new QueryPair(pair.Substring(0, separator), pair.Substring(separator + 1)));
+
+                pairs.Add(new QueryPair(pair.Substring(0, separator), pair.Substring(separator + 1)));
             }
 
             if (next < 0)
