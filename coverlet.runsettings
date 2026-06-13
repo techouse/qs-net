@@ -8,6 +8,7 @@
           <!-- source-only coverage for QsNet assemblies -->
           <Include>[QsNet]QsNet.*</Include>
           <Include>[QsNet.AspNetCore]QsNet.AspNetCore.*</Include>
+          <Include>[QsNet.Flurl]QsNet.Flurl.*</Include>
           <IncludeTestAssembly>false</IncludeTestAssembly>
           <!-- exclude designer/auto-generated -->
           <ExcludeByFile>**/*Designer.cs;**/*Generated*.cs;**/obj/**/RegexGenerator.g.cs</ExcludeByFile>

@@ -1,3 +1,8 @@
+## 1.4.1
+
+* [FEAT] add optional `QsNet.Flurl` package targeting `net10.0` / `netstandard2.0` with Flurl URL helpers for appending or replacing qs-style query strings without double-encoding QsNet output
+* [DOCS] document Flurl installation/usage, add DocFX coverage for the Flurl integration package, and update CI/publish flows to include the Flurl package
+
 ## 1.4.0
 
 * [FEAT] add optional `QsNet.AspNetCore` package targeting `net10.0` with `Microsoft.AspNetCore.App` framework reference while keeping the core `QsNet` package framework-agnostic

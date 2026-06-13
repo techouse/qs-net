@@ -31,9 +31,23 @@ dotnet add package QsNet.AspNetCore
 <PackageReference Include="QsNet.AspNetCore" Version="<version>" />
 ```
 
+## Flurl integration
+
+For applications using Flurl URL builders, install the optional integration
+package:
+
+```bash
+dotnet add package QsNet.Flurl
+```
+
+```xml
+<PackageReference Include="QsNet.Flurl" Version="<version>" />
+```
+
 ---
 
 ## Requirements
 
 - `QsNet`: `net10.0`, `netstandard2.0`
 - `QsNet.AspNetCore`: `net10.0`
+- `QsNet.Flurl`: `net10.0`, `netstandard2.0`
