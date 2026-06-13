@@ -56,7 +56,7 @@ public class QsQueryTests
     [Fact]
     public void QsQuery_ShouldEncodeArraysWithQsNetDefaults()
     {
-        var query = QsQuery.From(new { tags = new[] { "one", "two" } });
+        var query = QsQuery.From(new { tags = (string[])["one", "two"] });
 
         query.Value.Should().Be("tags%5B0%5D=one&tags%5B1%5D=two");
     }
