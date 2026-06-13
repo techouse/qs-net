@@ -1,3 +1,8 @@
+## 1.4.2
+
+* [FEAT] add optional `QsNet.Refit` package targeting `net10.0` / `netstandard2.0` with `QsQuery` wrappers for passing pre-serialized QsNet query strings through Refit query parameters
+* [DOCS] document the Refit issue #1106 workaround, including `[QueryUriFormat(UriFormat.Unescaped)]`, ASP.NET Core-style indexed list keys with `AllowDots = true`, and CI/publish updates for the new package
+
 ## 1.4.1
 
 * [FEAT] add optional `QsNet.Flurl` package targeting `net10.0` / `netstandard2.0` with Flurl URL helpers for appending or replacing qs-style query strings without double-encoding QsNet output

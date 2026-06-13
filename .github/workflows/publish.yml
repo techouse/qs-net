@@ -39,6 +39,7 @@ jobs:
           dotnet pack QsNet/QsNet.csproj -c Release -o ./artifacts
           dotnet pack QsNet.AspNetCore/QsNet.AspNetCore.csproj -c Release -o ./artifacts
           dotnet pack QsNet.Flurl/QsNet.Flurl.csproj -c Release -o ./artifacts
+          dotnet pack QsNet.Refit/QsNet.Refit.csproj -c Release -o ./artifacts
       - name: NuGet login
         uses: NuGet/login@v1
         id: nuget-login
@@ -51,6 +52,7 @@ jobs:
           dotnet nuget push ./artifacts/QsNet.$VERSION.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
           dotnet nuget push ./artifacts/QsNet.AspNetCore.$VERSION.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
           dotnet nuget push ./artifacts/QsNet.Flurl.$VERSION.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
+          dotnet nuget push ./artifacts/QsNet.Refit.$VERSION.nupkg --api-key "$NUGET_API_KEY" --source https://api.nuget.org/v3/index.json --skip-duplicate
       - name: Upload package artifacts
         uses: actions/upload-artifact@v7
         with:
@@ -62,6 +64,8 @@ jobs:
             ./artifacts/QsNet.AspNetCore.${{ env.VERSION }}.snupkg
             ./artifacts/QsNet.Flurl.${{ env.VERSION }}.nupkg
             ./artifacts/QsNet.Flurl.${{ env.VERSION }}.snupkg
+            ./artifacts/QsNet.Refit.${{ env.VERSION }}.nupkg
+            ./artifacts/QsNet.Refit.${{ env.VERSION }}.snupkg
           retention-days: 7
   release:
     needs:
@@ -93,6 +97,7 @@ jobs:
           echo -en "\n[https://www.nuget.org/packages/QsNet](https://www.nuget.org/packages/QsNet)" >> $CHANGELOG_PATH
           echo -en "\n[https://www.nuget.org/packages/QsNet.AspNetCore](https://www.nuget.org/packages/QsNet.AspNetCore)" >> $CHANGELOG_PATH
           echo -en "\n[https://www.nuget.org/packages/QsNet.Flurl](https://www.nuget.org/packages/QsNet.Flurl)" >> $CHANGELOG_PATH
+          echo -en "\n[https://www.nuget.org/packages/QsNet.Refit](https://www.nuget.org/packages/QsNet.Refit)" >> $CHANGELOG_PATH
           echo "CHANGELOG_PATH=$CHANGELOG_PATH" >> $GITHUB_ENV
       - name: Create release
         id: create_release
@@ -108,6 +113,8 @@ jobs:
             ./artifacts/QsNet.AspNetCore.${{ env.VERSION }}.snupkg
             ./artifacts/QsNet.Flurl.${{ env.VERSION }}.nupkg
             ./artifacts/QsNet.Flurl.${{ env.VERSION }}.snupkg
+            ./artifacts/QsNet.Refit.${{ env.VERSION }}.nupkg
+            ./artifacts/QsNet.Refit.${{ env.VERSION }}.snupkg
       - name: Clean up
         id: clean_up
         if: ${{ always() }}

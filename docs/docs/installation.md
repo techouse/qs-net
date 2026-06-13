@@ -44,6 +44,22 @@ dotnet add package QsNet.Flurl
 <PackageReference Include="QsNet.Flurl" Version="<version>" />
 ```
 
+## Refit integration
+
+For applications using Refit query parameters, install the optional
+integration package:
+
+```bash
+dotnet add package QsNet.Refit
+```
+
+```xml
+<PackageReference Include="QsNet.Refit" Version="<version>" />
+```
+
+`QsNet.Refit` does not depend on Refit at runtime. Install `Refit` separately in
+the application or test project that declares the Refit API interface.
+
 ---
 
 ## Requirements
@@ -51,3 +67,4 @@ dotnet add package QsNet.Flurl
 - `QsNet`: `net10.0`, `netstandard2.0`
 - `QsNet.AspNetCore`: `net10.0`
 - `QsNet.Flurl`: `net10.0`, `netstandard2.0`
+- `QsNet.Refit`: `net10.0`, `netstandard2.0`
