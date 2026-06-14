@@ -93,6 +93,19 @@ dotnet add package QsNet.Refit
 `QsNet.Refit` does not depend on Refit at runtime. Install `Refit` separately in
 the application or test project that declares the Refit API interface.
 
+### RestSharp integration
+
+Install the optional RestSharp helper package in applications that build
+requests with RestSharp:
+
+```bash
+dotnet add package QsNet.RestSharp
+```
+
+```xml
+<PackageReference Include="QsNet.RestSharp" Version="<version>"/>
+```
+
 ---
 
 ## Requirements
@@ -198,6 +211,31 @@ await api.GetUsers(QsQuery.From(
 
 `QsNet.Refit` formalizes a wrapper workaround for complex nested query strings.
 It does not change Refit's native `[Query]` object serializer for DTOs.
+
+### RestSharp helpers
+
+```csharp
+using QsNet.RestSharp;
+using RestSharp;
+
+var request = new RestRequest("products")
+    .AddQsQueryParameters(new
+    {
+        filter = new
+        {
+            where = new
+            {
+                name = "John",
+                age = new { gte = 30 },
+            },
+        },
+        tags = new[] { "a", "b" },
+    });
+// -> "/products?filter%5Bwhere%5D%5Bname%5D=John&filter%5Bwhere%5D%5Bage%5D%5Bgte%5D=30&tags%5B0%5D=a&tags%5B1%5D=b"
+```
+
+`QsNet.RestSharp` adds already encoded QsNet query pairs to RestSharp with
+query encoding disabled, avoiding double-encoding of qs-style bracket notation.
 
 ---
 

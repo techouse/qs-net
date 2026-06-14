@@ -1,3 +1,8 @@
+## 1.4.3
+
+* [FEAT] add optional `QsNet.RestSharp` package targeting `net10.0` / `netstandard2.0` with append-only RestSharp request helpers for qs-style nested query parameters
+* [DOCS] document RestSharp installation/usage, explain why QsNet is used instead of `AddObject`, and update CI/publish flows to include the RestSharp package
+
 ## 1.4.2
 
 * [FEAT] add optional `QsNet.Refit` package targeting `net10.0` / `netstandard2.0` with `QsQuery` wrappers for passing pre-serialized QsNet query strings through Refit query parameters

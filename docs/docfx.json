@@ -9,13 +9,15 @@
             "QsNet/QsNet.csproj",
             "QsNet.AspNetCore/QsNet.AspNetCore.csproj",
             "QsNet.Flurl/QsNet.Flurl.csproj",
-            "QsNet.Refit/QsNet.Refit.csproj"
+            "QsNet.Refit/QsNet.Refit.csproj",
+            "QsNet.RestSharp/QsNet.RestSharp.csproj"
           ],
           "exclude": [
             "**/QsNet.Tests/**",
             "**/QsNet.AspNetCore.Tests/**",
             "**/QsNet.Flurl.Tests/**",
-            "**/QsNet.Refit.Tests/**"
+            "**/QsNet.Refit.Tests/**",
+            "**/QsNet.RestSharp.Tests/**"
           ]
         }
       ],

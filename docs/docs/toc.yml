@@ -10,3 +10,5 @@
   href: flurl.md
 - name: Refit
   href: refit.md
+- name: RestSharp
+  href: restsharp.md
