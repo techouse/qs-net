@@ -38,7 +38,7 @@ public static class QsNetRestRequestExtensions
         if (query.Length == 0)
             return request;
 
-        var delimiter = options?.CopyWith(addQueryPrefix: false).Delimiter ?? new EncodeOptions().Delimiter;
+        var delimiter = options?.Delimiter ?? "&";
         if (!string.Equals(delimiter, "&", StringComparison.Ordinal))
         {
             throw new NotSupportedException(
