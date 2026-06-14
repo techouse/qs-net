@@ -60,6 +60,19 @@ dotnet add package QsNet.Refit
 `QsNet.Refit` does not depend on Refit at runtime. Install `Refit` separately in
 the application or test project that declares the Refit API interface.
 
+## RestSharp integration
+
+For applications using RestSharp request builders, install the optional
+integration package:
+
+```bash
+dotnet add package QsNet.RestSharp
+```
+
+```xml
+<PackageReference Include="QsNet.RestSharp" Version="<version>" />
+```
+
 ---
 
 ## Requirements
@@ -68,3 +81,4 @@ the application or test project that declares the Refit API interface.
 - `QsNet.AspNetCore`: `net10.0`
 - `QsNet.Flurl`: `net10.0`, `netstandard2.0`
 - `QsNet.Refit`: `net10.0`, `netstandard2.0`
+- `QsNet.RestSharp`: `net10.0`, `netstandard2.0`
