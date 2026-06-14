@@ -38,8 +38,7 @@ public static class QsNetRestRequestExtensions
         if (query.Length == 0)
             return request;
 
-        var delimiter = options?.Delimiter ?? "&";
-        if (!string.Equals(delimiter, "&", StringComparison.Ordinal))
+        if (!string.Equals(options?.Delimiter ?? "&", "&", StringComparison.Ordinal))
         {
             throw new NotSupportedException(
                 "AddQsQueryParameters only supports the default '&' delimiter because RestSharp query parameters are joined with '&'."
