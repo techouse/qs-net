@@ -51,60 +51,20 @@ dotnet add package QsNet
 <PackageReference Include="QsNet" Version="<version>"/>
 ```
 
-### ASP.NET Core integration
+### Optional integrations
 
-Install the optional ASP.NET Core helper package in ASP.NET Core 10 / `net10.0`
-applications:
+Core `QsNet` stays framework-agnostic. Install an adapter package only when you
+need integration with a specific HTTP or URL library.
 
-```bash
-dotnet add package QsNet.AspNetCore
-```
+| Package            | Use when                                                                                                                                | Install                               |
+|--------------------|-----------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------|
+| `QsNet.AspNetCore` | You want [ASP.NET Core](https://github.com/dotnet/aspnetcore) helpers for parsing or appending qs-style query strings.                  | `dotnet add package QsNet.AspNetCore` |
+| `QsNet.Flurl`      | You build URLs with [Flurl](https://github.com/tmenier/Flurl) and want qs-style nested query parameters.                                | `dotnet add package QsNet.Flurl`      |
+| `QsNet.Refit`      | You use [Refit](https://github.com/reactiveui/refit) and need to pass a QsNet-generated query string through a request interface.       | `dotnet add package QsNet.Refit`      |
+| `QsNet.RestSharp`  | You use [RestSharp](https://github.com/restsharp/RestSharp) and want to add QsNet-generated nested query parameters to a `RestRequest`. | `dotnet add package QsNet.RestSharp`  |
 
-```xml
-<PackageReference Include="QsNet.AspNetCore" Version="<version>"/>
-```
-
-### Flurl integration
-
-Install the optional Flurl helper package in applications that build URLs with
-Flurl:
-
-```bash
-dotnet add package QsNet.Flurl
-```
-
-```xml
-<PackageReference Include="QsNet.Flurl" Version="<version>"/>
-```
-
-### Refit integration
-
-Install the optional Refit query wrapper package in applications that pass
-pre-serialized QsNet query strings through Refit query parameters:
-
-```bash
-dotnet add package QsNet.Refit
-```
-
-```xml
-<PackageReference Include="QsNet.Refit" Version="<version>"/>
-```
-
-`QsNet.Refit` does not depend on Refit at runtime. Install `Refit` separately in
+`QsNet.Refit` does **not** depend on Refit at runtime. Install `Refit` separately in
 the application or test project that declares the Refit API interface.
-
-### RestSharp integration
-
-Install the optional RestSharp helper package in applications that build
-requests with RestSharp:
-
-```bash
-dotnet add package QsNet.RestSharp
-```
-
-```xml
-<PackageReference Include="QsNet.RestSharp" Version="<version>"/>
-```
 
 ---
 
