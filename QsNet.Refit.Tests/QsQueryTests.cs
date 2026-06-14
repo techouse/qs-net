@@ -215,6 +215,7 @@ public class QsQueryTests
 
         handler.RequestUri.Should().NotBeNull();
         handler.RequestUri!.PathAndQuery.Should().Contain("filter%5Bname%5D=Alice");
+        handler.RequestUri.PathAndQuery.Should().NotContain("query=");
         handler.RequestUri.PathAndQuery.Should().NotContain("%255B");
     }
 
@@ -232,6 +233,7 @@ public class QsQueryTests
 
         handler.RequestUri.Should().NotBeNull();
         handler.RequestUri!.PathAndQuery.Should().Be("/users?tags=one&tags=two");
+        handler.RequestUri.PathAndQuery.Should().NotContain("query=");
     }
 
     [Fact]
@@ -248,6 +250,7 @@ public class QsQueryTests
 
         handler.RequestUri.Should().NotBeNull();
         handler.RequestUri!.PathAndQuery.Should().Be("/users?tags%5B%5D=one&tags%5B%5D=two");
+        handler.RequestUri.PathAndQuery.Should().NotContain("query=");
         handler.RequestUri.PathAndQuery.Should().NotContain("%255B");
     }
 
@@ -271,6 +274,7 @@ public class QsQueryTests
         handler.RequestUri!.PathAndQuery.Should().Contain("UserId=1");
         handler.RequestUri.PathAndQuery.Should().Contain("Roles%5B0%5D.Name=Developer");
         handler.RequestUri.PathAndQuery.Should().Contain("Roles%5B0%5D.Level=1");
+        handler.RequestUri.PathAndQuery.Should().NotContain("query=");
         handler.RequestUri.PathAndQuery.Should().NotContain("%255B");
     }
 
@@ -289,6 +293,7 @@ public class QsQueryTests
 
         handler.RequestUri.Should().NotBeNull();
         handler.RequestUri!.PathAndQuery.Should().Contain("Roles%5B0%5D.Name=Developer");
+        handler.RequestUri.PathAndQuery.Should().NotContain("query=");
         handler.RequestUri.PathAndQuery.Should().NotContain("%255B");
     }
 
