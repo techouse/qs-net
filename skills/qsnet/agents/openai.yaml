@@ -1,4 +1,4 @@
 interface:
-  display_name: "qsnet"
-  short_description: "Encode and decode nested C#/.NET query strings"
-  default_prompt: "Use $qsnet to parse or build a C#/.NET query string with QsNet."
+  display_name: "QsNet"
+  short_description: "Use QsNet and .NET query adapters"
+  default_prompt: "Use $qsnet to build a C#/.NET query string with QsNet or one of its adapter packages."

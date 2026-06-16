@@ -1,6 +1,6 @@
 ---
 name: qsnet
-description: Use this skill whenever a user wants to install, configure, troubleshoot, or write C#/.NET, ASP.NET Core, test, or library code for encoding and decoding nested query strings with the QsNet NuGet package. This skill helps produce practical Qs.Decode, Qs.Encode, ToQueryMap, and ToQueryString snippets, choose DecodeOptions and EncodeOptions, explain option tradeoffs, and avoid QsNet edge-case pitfalls around lists, dot notation, duplicates, null handling, charset sentinels, depth limits, ASP.NET query collections, and untrusted input.
+description: Use this skill whenever a user wants to install, configure, troubleshoot, or write C#/.NET code with QsNet or its adapter packages (QsNet.AspNetCore, QsNet.Flurl, QsNet.Refit, QsNet.RestSharp) for encoding and decoding nested query strings. This skill helps produce practical Qs.Decode, Qs.Encode, ToQueryMap, ToQueryString, AddQueryString, AppendQsQueryParams, SetQsQueryParams, QsQuery, and AddQsQueryParameters snippets, choose DecodeOptions and EncodeOptions, explain option tradeoffs, and avoid QsNet edge-case pitfalls around lists, dot notation, duplicates, null handling, charset sentinels, depth limits, web framework query normalization, double encoding, and untrusted input.
 ---
 
 # QsNet Usage Assistant
@@ -14,10 +14,13 @@ maintenance.
 Before producing a final snippet, collect only the missing details that change
 the code:
 
-- Runtime: C# application, ASP.NET Core request handling, tests, library code,
-  .NET Framework/netstandard consumer, or generated example.
+- Runtime: C# application, ASP.NET Core request handling, Flurl URL building,
+  Refit interface calls, RestSharp requests, tests, library code, .NET
+  Framework/netstandard consumer, or generated example.
 - Direction: decode an incoming query string, encode .NET data, or normalize
   query-string handling around an existing URL/request object.
+- Package choice: core `QsNet` only, or an adapter package such as
+  `QsNet.AspNetCore`, `QsNet.Flurl`, `QsNet.Refit`, or `QsNet.RestSharp`.
 - The actual query string or data structure when available.
 - Target API convention for lists: indexed brackets, empty brackets, repeated
   keys, or comma-separated values.
@@ -31,11 +34,29 @@ answer and give the user a concrete snippet they can paste.
 
 ## Installation
 
-Use the NuGet package for normal .NET projects:
+Use the core NuGet package for normal .NET projects:
 
 ```bash
 dotnet add package QsNet
 ```
+
+Install an adapter package only when the app is using that integration surface:
+
+```bash
+dotnet add package QsNet.AspNetCore
+dotnet add package QsNet.Flurl
+dotnet add package QsNet.Refit
+dotnet add package QsNet.RestSharp
+```
+
+Use `QsNet.AspNetCore` for ASP.NET Core `HttpRequest`, `QueryString`, `string`,
+and `Uri` helpers. Use `QsNet.Flurl` for Flurl `Url` builders and Flurl.Http
+chains. Use `QsNet.Refit` for `QsQuery` wrappers passed through Refit
+interfaces. Use `QsNet.RestSharp` for adding QsNet-generated query parameters
+to `RestRequest`.
+
+`QsNet.Refit` intentionally has no runtime dependency on Refit. Install `Refit`
+separately in the project that declares or consumes the Refit API interface.
 
 Package Manager:
 
@@ -49,10 +70,12 @@ Package reference:
 <PackageReference Include="QsNet" Version="<version>" />
 ```
 
-The package targets `net10.0` and `netstandard2.0`, so it can be consumed by
-modern .NET and compatible .NET Standard projects. For older TFMs that need
-Latin1/code-page encodings, remind users to register the code pages provider
-before using `Encoding.GetEncoding("iso-8859-1")`.
+The core package targets `net10.0` and `netstandard2.0`, so it can be consumed
+by modern .NET and compatible .NET Standard projects. `QsNet.AspNetCore`
+targets `net10.0`; `QsNet.Flurl`, `QsNet.Refit`, and `QsNet.RestSharp` also
+target `netstandard2.0`. For older TFMs that need Latin1/code-page encodings,
+remind users to register the code pages provider before using
+`Encoding.GetEncoding("iso-8859-1")`.
 
 ## Public API
 
@@ -84,6 +107,11 @@ string query = values.ToQueryString();
 nested syntax, duplicate keys, or exact delimiter behavior matters, because many
 web framework query abstractions have already normalized or grouped the original
 wire format.
+
+Adapter entry points: `QsNet.AspNetCore` adds `AddQueryString` and
+`ToQueryMap`; `QsNet.Flurl` adds `AppendQsQueryParams` and
+`SetQsQueryParams`; `QsNet.Refit` provides `QsQuery`/`QsQuery<T>` wrappers;
+`QsNet.RestSharp` adds `AddQsQueryParameters`.
 
 ## Base Patterns
 
@@ -134,45 +162,145 @@ var query = Qs.Encode(
 // a[b]=c
 ```
 
-## ASP.NET Core
+## Adapter Packages
 
-For request parsing, prefer the raw query string when qs-style nesting and
-duplicates matter:
+Adapter packages keep the core `QsNet` package framework-agnostic. They encode
+with QsNet first, then attach the already encoded query to the target URL or
+request surface. This is intentional: do not pass complete qs-style query
+strings back through framework helpers that would double-encode `%5B` and `%5D`.
+
+Most adapter encoding methods accept dictionaries, non-generic dictionaries,
+`IEnumerable<KeyValuePair<string, object?>>`, enumerables, arrays, and anonymous
+or DTO objects with public readable instance properties. They normalize object
+graphs before calling `Qs.Encode`; cyclic object graphs throw
+`InvalidOperationException`.
+
+Adapter methods ignore `EncodeOptions.AddQueryPrefix` by forcing no leading `?`;
+the URL/request integration owns the separator.
+
+### ASP.NET Core
+
+Prefer `QsNet.AspNetCore` when an app already works with ASP.NET Core request
+or URL types:
 
 ```csharp
-using QsNet;
+using QsNet.AspNetCore;
+
+var url = "/api/search#results".AddQueryString(new
+{
+    filter = new { name = "Alice" },
+    tags = new[] { "one", "two" },
+});
+```
+
+`AddQueryString` works on `string` and `Uri`, preserves fragments, chooses `?`
+or `&` based on the existing URL, and appends QsNet output directly instead of
+using ASP.NET Core `QueryHelpers.AddQueryString`.
+
+For request parsing, use `HttpRequest.ToQueryMap()` or
+`QueryString.ToQueryMap()`:
+
+```csharp
+using QsNet.AspNetCore;
 using QsNet.Models;
 
-var values = Qs.Decode(
-    httpContext.Request.QueryString.Value,
-    new DecodeOptions { IgnoreQueryPrefix = true }
+var values = httpContext.Request.ToQueryMap(
+    new DecodeOptions { AllowDots = true }
 );
 ```
 
-Use `Request.Query` only when the app is already comfortable with ASP.NET
-Core's query normalization and grouping semantics. If a user starts from
-`IQueryCollection`, mention that duplicate ordering and exact raw delimiters may
-already be lost.
+These helpers decode the raw `Request.QueryString`/`QueryString` value and
+strip a leading `?` before calling `Qs.Decode`. Use `Request.Query` only when
+the app is already comfortable with ASP.NET Core's query normalization and
+grouping semantics. If a user starts from `IQueryCollection`, mention that
+duplicate ordering and exact raw delimiters may already be lost.
 
-When encoding into a URL, use `AddQueryPrefix = true` only when the caller wants
-the leading question mark:
+Without the adapter package, fall back to `Qs.Decode` on
+`httpContext.Request.QueryString.Value` with `IgnoreQueryPrefix = true`.
+
+### Flurl
+
+Use `QsNet.Flurl` when building URLs with Flurl:
 
 ```csharp
-using QsNet;
-using QsNet.Enums;
-using QsNet.Models;
+using Flurl;
+using QsNet.Flurl;
 
-var query = Qs.Encode(
-    new Dictionary<string, object?>
-    {
-        ["page"] = 2,
-        ["tag"] = new List<object?> { "api", "docs" },
-    },
-    new EncodeOptions { AddQueryPrefix = true, ListFormat = ListFormat.Repeat }
-);
-
-// ?page=2&tag=api&tag=docs
+var url = "https://api.example.com"
+    .AppendPathSegment("products")
+    .AppendQsQueryParams(new { filter = new { name = "John" } });
 ```
+
+Use `AppendQsQueryParams` to keep existing query parameters and append QsNet
+pairs. Use `SetQsQueryParams` to replace the entire query string; when encoding
+returns an empty string, `SetQsQueryParams` clears the query. The `Url` overloads
+mutate and return the same `Url` instance. String and `Uri` overloads create a
+Flurl `Url`.
+
+For Flurl.Http chains, append QsNet query parameters before sending, then call
+the usual Flurl.Http method such as `GetJsonAsync<T>()`.
+
+### Refit
+
+Use `QsNet.Refit` when a Refit interface needs to send a QsNet-generated query
+through Refit's `[Query]` pipeline:
+
+```csharp
+using QsNet.Refit;
+using Refit;
+
+public interface IProductsApi
+{
+    [Get("/products")]
+    [QueryUriFormat(UriFormat.Unescaped)]
+    Task<ProductSearchResponse> Search([Query] QsQuery query);
+}
+
+await api.Search(QsQuery.From(new
+{
+    filter = new { where = new { name = "John" } },
+    tags = new[] { "a", "b" },
+}));
+```
+
+Always include `[QueryUriFormat(UriFormat.Unescaped)]` on methods that accept
+`QsQuery` or `QsQuery<T>` so Refit does not double-encode QsNet's already
+encoded keys. Use `QsQuery<T>.From(source, options)` when preserving the source
+DTO type helps the call site.
+
+For ASP.NET Core-style indexed list keys, use `AllowDots = true`; this produces
+shapes such as `Roles%5B0%5D.Name=Developer`.
+
+Do not suggest plain `[Query] UserQuery query` when qs-style nested query
+strings are required; `QsNet.Refit` does not replace Refit's native object
+serializer. It wraps a pre-serialized QsNet query as read-only key/value pairs.
+
+Refit's query pipeline joins normal `key=value` pairs with `&`, so `QsQuery`
+rejects custom `EncodeOptions.Delimiter` values and key-only pairs from
+`StrictNullHandling = true`. Repeated keys and bracket list keys are supported.
+
+### RestSharp
+
+Use `QsNet.RestSharp` when adding nested query parameters to a RestSharp
+`RestRequest`:
+
+```csharp
+using QsNet.RestSharp;
+using RestSharp;
+
+var request = new RestRequest("products")
+    .AddQsQueryParameters(new { filter = new { name = "John" } });
+```
+
+`AddQsQueryParameters` mutates and returns the same request, preserves existing
+resource query strings and query parameters, adds each QsNet pair with RestSharp
+query encoding disabled, and avoids `query=` wrapper parameters. Prefer it over
+`AddObject`/`AddObjectStatic` when the server expects qs-style nested object
+graphs or lists of complex objects.
+
+Repeated keys and key-only pairs from `StrictNullHandling = true` are supported.
+Custom `EncodeOptions.Delimiter` values are rejected when encoding produces
+query output because RestSharp joins query parameters with `&`.
 
 ## Decode Recipes
 
@@ -330,14 +458,17 @@ Warn or adjust before giving code for these cases:
 For code-generation requests, answer with:
 
 1. A short statement of assumptions, especially runtime, list format, null
-   handling, charset, prefix handling, ASP.NET/raw-query handling, and whether
-   input is trusted.
-2. One concrete C# snippet using `Qs.Decode`, `Qs.Encode`, `ToQueryMap`, or
-   `ToQueryString`.
+   handling, charset, prefix handling, adapter package choice, framework
+   query normalization, and whether input is trusted.
+2. One concrete C# snippet using the right public entry point for the runtime:
+   `Qs.Decode`, `Qs.Encode`, `ToQueryMap`, `ToQueryString`,
+   `AddQueryString`, `AppendQsQueryParams`, `SetQsQueryParams`, `QsQuery`,
+   `QsQuery<T>`, or `AddQsQueryParameters`.
 3. A brief explanation of only the options used.
 4. A small verification example, such as an expected dictionary shape, expected
    query string, xUnit assertion, FluentAssertions assertion, or `Debug.Assert`.
 
 Keep snippets application-oriented. Prefer public API imports from `QsNet`,
-`QsNet.Models`, and `QsNet.Enums`; do not ask users to import from
-`QsNet.Internal`.
+`QsNet.Models`, `QsNet.Enums`, or the relevant adapter namespace
+(`QsNet.AspNetCore`, `QsNet.Flurl`, `QsNet.Refit`, or `QsNet.RestSharp`); do
+not ask users to import from `QsNet.Internal`.
