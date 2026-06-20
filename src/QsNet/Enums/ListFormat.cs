@@ -53,9 +53,8 @@ public static class ListFormatExtensions
     /// </summary>
     /// <param name="format">The list format</param>
     /// <returns>The generator function</returns>
-    public static ListFormatGenerator GetGenerator(this ListFormat format)
-    {
-        return format switch
+    public static ListFormatGenerator GetGenerator(this ListFormat format) =>
+        format switch
         {
             ListFormat.Brackets => BracketsGen,
             ListFormat.Comma => CommaGen,
@@ -63,5 +62,4 @@ public static class ListFormatExtensions
             ListFormat.Indices => IndicesGen,
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
-    }
 }
