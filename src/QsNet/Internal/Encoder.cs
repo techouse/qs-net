@@ -1,12 +1,12 @@
+#if NETSTANDARD2_0
+using System;
+using System.Collections.Generic;
+#endif
 using System.Collections;
 using System.Globalization;
 using System.Text;
 using QsNet.Enums;
 using QsNet.Models;
-#if NETSTANDARD2_0
-using System;
-using System.Collections.Generic;
-#endif
 
 namespace QsNet.Internal;
 
@@ -624,46 +624,42 @@ internal static class Encoder
         {
             while (true)
             {
-                if (current is IDictionary map)
+                switch (current)
                 {
-                    if (!sideChannel.Enter(map))
+                    case IDictionary map when !sideChannel.Enter(map):
                         throw new InvalidOperationException("Cyclic object value");
+                    case IDictionary map:
+                        {
+                            entered.Add(map);
 
-                    entered.Add(map);
+                            if (map.Count != 1)
+                                return false;
 
-                    if (map.Count != 1)
-                        return false;
+                            DictionaryEntry only = default;
+                            var found = false;
+                            foreach (DictionaryEntry entry in map)
+                            {
+                                only = entry;
+                                found = true;
+                                break;
+                            }
 
-                    DictionaryEntry only = default;
-                    var found = false;
-                    foreach (DictionaryEntry entry in map)
-                    {
-                        only = entry;
-                        found = true;
-                        break;
-                    }
+                            if (!found)
+                                return false;
 
-                    if (!found)
-                        return false;
-
-                    path.Append('[').Append(StringifyKey(only.Key)).Append(']');
-                    current = only.Value;
-                    continue;
-                }
-
-                if (current is DateTime dt)
-                {
-                    current = serializeDate is null ? dt.ToString("o") : serializeDate(dt);
-                    continue;
-                }
-
-                if (current is null)
-                {
-                    result = new List<object?>
-                    {
-                        $"{formatter(path.ToString())}={formatter(string.Empty)}"
-                    };
-                    return true;
+                            path.Append('[').Append(StringifyKey(only.Key)).Append(']');
+                            current = only.Value;
+                            continue;
+                        }
+                    case DateTime dt:
+                        current = serializeDate is null ? dt.ToString("o") : serializeDate(dt);
+                        continue;
+                    case null:
+                        result = new List<object?>
+                        {
+                            $"{formatter(path.ToString())}={formatter(string.Empty)}"
+                        };
+                        return true;
                 }
 
                 if (!Utils.IsNonNullishPrimitive(current) && current is not byte[]) return false;
@@ -711,20 +707,15 @@ internal static class Encoder
     /// <returns>
     ///     <see langword="true" /> for enumerable non-string, non-dictionary, non-byte-array values.
     /// </returns>
-    private static bool IsSequence(object? value)
-    {
-        return value is IEnumerable and not string and not IDictionary and not byte[];
-    }
+    private static bool IsSequence(object? value) =>
+        value is IEnumerable and not string and not IDictionary and not byte[];
 
     /// <summary>
     ///     Converts an object key into a non-null string representation.
     /// </summary>
     /// <param name="key">The key to stringify.</param>
     /// <returns>The key text, or an empty string when the key is null.</returns>
-    private static string StringifyKey(object? key)
-    {
-        return key?.ToString() ?? string.Empty;
-    }
+    private static string StringifyKey(object? key) => key?.ToString() ?? string.Empty;
 
     /// <summary>
     ///     Parses integer-like keys used for list/array element lookup.
@@ -777,10 +768,7 @@ internal static class Encoder
     /// </summary>
     /// <param name="key">Candidate key value.</param>
     /// <returns>The parsed index, or <c>-1</c> when unavailable.</returns>
-    private static int CoerceIndexOrMinusOne(object? key)
-    {
-        return TryGetIndex(key, out var idx) ? idx : -1;
-    }
+    private static int CoerceIndexOrMinusOne(object? key) => TryGetIndex(key, out var idx) ? idx : -1;
 
     /// <summary>
     ///     Decodes byte content using the preferred charset with UTF-8 fallback on decoder failures.
