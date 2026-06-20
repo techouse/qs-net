@@ -54,7 +54,7 @@ internal static partial class Decoder
         bool enforceListLimit = true
     )
     {
-        if (options.ListLimit < 0 && !options.Comma)
+        if (options is { ListLimit: < 0, Comma: false })
             return value;
 
         if (value is string str && options.Comma && str.Length != 0)
@@ -303,15 +303,13 @@ internal static partial class Decoder
     /// <summary>
     ///     Splits the query string by delimiter and keeps only tokens with non-empty raw keys.
     /// </summary>
-    private static List<string> CollectNonEmptyParts(string input, IDelimiter delimiter)
-    {
-        return delimiter switch
+    private static List<string> CollectNonEmptyParts(string input, IDelimiter delimiter) =>
+        delimiter switch
         {
             StringDelimiter stringDelimiter => CollectNonEmptyStringParts(input, stringDelimiter.Value),
             RegexDelimiter regexDelimiter => CollectNonEmptyEnumerableParts(regexDelimiter.Split(input)),
             _ => CollectNonEmptyEnumerableParts(delimiter.Split(input))
         };
-    }
 
     /// <summary>
     ///     Fast path for simple string delimiters using ordinal scanning.
@@ -392,10 +390,7 @@ internal static partial class Decoder
     /// <returns>
     ///     <see langword="true" /> when the key portion is non-empty; otherwise <see langword="false" />.
     /// </returns>
-    private static bool HasNonEmptyRawKey(string part)
-    {
-        return HasNonEmptyRawKey(part, 0, part.Length);
-    }
+    private static bool HasNonEmptyRawKey(string part) => HasNonEmptyRawKey(part, 0, part.Length);
 
     private static bool HasNonEmptyRawKey(string input, int start, int end)
     {
