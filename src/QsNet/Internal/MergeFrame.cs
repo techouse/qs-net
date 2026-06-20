@@ -1,7 +1,7 @@
-using QsNet.Models;
 #if NETSTANDARD2_0
 using System.Collections.Generic;
 #endif
+using QsNet.Models;
 
 namespace QsNet.Internal;
 
