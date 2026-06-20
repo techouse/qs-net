@@ -217,6 +217,43 @@ string encoded = Qs.Encode(new Dictionary<string, object?> { ["a"] = "c" });
 
 ## Decoding
 
+### URI queries
+
+Use `DecodeQsQuery` to decode the escaped query component of an absolute or
+relative `Uri` without pre-decoding percent escapes or including the fragment:
+
+```csharp
+var uri = new Uri(
+    "https://example.com/search?filter%5Bwhere%5D%5Bname%5D=John%20Doe&tag=a&tag=b&flag&empty=#results"
+);
+
+var query = uri.DecodeQsQuery(
+    new DecodeOptions { StrictNullHandling = true }
+);
+// => { "filter": { "where": { "name": "John Doe" } }, "tag": ["a", "b"], "flag": null, "empty": "" }
+```
+
+Here, encoded brackets reach QsNet unchanged, the fragment is ignored, the two
+`tag` values use the configured duplicate handling, `flag` decodes as `null`,
+and `empty=` decodes as an empty string. An absent or empty query returns an
+empty dictionary.
+
+The helper is intentionally read-only. For a new URI with no existing query,
+construct the URI explicitly from default `Qs.Encode(...)` output:
+
+```csharp
+var values = new Dictionary<string, object?> { ["page"] = "2" };
+var encoded = Qs.Encode(values);
+var uri = new Uri($"https://api.example.com/products?{encoded}");
+```
+
+`AddQueryPrefix` is `false` by default. If you enable it, interpolate the
+encoded output without adding another literal `?`, or remove the prefix first.
+Do not use this pattern to merge with an arbitrary existing query: decoding and
+re-encoding can change duplicate ordering, name-only keys, delimiters, list
+notation, and percent spelling. `Encode = false` or a custom encoder can also
+produce text unsuitable for `Uri` construction.
+
 ### Nested dictionaries
 
 ```csharp

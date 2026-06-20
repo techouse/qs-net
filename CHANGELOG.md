@@ -1,3 +1,7 @@
+## 1.4.4-dev
+
+* [FEAT] add a read-only `DecodeQsQuery` extension for `System.Uri` that decodes escaped query components from absolute and relative URIs while excluding fragments and preserving QsNet decoder options
+
 ## 1.4.3
 
 * [FEAT] add optional `QsNet.RestSharp` package targeting `net10.0` / `netstandard2.0` with append-only RestSharp request helpers for qs-style nested query parameters
