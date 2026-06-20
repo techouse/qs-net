@@ -1,7 +1,7 @@
-using System.Collections;
 #if NETSTANDARD2_0
 using System;
 #endif
+using System.Collections;
 
 namespace QsNet.Models;
 
@@ -20,10 +20,7 @@ public class FunctionFilter : IFilter
     ///     Initializes a new instance of the FunctionFilter class.
     /// </summary>
     /// <param name="function">The function to apply</param>
-    public FunctionFilter(Func<string, object?, object?> function)
-    {
-        Function = function;
-    }
+    public FunctionFilter(Func<string, object?, object?> function) => Function = function;
 
     /// <summary>
     ///     The function to apply to key-value pairs.
@@ -41,10 +38,7 @@ public class IterableFilter : IFilter
     ///     Initializes a new instance of the IterableFilter class.
     /// </summary>
     /// <param name="iterable">The enumerable collection</param>
-    public IterableFilter(IEnumerable iterable)
-    {
-        Iterable = iterable;
-    }
+    public IterableFilter(IEnumerable iterable) => Iterable = iterable;
 
     /// <summary>
     ///     The enumerable collection.
