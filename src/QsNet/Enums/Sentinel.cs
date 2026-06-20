@@ -29,43 +29,37 @@ public enum Sentinel
 /// </summary>
 public static class SentinelExtensions
 {
-    /// <summary>
-    ///     Gets the value for the specified sentinel.
-    /// </summary>
     /// <param name="sentinel">The sentinel</param>
-    /// <returns>The value string</returns>
-    public static string GetValue(this Sentinel sentinel)
+    extension(Sentinel sentinel)
     {
-        return sentinel switch
-        {
-            Sentinel.Iso => "&#10003;",
-            Sentinel.Charset => "✓",
-            _ => throw new ArgumentOutOfRangeException(nameof(sentinel))
-        };
-    }
+        /// <summary>
+        ///     Gets the value for the specified sentinel.
+        /// </summary>
+        /// <returns>The value string</returns>
+        public string GetValue() =>
+            sentinel switch
+            {
+                Sentinel.Iso => "&#10003;",
+                Sentinel.Charset => "✓",
+                _ => throw new ArgumentOutOfRangeException(nameof(sentinel))
+            };
 
-    /// <summary>
-    ///     Gets the encoded value for the specified sentinel.
-    /// </summary>
-    /// <param name="sentinel">The sentinel</param>
-    /// <returns>The encoded string</returns>
-    public static string GetEncoded(this Sentinel sentinel)
-    {
-        return sentinel switch
-        {
-            Sentinel.Iso => "utf8=%26%2310003%3B",
-            Sentinel.Charset => "utf8=%E2%9C%93",
-            _ => throw new ArgumentOutOfRangeException(nameof(sentinel))
-        };
-    }
+        /// <summary>
+        ///     Gets the encoded value for the specified sentinel.
+        /// </summary>
+        /// <returns>The encoded string</returns>
+        public string GetEncoded() =>
+            sentinel switch
+            {
+                Sentinel.Iso => "utf8=%26%2310003%3B",
+                Sentinel.Charset => "utf8=%E2%9C%93",
+                _ => throw new ArgumentOutOfRangeException(nameof(sentinel))
+            };
 
-    /// <summary>
-    ///     Gets the string representation (encoded value) for the specified sentinel.
-    /// </summary>
-    /// <param name="sentinel">The sentinel</param>
-    /// <returns>The encoded string</returns>
-    public static string ToString(this Sentinel sentinel)
-    {
-        return sentinel.GetEncoded();
+        /// <summary>
+        ///     Gets the string representation (encoded value) for the specified sentinel.
+        /// </summary>
+        /// <returns>The encoded string</returns>
+        public string ToString() => sentinel.GetEncoded();
     }
 }
