@@ -24,15 +24,9 @@ internal sealed class KeyPathNode
     private int Depth { get; }
     private int Length { get; }
 
-    public static KeyPathNode FromMaterialized(string value)
-    {
-        return new KeyPathNode(null, value);
-    }
+    public static KeyPathNode FromMaterialized(string value) => new(null, value);
 
-    public KeyPathNode Append(string segment)
-    {
-        return segment.Length == 0 ? this : new KeyPathNode(this, segment);
-    }
+    public KeyPathNode Append(string segment) => segment.Length == 0 ? this : new KeyPathNode(this, segment);
 
     /// <summary>
     ///     Returns a cached view with every literal dot replaced by "%2E".
