@@ -151,13 +151,10 @@ public static class QsNetFlurlExtensions
         return new Url(uri).SetQsQueryParams(values, options);
     }
 
-    private static string EncodeQueryString(object values, EncodeOptions? options)
-    {
-        var normalized = NormalizeValue(values);
-        var encodeOptions = options?.CopyWith(addQueryPrefix: false) ?? new EncodeOptions();
-
-        return Qs.Encode(normalized, encodeOptions);
-    }
+    private static string EncodeQueryString(object values, EncodeOptions? options) => Qs.Encode(
+        NormalizeValue(values),
+        options?.CopyWith(addQueryPrefix: false) ?? new EncodeOptions()
+    );
 
     private static object? NormalizeValue(object? value) =>
         NormalizeValue(value, new HashSet<object>(ReferenceEqualityComparer.Instance));
