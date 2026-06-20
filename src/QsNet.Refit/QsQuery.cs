@@ -132,10 +132,8 @@ public readonly struct QsQuery : IDictionary
             return null;
 
         foreach (var queryPair in pairs)
-        {
             if (string.Equals(queryPair.Key, stringKey, StringComparison.Ordinal))
                 return queryPair.Value;
-        }
 
         return null;
     }
@@ -154,10 +152,8 @@ public readonly struct QsQuery : IDictionary
             return false;
 
         foreach (var queryPair in pairs)
-        {
             if (string.Equals(queryPair.Key, stringKey, StringComparison.Ordinal))
                 return true;
-        }
 
         return false;
     }
