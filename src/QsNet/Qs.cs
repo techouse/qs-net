@@ -112,18 +112,19 @@ public static class Qs
                 continue;
             }
 
-            var merged = Utils.Merge(obj, parsed, finalOptions);
-            obj = NormalizeObjectMap(merged);
+            obj = NormalizeObjectMap(
+                Utils.Merge(obj, parsed, finalOptions)
+            );
         }
 
         // compact (still object-keyed), then convert the whole tree to string-keyed
-        var compacted = Utils.Compact(obj, opts.AllowSparseLists);
-        return Utils.ToStringKeyDeepNonRecursive(compacted);
+        return Utils.ToStringKeyDeepNonRecursive(
+            Utils.Compact(obj, opts.AllowSparseLists)
+        );
     }
 
-    private static Dictionary<object, object?> NormalizeObjectMap(object? merged)
-    {
-        return merged switch
+    private static Dictionary<object, object?> NormalizeObjectMap(object? merged) =>
+        merged switch
         {
             Dictionary<object, object?> d => d,
             IDictionary id => Utils.ToObjectKeyedDictionary(id),
@@ -131,7 +132,6 @@ public static class Qs
                 $"NormalizeObjectMap expected a dictionary but received {merged?.GetType().FullName ?? "null"}."
             )
         };
-    }
 
     private static StructuredKeyScan ScanStructuredKeys(
         Dictionary<string, object?> tempObj,
@@ -329,7 +329,7 @@ public static class Qs
             case IterableFilter wl:
                 objKeys = wl.Iterable is ICollection collection
                     ? new List<object?>(collection.Count)
-                    : new List<object?>();
+                    : [];
 
                 foreach (var item in wl.Iterable)
                     objKeys.Add(item);
@@ -427,9 +427,8 @@ public static class Qs
 
         void AppendBodyPart(string part)
         {
-            if (wroteBodyPart)
+            if (wroteBodyPart || wroteSentinel)
                 sb.Append(opts.Delimiter);
-            else if (wroteSentinel) sb.Append(opts.Delimiter);
 
             sb.Append(part);
             wroteBodyPart = true;
@@ -437,8 +436,9 @@ public static class Qs
 
         static Dictionary<string, object?> CreateIndexDictionary(IEnumerable en)
         {
-            var initial = en is ICollection col ? col.Count : 0;
-            var dict = new Dictionary<string, object?>(initial);
+            var dict = new Dictionary<string, object?>(
+                en is ICollection col ? col.Count : 0
+            );
             var i = 0;
             foreach (var v in en)
                 dict.Add(i++.ToString(CultureInfo.InvariantCulture), v);
