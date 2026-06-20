@@ -38,7 +38,7 @@ internal sealed class EncodeFrame(
     Encoding charset,
     bool addQueryPrefix)
 {
-    public object? Data { get; set; } = data;
+    public object? Data { get; } = data;
     public bool Undefined { get; } = undefined;
     public SideChannelFrame SideChannel { get; } = sideChannel;
     public KeyPathNode Path { get; } = path;
