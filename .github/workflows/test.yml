@@ -199,6 +199,16 @@ jobs:
                       });
                       if (string.IsNullOrEmpty(qs))
                           throw new Exception("Encode returned empty string");
+                      var absoluteQuery = new Uri(
+                          "https://example.com/search?a%5Bb%5D=x%26y#fragment"
+                      ).DecodeQsQuery();
+                      var absoluteNested = (Dictionary<string, object?>)absoluteQuery["a"]!;
+                      if (!object.Equals(absoluteNested["b"], "x&y"))
+                          throw new Exception("Absolute URI query decode failed");
+                      var relativeQuery = new Uri("?value=a+b#fragment", UriKind.Relative)
+                          .DecodeQsQuery();
+                      if (!object.Equals(relativeQuery["value"], "a b"))
+                          throw new Exception("Relative URI query decode failed");
                       Console.WriteLine("SMOKE OK");
                       return 0;
                   }
@@ -294,6 +304,9 @@ jobs:
                   var qs = Qs.Encode(new Dictionary<string, object?> {
                       ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
                   });
+                  var uriQuery = new Uri(
+                      "https://example.com/search?a%5Bb%5D=x%26y#fragment"
+                  ).DecodeQsQuery();
                   return string.IsNullOrEmpty(qs) ? 1 : 0;
               }
           }
@@ -349,6 +362,16 @@ jobs:
                       });
                       if (string.IsNullOrEmpty(qs))
                           throw new Exception("Encode returned empty string");
+                      var absoluteQuery = new Uri(
+                          "https://example.com/search?a%5Bb%5D=x%26y#fragment"
+                      ).DecodeQsQuery();
+                      var absoluteNested = (Dictionary<string, object?>)absoluteQuery["a"]!;
+                      if (!object.Equals(absoluteNested["b"], "x&y"))
+                          throw new Exception("Absolute URI query decode failed");
+                      var relativeQuery = new Uri("?value=a+b#fragment", UriKind.Relative)
+                          .DecodeQsQuery();
+                      if (!object.Equals(relativeQuery["value"], "a b"))
+                          throw new Exception("Relative URI query decode failed");
           #if NET461
                       Console.WriteLine("SMOKE net461 OK");
           #elif NET481

@@ -1,5 +1,33 @@
 ## Decoding
 
+### URI queries
+
+Use `DecodeQsQuery` to decode the escaped query component of an absolute or
+relative `Uri` without pre-decoding percent escapes or including the fragment:
+
+```csharp
+var uri = new Uri(
+    "https://example.com/search?" +
+    "filter%5Bwhere%5D%5Bname%5D=John%20Doe&" +
+    "tag=a&tag=b&flag&empty=#results"
+);
+
+var query = uri.DecodeQsQuery(
+    new DecodeOptions { StrictNullHandling = true }
+);
+```
+
+Encoded brackets reach QsNet unchanged, the fragment is ignored, duplicate
+keys use the configured duplicate handling, and strict null handling preserves
+the difference between `flag` and `empty=`. Absolute and relative URIs are
+supported; an absent or empty query returns an empty dictionary.
+
+The helper does not mutate or round-trip the URI. For writes, prefer explicit
+construction from `Qs.Encode(...)` output or one of the host-specific adapter
+packages. Decoding and re-encoding an arbitrary existing query can change
+duplicate ordering, name-only keys, delimiters, list notation, and percent
+spelling.
+
 ### Nested dictionaries
 
 ```csharp
