@@ -9,7 +9,7 @@ namespace QsNet.Tests;
 public class UriExtensionTests
 {
     [Fact]
-    public void DecodeQsQuery_ShouldPreserveEscapedQuerySyntaxUntilQsDecode()
+    public void ShouldPreserveEscapedQuerySyntaxUntilQsDecode()
     {
         var uri = new Uri(
             "https://example.com/search?" +
@@ -41,7 +41,7 @@ public class UriExtensionTests
     [InlineData("a=x&a=y")]
     [InlineData("items%5B0%5D%5Bid%5D=1&items%5B1%5D%5Bid%5D=2")]
     [InlineData("first=1&a=x&middle=2&a=y")]
-    public void DecodeQsQuery_ShouldMatchQsDecodeForStructuredAndDuplicatePairs(string query)
+    public void ShouldMatchQsDecodeForStructuredAndDuplicatePairs(string query)
     {
         var uri = new Uri($"https://example.com/search?{query}#results");
 
@@ -51,7 +51,7 @@ public class UriExtensionTests
     }
 
     [Fact]
-    public void DecodeQsQuery_ShouldPassDecodeOptionsThrough()
+    public void ShouldPassDecodeOptionsThrough()
     {
         var uri = new Uri("https://example.com/search?values=one,two,three");
 
@@ -64,7 +64,7 @@ public class UriExtensionTests
     }
 
     [Fact]
-    public void DecodeQsQuery_ShouldDistinguishNameOnlyAndEmptyValues()
+    public void ShouldDistinguishNameOnlyAndEmptyValues()
     {
         var uri = new Uri("https://example.com/search?flag&empty=#results");
 
@@ -78,7 +78,7 @@ public class UriExtensionTests
     }
 
     [Fact]
-    public void DecodeQsQuery_ShouldRespectCustomDelimiter()
+    public void ShouldRespectCustomDelimiter()
     {
         var uri = new Uri("https://example.com/search?a=b;c=d#results");
 
@@ -98,7 +98,7 @@ public class UriExtensionTests
     [InlineData("https://example.com/search?")]
     [InlineData("https://example.com/search?#results")]
     [InlineData("https://example.com/search#results")]
-    public void DecodeQsQuery_ShouldReturnEmptyMapForAbsentOrEmptyAbsoluteQuery(string value)
+    public void ShouldReturnEmptyMapForAbsentOrEmptyAbsoluteQuery(string value)
     {
         var uri = new Uri(value);
 
@@ -114,7 +114,7 @@ public class UriExtensionTests
     [InlineData("search?#frag", "")]
     [InlineData("search", "")]
     [InlineData("#frag?not=query", "")]
-    public void DecodeQsQuery_ShouldExtractRelativeQueryWithoutFragment(
+    public void ShouldExtractRelativeQueryWithoutFragment(
         string value,
         string query
     )
@@ -127,7 +127,7 @@ public class UriExtensionTests
     }
 
     [Fact]
-    public void DecodeQsQuery_ShouldDecodeOpaqueAbsoluteUriQuery()
+    public void ShouldDecodeOpaqueAbsoluteUriQuery()
     {
         var uri = new Uri("mailto:user@example.com?subject=a%26b#frag");
 
@@ -140,7 +140,7 @@ public class UriExtensionTests
     }
 
     [Fact]
-    public void DecodeQsQuery_ShouldUseUriCanonicalizationForMalformedEscapes()
+    public void ShouldUseUriCanonicalizationForMalformedEscapes()
     {
         var uri = new Uri("https://example.com/search?bad=%ZZ&tail=%");
 
@@ -154,7 +154,7 @@ public class UriExtensionTests
     }
 
     [Fact]
-    public void DecodeQsQuery_ShouldThrowForNullUri()
+    public void ShouldThrowForNullUri()
     {
         Uri? uri = null;
 
