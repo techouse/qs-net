@@ -41,10 +41,7 @@ public sealed class EncodeOptions
     /// <summary>
     ///     Initializes a new instance of the EncodeOptions class.
     /// </summary>
-    public EncodeOptions(ListFormat? listFormat = null)
-    {
-        ListFormat = listFormat;
-    }
+    public EncodeOptions(ListFormat? listFormat = null) => ListFormat = listFormat;
 
     /// <summary>
     ///     Set an Encoder to affect the encoding of values. Note: the encoder option does not apply if
@@ -63,7 +60,6 @@ public sealed class EncodeOptions
     /// </summary>
     public ListFormat? ListFormat
     {
-        init => _listFormat = value;
 #pragma warning disable CS0618 // Type or member is obsolete
         get =>
             _listFormat
@@ -75,6 +71,7 @@ public sealed class EncodeOptions
                     : Enums.ListFormat.Indices
             );
 #pragma warning restore CS0618 // Type or member is obsolete
+        init => _listFormat = value;
     }
 
     /// <summary>
@@ -82,8 +79,8 @@ public sealed class EncodeOptions
     /// </summary>
     public bool AllowDots
     {
-        init => _allowDots = value;
         get => _allowDots ?? EncodeDotInKeys;
+        init => _allowDots = value;
     }
 
     /// <summary>
@@ -189,11 +186,9 @@ public sealed class EncodeOptions
     /// <param name="encoding">The encoding to use</param>
     /// <param name="format">The format to use</param>
     /// <returns>The encoded string</returns>
-    public string GetEncoder(object? value, Encoding? encoding = null, Format? format = null)
-    {
-        return Encoder?.Invoke(value, encoding ?? Charset, format ?? Format)
-               ?? Utils.Encode(value, encoding ?? Charset, format ?? Format);
-    }
+    public string GetEncoder(object? value, Encoding? encoding = null, Format? format = null) =>
+        Encoder?.Invoke(value, encoding ?? Charset, format ?? Format)
+        ?? Utils.Encode(value, encoding ?? Charset, format ?? Format);
 
     /// <summary>
     ///     Serializes a DateTime instance to a string.
@@ -201,10 +196,7 @@ public sealed class EncodeOptions
     /// </summary>
     /// <param name="date">The date to serialize</param>
     /// <returns>The serialized date string</returns>
-    public string GetDateSerializer(DateTime date)
-    {
-        return DateSerializer?.Invoke(date) ?? date.ToString("O");
-    }
+    public string GetDateSerializer(DateTime date) => DateSerializer?.Invoke(date) ?? date.ToString("O");
 
     /// <summary>
     ///     Validates option invariants before encoding.
@@ -263,9 +255,8 @@ public sealed class EncodeOptions
         bool? indices = null,
         ValueEncoder? encoder = null,
         DateSerializer? dateSerializer = null
-    )
-    {
-        return new EncodeOptions
+    ) =>
+        new()
         {
             AddQueryPrefix = addQueryPrefix ?? AddQueryPrefix,
             AllowDots = allowDots ?? AllowDots,
@@ -290,5 +281,4 @@ public sealed class EncodeOptions
             Encoder = encoder ?? Encoder,
             DateSerializer = dateSerializer ?? DateSerializer
         };
-    }
 }
