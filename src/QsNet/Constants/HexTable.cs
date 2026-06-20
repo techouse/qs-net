@@ -34,8 +34,5 @@ public static class HexTable
         return arr;
     }
 
-    private static char GetHexChar(int n)
-    {
-        return (char)(n < 10 ? '0' + n : 'A' + (n - 10));
-    }
+    private static char GetHexChar(int n) => (char)(n < 10 ? '0' + n : 'A' + (n - 10));
 }
