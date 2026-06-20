@@ -1,7 +1,7 @@
-using System.Runtime.CompilerServices;
 #if NETSTANDARD2_0
 using System.Collections.Generic;
 #endif
+using System.Runtime.CompilerServices;
 
 namespace QsNet.Internal;
 
@@ -21,18 +21,12 @@ internal sealed class SideChannelFrame
     ///     <see langword="false" /> when a cycle was detected.
     /// </returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public bool Enter(object key)
-    {
-        return _active.Add(key);
-    }
+    public bool Enter(object key) => _active.Add(key);
 
     /// <summary>
     ///     Removes an object from the currently active traversal path.
     /// </summary>
     /// <param name="key">Reference key to untrack.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void Exit(object key)
-    {
-        _active.Remove(key);
-    }
+    public void Exit(object key) => _active.Remove(key);
 }
