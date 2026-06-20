@@ -1,9 +1,9 @@
 # Repository Guidelines
 
 ## Project Structure & Module Organization
-- `QsNet/` holds the library; public API in `Qs.cs`, internal pipeline in `Internal/`, options in `Models/`.
-- `QsNet.Tests/` contains xUnit suites; reusable fixtures in `Fixtures/` and sample payloads under `Fixtures/Data/`.
-- `QsNet.Comparison/` is a behavioral parity/comparison harness (C# vs JS `qs`) and support scripts.
+- `src/` contains the core library and optional adapter packages. Core public API lives in `src/QsNet/Qs.cs`, with the internal pipeline in `Internal/` and options in `Models/`.
+- `tests/` contains the xUnit projects; core fixtures live under `tests/QsNet.Tests/Fixtures/` with sample payloads in `Fixtures/Data/`.
+- `tests/QsNet.Comparison/` is the behavioral parity/comparison harness (C# vs JS `qs`) and support scripts.
 - `benchmarks/QsNet.Benchmarks/` contains BenchmarkDotNet perf harnesses; run only when validating performance changes.
 - Generated artifacts (`benchmarks/`, `TestResults/`, `coveragereport/`) are optional outputs; never check in new ones without need.
 - `docs/` feeds DocFX; update when public API or narratives shift.
@@ -27,7 +27,7 @@ Run commands from the repo root to target `QsNet.sln`.
 - Favor descriptive method names like `EncodeComplexArray`; match namespace layout to folder structure.
 
 ## Testing Guidelines
-- xUnit + FluentAssertions; place new tests alongside related classes under `QsNet.Tests`.
+- xUnit + FluentAssertions; place new tests alongside related classes under `tests/QsNet.Tests`.
 - Name tests in `Should...` form (`ShouldDecodeNestedObjects`); group with nested classes when scenarios grow.
 - When touching parser logic, extend fixtures under `Fixtures/Data/` and prefer table-driven facts.
 - Expect coverage checks in CI; ensure `dotnet test --collect:"XPlat Code Coverage"` stays green before PRs.

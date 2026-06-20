@@ -1,6 +1,7 @@
 ## 1.4.4-dev
 
 * [FEAT] add a read-only `DecodeQsQuery` extension for `System.Uri` that decodes escaped query components from absolute and relative URIs while excluding fragments and preserving QsNet decoder options
+* [CHORE] reorganize production projects under `src/` and test/comparison projects under `tests/`
 
 ## 1.4.3
 

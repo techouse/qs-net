@@ -6,18 +6,14 @@
         {
           "src": "..",
           "files": [
-            "QsNet/QsNet.csproj",
-            "QsNet.AspNetCore/QsNet.AspNetCore.csproj",
-            "QsNet.Flurl/QsNet.Flurl.csproj",
-            "QsNet.Refit/QsNet.Refit.csproj",
-            "QsNet.RestSharp/QsNet.RestSharp.csproj"
+            "src/QsNet/QsNet.csproj",
+            "src/QsNet.AspNetCore/QsNet.AspNetCore.csproj",
+            "src/QsNet.Flurl/QsNet.Flurl.csproj",
+            "src/QsNet.Refit/QsNet.Refit.csproj",
+            "src/QsNet.RestSharp/QsNet.RestSharp.csproj"
           ],
           "exclude": [
-            "**/QsNet.Tests/**",
-            "**/QsNet.AspNetCore.Tests/**",
-            "**/QsNet.Flurl.Tests/**",
-            "**/QsNet.Refit.Tests/**",
-            "**/QsNet.RestSharp.Tests/**"
+            "tests/**"
           ]
         }
       ],

@@ -19,6 +19,6 @@
         </PackageReference>
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\QsNet.Flurl\QsNet.Flurl.csproj"/>
+        <ProjectReference Include="..\..\src\QsNet.Flurl\QsNet.Flurl.csproj"/>
     </ItemGroup>
 </Project>

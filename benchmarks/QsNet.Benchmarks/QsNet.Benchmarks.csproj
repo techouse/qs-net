@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\QsNet\QsNet.csproj" />
+    <ProjectReference Include="..\..\src\QsNet\QsNet.csproj" />
   </ItemGroup>
 
 </Project>

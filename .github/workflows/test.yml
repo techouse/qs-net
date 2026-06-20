@@ -42,11 +42,11 @@ jobs:
         run: dotnet build --configuration Release -p:TreatWarningsAsErrors=true --no-restore
       - name: Pack NuGet artifacts
         run: |
-          dotnet pack QsNet/QsNet.csproj -c Release -p:ContinuousIntegrationBuild=true -p:IncludeSymbols=false -p:Version=0.0.0-ci -o $RUNNER_TEMP/nupkg
-          dotnet pack QsNet.AspNetCore/QsNet.AspNetCore.csproj -c Release -p:ContinuousIntegrationBuild=true -p:IncludeSymbols=false -p:Version=0.0.0-ci -o $RUNNER_TEMP/nupkg
-          dotnet pack QsNet.Flurl/QsNet.Flurl.csproj -c Release -p:ContinuousIntegrationBuild=true -p:IncludeSymbols=false -p:Version=0.0.0-ci -o $RUNNER_TEMP/nupkg
-          dotnet pack QsNet.Refit/QsNet.Refit.csproj -c Release -p:ContinuousIntegrationBuild=true -p:IncludeSymbols=false -p:Version=0.0.0-ci -o $RUNNER_TEMP/nupkg
-          dotnet pack QsNet.RestSharp/QsNet.RestSharp.csproj -c Release -p:ContinuousIntegrationBuild=true -p:IncludeSymbols=false -p:Version=0.0.0-ci -o $RUNNER_TEMP/nupkg
+          dotnet pack src/QsNet/QsNet.csproj -c Release -p:ContinuousIntegrationBuild=true -p:IncludeSymbols=false -p:Version=0.0.0-ci -o $RUNNER_TEMP/nupkg
+          dotnet pack src/QsNet.AspNetCore/QsNet.AspNetCore.csproj -c Release -p:ContinuousIntegrationBuild=true -p:IncludeSymbols=false -p:Version=0.0.0-ci -o $RUNNER_TEMP/nupkg
+          dotnet pack src/QsNet.Flurl/QsNet.Flurl.csproj -c Release -p:ContinuousIntegrationBuild=true -p:IncludeSymbols=false -p:Version=0.0.0-ci -o $RUNNER_TEMP/nupkg
+          dotnet pack src/QsNet.Refit/QsNet.Refit.csproj -c Release -p:ContinuousIntegrationBuild=true -p:IncludeSymbols=false -p:Version=0.0.0-ci -o $RUNNER_TEMP/nupkg
+          dotnet pack src/QsNet.RestSharp/QsNet.RestSharp.csproj -c Release -p:ContinuousIntegrationBuild=true -p:IncludeSymbols=false -p:Version=0.0.0-ci -o $RUNNER_TEMP/nupkg
       - name: Upload nupkg artifact
         uses: actions/upload-artifact@v7
         with:
@@ -113,21 +113,21 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v6
         with:
-          package_json_file: QsNet.Comparison/js/package.json
+          package_json_file: tests/QsNet.Comparison/js/package.json
           run_install: false
           cache: true
-          cache_dependency_path: QsNet.Comparison/js/pnpm-lock.yaml
+          cache_dependency_path: tests/QsNet.Comparison/js/pnpm-lock.yaml
       - name: Setup .NET
         uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '10.0.x'
       - name: Install JS dependencies
         run: pnpm install --frozen-lockfile
-        working-directory: QsNet.Comparison/js
+        working-directory: tests/QsNet.Comparison/js
       - name: Run C# comparison
-        run: dotnet run --project QsNet.Comparison -c Release > cs.out
+        run: dotnet run --project tests/QsNet.Comparison -c Release > cs.out
       - name: Run Node comparison
-        run: node QsNet.Comparison/js/qs.js > node.out
+        run: node tests/QsNet.Comparison/js/qs.js > node.out
       - name: Show first lines (debug)
         if: ${{ always() }}
         run: |
@@ -177,7 +177,7 @@ jobs:
               <ImplicitUsings>false</ImplicitUsings>
             </PropertyGroup>
             <ItemGroup>
-              <ProjectReference Include="../QsNet/QsNet.csproj" />
+              <ProjectReference Include="../src/QsNet/QsNet.csproj" />
             </ItemGroup>
           </Project>
           XML
@@ -340,7 +340,7 @@ jobs:
               <LangVersion>8.0</LangVersion>
             </PropertyGroup>
             <ItemGroup>
-              <ProjectReference Include="../QsNet/QsNet.csproj" />
+              <ProjectReference Include="../src/QsNet/QsNet.csproj" />
               <PackageReference Include="NETStandard.Library" Version="2.0.3" />
               <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies" Version="1.0.3" PrivateAssets="all" />
             </ItemGroup>
