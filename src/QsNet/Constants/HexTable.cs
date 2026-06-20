@@ -3,7 +3,7 @@ namespace QsNet.Constants;
 /// <summary>
 ///     Hex table of all 256 characters
 /// </summary>
-public static class HexTable
+internal static class HexTable
 {
     /// <summary>
     ///     Hex table containing percent-encoded strings for all 256 byte values
