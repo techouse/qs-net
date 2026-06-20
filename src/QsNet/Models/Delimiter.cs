@@ -1,8 +1,8 @@
-using System.Text.RegularExpressions;
 #if NETSTANDARD2_0
 using System;
 using System.Collections.Generic;
 #endif
+using System.Text.RegularExpressions;
 
 namespace QsNet.Models;
 
@@ -31,14 +31,12 @@ public sealed record StringDelimiter(string Value) : IDelimiter
     /// </summary>
     /// <param name="input">The input string to split</param>
     /// <returns>A list of split strings</returns>
-    public IEnumerable<string> Split(string input)
-    {
+    public IEnumerable<string> Split(string input) =>
 #if NETSTANDARD2_0
-        return Value.Length == 1 ? input.Split(Value[0]) : input.Split([Value], StringSplitOptions.None);
+        Value.Length == 1 ? input.Split(Value[0]) : input.Split([Value], StringSplitOptions.None);
 #else
-        return input.Split(Value);
+        input.Split(Value);
 #endif
-    }
 }
 
 /// <summary>
@@ -61,8 +59,5 @@ public sealed record RegexDelimiter(string Pattern) : IDelimiter
     /// </summary>
     /// <param name="input">The input string to split</param>
     /// <returns>A list of split strings</returns>
-    public IEnumerable<string> Split(string input)
-    {
-        return _rx.Split(input);
-    }
+    public IEnumerable<string> Split(string input) => _rx.Split(input);
 }
