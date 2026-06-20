@@ -13,11 +13,7 @@ namespace QsNet.Internal;
 /// <summary>
 ///     A helper class for decoding query strings into structured data.
 /// </summary>
-#if NETSTANDARD2_0
 internal static class Decoder
-#else
-internal static partial class Decoder
-#endif
 {
     private static readonly Encoding Latin1Encoding =
 #if NETSTANDARD2_0
