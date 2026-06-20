@@ -1,3 +1,7 @@
+#if NETSTANDARD2_0
+using System;
+using System.Collections.Generic;
+#endif
 using System.Collections;
 using System.Globalization;
 using System.Text;
@@ -6,10 +10,6 @@ using QsNet.Internal;
 using QsNet.Models;
 using Decoder = QsNet.Internal.Decoder;
 using Encoder = QsNet.Internal.Encoder;
-#if NETSTANDARD2_0
-using System;
-using System.Collections.Generic;
-#endif
 
 namespace QsNet;
 
@@ -411,12 +411,10 @@ public static class Qs
             switch (encoded)
             {
                 case IEnumerable en and not string:
-                    {
-                        foreach (var p in en)
-                            if (p is not null)
-                                AppendBodyPart(p.ToString() ?? string.Empty);
-                        break;
-                    }
+                    foreach (var p in en)
+                        if (p is not null)
+                            AppendBodyPart(p.ToString() ?? string.Empty);
+                    break;
                 case string { Length: > 0 } s:
                     AppendBodyPart(s);
                     break;
