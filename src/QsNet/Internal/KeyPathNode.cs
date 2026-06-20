@@ -91,14 +91,12 @@ internal sealed class KeyPathNode
         return _materialized;
     }
 
-    private static string ReplaceDots(string value)
-    {
+    private static string ReplaceDots(string value) =>
 #if NETSTANDARD2_0
-        return value.IndexOf('.') >= 0 ? value.Replace(".", "%2E") : value;
+        value.IndexOf('.') >= 0 ? value.Replace(".", "%2E") : value;
 #else
-        return value.Contains('.', StringComparison.Ordinal)
+        value.Contains('.', StringComparison.Ordinal)
             ? value.Replace(".", "%2E", StringComparison.Ordinal)
             : value;
 #endif
-    }
 }
