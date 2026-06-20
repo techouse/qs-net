@@ -1,3 +1,7 @@
+#if NETSTANDARD2_0
+using System;
+using System.Collections.Generic;
+#endif
 using System.Collections;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -7,10 +11,6 @@ using System.Web;
 using QsNet.Constants;
 using QsNet.Enums;
 using QsNet.Models;
-#if NETSTANDARD2_0
-using System;
-using System.Collections.Generic;
-#endif
 
 namespace QsNet.Internal;
 
@@ -44,10 +44,7 @@ internal static partial class Utils
     ///     Returns the compiled percent-escape matcher.
     /// </summary>
     /// <returns>A regex matching <c>%XX</c> escape sequences.</returns>
-    private static Regex MyRegex()
-    {
-        return MyRegexInstance;
-    }
+    private static Regex MyRegex() => MyRegexInstance;
 #else
     /// <summary>
     ///     Returns the generated percent-escape matcher.
@@ -65,10 +62,7 @@ internal static partial class Utils
     ///     Returns the compiled Unicode percent-escape matcher.
     /// </summary>
     /// <returns>A regex matching <c>%uXXXX</c> escape sequences.</returns>
-    private static Regex MyRegex1()
-    {
-        return MyRegex1Instance;
-    }
+    private static Regex MyRegex1() => MyRegex1Instance;
 #else
     /// <summary>
     ///     Returns the generated Unicode percent-escape matcher.
@@ -116,195 +110,183 @@ internal static partial class Utils
                             switch (currentTarget)
                             {
                                 case IEnumerable<object?> targetEnum:
+                                    var targetList = targetEnum as IList<object?> ?? CopyToList(targetEnum);
+
+                                    // Target already has holes -> treat as index map first.
+                                    if (ContainsUndefined(targetList))
                                     {
-                                        var targetList = targetEnum as IList<object?> ?? CopyToList(targetEnum);
+                                        var indexMap = new Dictionary<object, object?>(targetList.Count);
+                                        for (var i = 0; i < targetList.Count; i++)
+                                            indexMap[i] = targetList[i];
 
-                                        // Target already has holes -> treat as index map first.
-                                        if (ContainsUndefined(targetList))
+                                        if (currentSource is IEnumerable<object?> srcEnum)
                                         {
-                                            var indexMap = new Dictionary<object, object?>(targetList.Count);
+                                            var i = 0;
+                                            foreach (var item in srcEnum)
+                                            {
+                                                if (item is not Undefined)
+                                                    indexMap[i] = item;
+                                                i++;
+                                            }
+                                        }
+                                        else
+                                            indexMap[indexMap.Count] = currentSource;
+
+                                        if (!opts.ParseLists && ContainsUndefined(indexMap.Values))
+                                        {
+                                            var filtered = new Dictionary<object, object?>(indexMap.Count);
+                                            foreach (var kv in indexMap)
+                                                if (kv.Value is not Undefined)
+                                                    filtered[kv.Key] = kv.Value;
+                                            indexMap = filtered;
+                                        }
+
+                                        Complete(
+                                            frame,
+                                            currentTarget is ISet<object?>
+                                                ? new HashSet<object?>(indexMap.Values)
+                                                : CopyToList(indexMap.Values)
+                                        );
+                                        continue;
+                                    }
+
+                                    if (currentSource is IEnumerable<object?> srcIt)
+                                    {
+                                        var srcList = srcIt as IList<object?> ?? CopyToList(srcIt);
+                                        var targetAllMaps = AreAllDictionaryOrUndefined(targetList);
+                                        var srcAllMaps = AreAllDictionaryOrUndefined(srcList);
+
+                                        if (targetAllMaps && srcAllMaps)
+                                        {
+                                            var indexed = new SortedDictionary<int, object?>();
                                             for (var i = 0; i < targetList.Count; i++)
-                                                indexMap[i] = targetList[i];
+                                                indexed[i] = targetList[i];
 
-                                            if (currentSource is IEnumerable<object?> srcEnum)
-                                            {
-                                                var i = 0;
-                                                foreach (var item in srcEnum)
-                                                {
-                                                    if (item is not Undefined)
-                                                        indexMap[i] = item;
-                                                    i++;
-                                                }
-                                            }
-                                            else
-                                            {
-                                                indexMap[indexMap.Count] = currentSource;
-                                            }
-
-                                            if (!opts.ParseLists && ContainsUndefined(indexMap.Values))
-                                            {
-                                                var filtered = new Dictionary<object, object?>(indexMap.Count);
-                                                foreach (var kv in indexMap)
-                                                    if (kv.Value is not Undefined)
-                                                        filtered[kv.Key] = kv.Value;
-                                                indexMap = filtered;
-                                            }
-
-                                            Complete(
-                                                frame,
-                                                currentTarget is ISet<object?>
-                                                    ? new HashSet<object?>(indexMap.Values)
-                                                    : CopyToList(indexMap.Values)
-                                            );
+                                            frame.IndexedTarget = indexed;
+                                            frame.SourceList = srcList;
+                                            frame.ListIndex = 0;
+                                            frame.TargetIsSet = currentTarget is ISet<object?>;
+                                            frame.Phase = MergePhase.ListIter;
                                             continue;
                                         }
 
-                                        if (currentSource is IEnumerable<object?> srcIt)
+                                        if (currentTarget is ISet<object?>)
                                         {
-                                            var srcList = srcIt as IList<object?> ?? CopyToList(srcIt);
-                                            var targetAllMaps = AreAllDictionaryOrUndefined(targetList);
-                                            var srcAllMaps = AreAllDictionaryOrUndefined(srcList);
-
-                                            if (targetAllMaps && srcAllMaps)
-                                            {
-                                                var indexed = new SortedDictionary<int, object?>();
-                                                for (var i = 0; i < targetList.Count; i++)
-                                                    indexed[i] = targetList[i];
-
-                                                frame.IndexedTarget = indexed;
-                                                frame.SourceList = srcList;
-                                                frame.ListIndex = 0;
-                                                frame.TargetIsSet = currentTarget is ISet<object?>;
-                                                frame.Phase = MergePhase.ListIter;
-                                                continue;
-                                            }
-
-                                            if (currentTarget is ISet<object?>)
-                                            {
-                                                var set = new HashSet<object?>(targetList);
-                                                foreach (var v in srcList)
-                                                    if (v is not Undefined)
-                                                        set.Add(v);
-                                                Complete(frame, set);
-                                                continue;
-                                            }
-
-                                            var res = new List<object?>(targetList.Count + srcList.Count);
-                                            res.AddRange(targetList);
+                                            var set = new HashSet<object?>(targetList);
                                             foreach (var v in srcList)
                                                 if (v is not Undefined)
-                                                    res.Add(v);
-
-                                            Complete(frame, res);
-                                            continue;
-                                        }
-
-                                        if (currentTarget is ISet<object?> targetSet)
-                                        {
-                                            var set = new HashSet<object?>(targetSet) { currentSource };
+                                                    set.Add(v);
                                             Complete(frame, set);
                                             continue;
                                         }
 
-                                        var appended = new List<object?>(targetList.Count + 1);
-                                        appended.AddRange(targetList);
-                                        appended.Add(currentSource);
-                                        Complete(frame, appended);
+                                        var res = new List<object?>(targetList.Count + srcList.Count);
+                                        res.AddRange(targetList);
+                                        foreach (var v in srcList)
+                                            if (v is not Undefined)
+                                                res.Add(v);
+
+                                        Complete(frame, res);
                                         continue;
                                     }
 
-                                case IDictionary targetMap:
+                                    if (currentTarget is ISet<object?> targetSet)
                                     {
-                                        var mutable = ToDictionary(targetMap);
-                                        var targetMapOverflow = IsOverflow(targetMap);
-                                        if (targetMapOverflow && !ReferenceEquals(mutable, targetMap))
-                                            SetOverflowMaxIndex(mutable, GetOverflowMaxIndex(targetMap));
+                                        var set = new HashSet<object?>(targetSet) { currentSource };
+                                        Complete(frame, set);
+                                        continue;
+                                    }
 
-                                        if (targetMapOverflow)
-                                        {
-                                            var targetMaxIndex = GetOverflowMaxIndex(mutable);
-                                            switch (currentSource)
-                                            {
-                                                case IEnumerable<object?> srcIter:
-                                                    {
-                                                        var appendIndex = targetMaxIndex;
-                                                        foreach (var item in srcIter)
-                                                        {
-                                                            appendIndex++;
-                                                            if (item is Undefined)
-                                                                continue;
+                                    var appended = new List<object?>(targetList.Count + 1);
+                                    appended.AddRange(targetList);
+                                    appended.Add(currentSource);
+                                    Complete(frame, appended);
+                                    continue;
 
-                                                            mutable[appendIndex.ToString(CultureInfo.InvariantCulture)] = item;
-                                                        }
+                                case IDictionary targetMap:
+                                    var mutable = ToDictionary(targetMap);
+                                    var targetMapOverflow = IsOverflow(targetMap);
+                                    if (targetMapOverflow && !ReferenceEquals(mutable, targetMap))
+                                        SetOverflowMaxIndex(mutable, GetOverflowMaxIndex(targetMap));
 
-                                                        SetOverflowMaxIndex(mutable, appendIndex);
-                                                        Complete(frame, mutable);
-                                                        continue;
-                                                    }
-                                                case Undefined:
-                                                    Complete(frame, mutable);
-                                                    continue;
-                                            }
-
-                                            var nextIndex = targetMaxIndex + 1;
-                                            mutable[nextIndex.ToString(CultureInfo.InvariantCulture)] = currentSource;
-                                            SetOverflowMaxIndex(mutable, nextIndex);
-                                            Complete(frame, mutable);
-                                            continue;
-                                        }
-
+                                    if (targetMapOverflow)
+                                    {
+                                        var targetMaxIndex = GetOverflowMaxIndex(mutable);
                                         switch (currentSource)
                                         {
                                             case IEnumerable<object?> srcIter:
+                                                var appendIndex = targetMaxIndex;
+                                                foreach (var item in srcIter)
                                                 {
-                                                    var i = 0;
-                                                    foreach (var item in srcIter)
-                                                    {
-                                                        if (item is not Undefined)
-                                                            mutable[i.ToString(CultureInfo.InvariantCulture)] = item;
-                                                        i++;
-                                                    }
+                                                    appendIndex++;
+                                                    if (item is Undefined)
+                                                        continue;
 
-                                                    Complete(frame, mutable);
-                                                    continue;
+                                                    mutable[appendIndex.ToString(CultureInfo.InvariantCulture)] = item;
                                                 }
+
+                                                SetOverflowMaxIndex(mutable, appendIndex);
+                                                Complete(frame, mutable);
+                                                continue;
                                             case Undefined:
                                                 Complete(frame, mutable);
                                                 continue;
                                         }
 
-                                        var k = StringifyKey(currentSource);
-                                        if (k.Length > 0)
-                                        {
-                                            if (opts.StrictMerge)
-                                            {
-                                                Complete(frame, new List<object?> { mutable, currentSource });
-                                                continue;
-                                            }
-
-                                            mutable[k] = true;
-                                        }
-
+                                        var nextIndex = targetMaxIndex + 1;
+                                        mutable[nextIndex.ToString(CultureInfo.InvariantCulture)] = currentSource;
+                                        SetOverflowMaxIndex(mutable, nextIndex);
                                         Complete(frame, mutable);
                                         continue;
                                     }
 
-                                default:
+                                    switch (currentSource)
                                     {
-                                        if (currentSource is not IEnumerable<object?> src2)
+                                        case IEnumerable<object?> srcIter:
+                                            var i = 0;
+                                            foreach (var item in srcIter)
+                                            {
+                                                if (item is not Undefined)
+                                                    mutable[i.ToString(CultureInfo.InvariantCulture)] = item;
+                                                i++;
+                                            }
+
+                                            Complete(frame, mutable);
+                                            continue;
+                                        case Undefined:
+                                            Complete(frame, mutable);
+                                            continue;
+                                    }
+
+                                    var k = StringifyKey(currentSource);
+                                    if (k.Length > 0)
+                                    {
+                                        if (opts.StrictMerge)
                                         {
-                                            Complete(frame, new List<object?> { currentTarget, currentSource });
+                                            Complete(frame, new List<object?> { mutable, currentSource });
                                             continue;
                                         }
 
-                                        var list = new List<object?> { currentTarget };
-                                        foreach (var v in src2)
-                                            if (v is not Undefined)
-                                                list.Add(v);
+                                        mutable[k] = true;
+                                    }
 
-                                        Complete(frame, list);
+                                    Complete(frame, mutable);
+                                    continue;
+
+                                default:
+                                    if (currentSource is not IEnumerable<object?> src2)
+                                    {
+                                        Complete(frame, new List<object?> { currentTarget, currentSource });
                                         continue;
                                     }
+
+                                    var list = new List<object?> { currentTarget };
+                                    foreach (var v in src2)
+                                        if (v is not Undefined)
+                                            list.Add(v);
+
+                                    Complete(frame, list);
+                                    continue;
                             }
 
                         // Source is a map
@@ -355,40 +337,38 @@ internal static partial class Utils
                                 }
 
                             default:
+                                if (currentTarget is null or Undefined)
                                 {
-                                    if (currentTarget is null or Undefined)
-                                    {
-                                        var normalized = NormalizeForTarget(sourceMap);
-                                        if (sourceOverflow && normalized is IDictionary normalizedMap)
-                                            SetOverflowMaxIndex(normalizedMap, GetOverflowMaxIndex(sourceMap));
-                                        Complete(frame, normalized);
-                                        continue;
-                                    }
-
-                                    if (sourceOverflow)
-                                    {
-                                        var overflowShifted = new Dictionary<object, object?>(sourceMap.Count + 1)
-                                        {
-                                            ["0"] = currentTarget
-                                        };
-                                        foreach (DictionaryEntry entry in sourceMap)
-                                            if (TryGetArrayIndex(entry.Key, out var idx))
-                                                overflowShifted[(idx + 1).ToString(CultureInfo.InvariantCulture)] = entry.Value;
-                                            else
-                                                overflowShifted[entry.Key] = entry.Value;
-
-                                        var sourceMaxIndex = GetOverflowMaxIndex(sourceMap);
-                                        SetOverflowMaxIndex(
-                                            overflowShifted,
-                                            sourceMaxIndex >= 0 ? sourceMaxIndex + 1 : 0
-                                        );
-                                        Complete(frame, overflowShifted);
-                                        continue;
-                                    }
-
-                                    Complete(frame, new List<object?> { currentTarget, ToObjectKeyedDictionary(sourceMap) });
+                                    var normalized = NormalizeForTarget(sourceMap);
+                                    if (sourceOverflow && normalized is IDictionary normalizedMap)
+                                        SetOverflowMaxIndex(normalizedMap, GetOverflowMaxIndex(sourceMap));
+                                    Complete(frame, normalized);
                                     continue;
                                 }
+
+                                if (sourceOverflow)
+                                {
+                                    var overflowShifted = new Dictionary<object, object?>(sourceMap.Count + 1)
+                                    {
+                                        ["0"] = currentTarget
+                                    };
+                                    foreach (DictionaryEntry entry in sourceMap)
+                                        if (TryGetArrayIndex(entry.Key, out var idx))
+                                            overflowShifted[(idx + 1).ToString(CultureInfo.InvariantCulture)] = entry.Value;
+                                        else
+                                            overflowShifted[entry.Key] = entry.Value;
+
+                                    var sourceMaxIndex = GetOverflowMaxIndex(sourceMap);
+                                    SetOverflowMaxIndex(
+                                        overflowShifted,
+                                        sourceMaxIndex >= 0 ? sourceMaxIndex + 1 : 0
+                                    );
+                                    Complete(frame, overflowShifted);
+                                    continue;
+                                }
+
+                                Complete(frame, new List<object?> { currentTarget, ToObjectKeyedDictionary(sourceMap) });
+                                continue;
                         }
 
                         var entries = new List<KeyValuePair<object, object?>>(sourceMap.Count);
@@ -539,10 +519,7 @@ internal static partial class Utils
     /// </summary>
     /// <param name="source">Source sequence to copy.</param>
     /// <returns>A list containing all elements from <paramref name="source" />.</returns>
-    private static List<object?> CopyToList(IEnumerable<object?> source)
-    {
-        return [.. source];
-    }
+    private static List<object?> CopyToList(IEnumerable<object?> source) => [.. source];
 
     /// <summary>
     ///     A C# representation of the deprecated JavaScript escape function.
@@ -667,13 +644,14 @@ internal static partial class Utils
 
         var str = value switch
         {
-            bool b => b ? "true" : "false",
+            bool boolean => boolean ? "true" : "false",
             byte[] bytes => encoding.GetString(bytes),
             _ => value?.ToString()
         };
 
         if (string.IsNullOrEmpty(str))
             return string.Empty;
+
         var nonNullStr = str!;
 
         if (encoding.CodePage == 28591)
@@ -902,12 +880,10 @@ internal static partial class Utils
     /// <param name="ch">The character to inspect.</param>
     /// <returns><see langword="true" /> when the character is in <c>0-9</c>, <c>A-F</c>, or <c>a-f</c>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static bool IsHexDigit(char ch)
-    {
-        return ch is >= '0' and <= '9'
-               or >= 'A' and <= 'F'
-               or >= 'a' and <= 'f';
-    }
+    private static bool IsHexDigit(char ch) =>
+        ch is >= '0' and <= '9'
+            or >= 'A' and <= 'F'
+            or >= 'a' and <= 'f';
 
     /// <summary>
     ///     Converts a single ASCII hexadecimal digit to its numeric value.
@@ -918,15 +894,13 @@ internal static partial class Utils
     ///     Callers are expected to validate the input with <see cref="IsHexDigit" /> first.
     /// </remarks>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int HexValue(char ch)
-    {
-        return ch switch
+    private static int HexValue(char ch) =>
+        ch switch
         {
             >= '0' and <= '9' => ch - '0',
             >= 'A' and <= 'F' => ch - 'A' + 10,
             _ => ch - 'a' + 10
         };
-    }
 
     /// <summary>
     ///     Compact a nested Dictionary or List structure by removing all Undefined values.
@@ -1014,22 +988,20 @@ internal static partial class Utils
                                     stack.Push(l);
                                     break;
                                 case IDictionary id:
+                                    if (convertedMaps.TryGetValue(id, out var cached))
                                     {
-                                        if (convertedMaps.TryGetValue(id, out var cached))
-                                        {
-                                            dictS[kv.Key] = cached;
-                                            break;
-                                        }
-
-                                        if (!visited.Add(id))
-                                            break;
-
-                                        var converted = ToObjectKeyedDictionary(id);
-                                        convertedMaps[id] = converted;
-                                        dictS[kv.Key] = converted;
-                                        stack.Push(converted);
+                                        dictS[kv.Key] = cached;
                                         break;
                                     }
+
+                                    if (!visited.Add(id))
+                                        break;
+
+                                    var converted = ToObjectKeyedDictionary(id);
+                                    convertedMaps[id] = converted;
+                                    dictS[kv.Key] = converted;
+                                    stack.Push(converted);
+                                    break;
                             }
 
                         foreach (var k in toRemove)
@@ -1038,46 +1010,42 @@ internal static partial class Utils
                     }
 
                 case List<object?> list:
-                    {
-                        for (var i = list.Count - 1; i >= 0; i--)
-                            switch (list[i])
-                            {
-                                case Undefined:
-                                    if (allowSparseLists)
-                                        list[i] = null;
-                                    else
-                                        list.RemoveAt(i);
+                    for (var i = list.Count - 1; i >= 0; i--)
+                        switch (list[i])
+                        {
+                            case Undefined:
+                                if (allowSparseLists)
+                                    list[i] = null;
+                                else
+                                    list.RemoveAt(i);
+                                break;
+                            case Dictionary<object, object?> d when visited.Add(d):
+                                stack.Push(d);
+                                break;
+                            case Dictionary<string, object?> ds when visited.Add(ds):
+                                stack.Push(ds);
+                                break;
+                            case List<object?> l when visited.Add(l):
+                                stack.Push(l);
+                                break;
+                            case IDictionary id:
+                                if (convertedMaps.TryGetValue(id, out var cached))
+                                {
+                                    list[i] = cached;
                                     break;
-                                case Dictionary<object, object?> d when visited.Add(d):
-                                    stack.Push(d);
-                                    break;
-                                case Dictionary<string, object?> ds when visited.Add(ds):
-                                    stack.Push(ds);
-                                    break;
-                                case List<object?> l when visited.Add(l):
-                                    stack.Push(l);
-                                    break;
-                                case IDictionary id:
-                                    {
-                                        if (convertedMaps.TryGetValue(id, out var cached))
-                                        {
-                                            list[i] = cached;
-                                            break;
-                                        }
+                                }
 
-                                        if (!visited.Add(id))
-                                            break;
+                                if (!visited.Add(id))
+                                    break;
 
-                                        var converted = ToObjectKeyedDictionary(id);
-                                        convertedMaps[id] = converted;
-                                        list[i] = converted;
-                                        stack.Push(converted);
-                                        break;
-                                    }
-                            }
+                                var converted = ToObjectKeyedDictionary(id);
+                                convertedMaps[id] = converted;
+                                list[i] = converted;
+                                stack.Push(converted);
+                                break;
+                        }
 
-                        break;
-                    }
+                    break;
             }
         }
 
@@ -1125,30 +1093,21 @@ internal static partial class Utils
     /// </summary>
     /// <param name="obj">Candidate object.</param>
     /// <returns><see langword="true" /> when overflow metadata is associated with <paramref name="obj" />.</returns>
-    internal static bool IsOverflow(object? obj)
-    {
-        return obj is not null && OverflowTable.TryGetValue(obj, out _);
-    }
+    internal static bool IsOverflow(object? obj) => obj is not null && OverflowTable.TryGetValue(obj, out _);
 
     /// <summary>
     ///     Gets the tracked maximum numeric index for an overflow-marked dictionary.
     /// </summary>
     /// <param name="obj">Overflow-marked object.</param>
     /// <returns>The tracked max index, or <c>-1</c> when not tracked.</returns>
-    private static int GetOverflowMaxIndex(object obj)
-    {
-        return OverflowTable.TryGetValue(obj, out var state) ? state.MaxIndex : -1;
-    }
+    private static int GetOverflowMaxIndex(object obj) => OverflowTable.TryGetValue(obj, out var state) ? state.MaxIndex : -1;
 
     /// <summary>
     ///     Updates overflow metadata with the latest maximum numeric index.
     /// </summary>
     /// <param name="obj">Overflow-marked object.</param>
     /// <param name="maxIndex">Newest maximum index.</param>
-    private static void SetOverflowMaxIndex(object obj, int maxIndex)
-    {
-        OverflowTable.GetOrCreateValue(obj).MaxIndex = maxIndex;
-    }
+    private static void SetOverflowMaxIndex(object obj, int maxIndex) => OverflowTable.GetOrCreateValue(obj).MaxIndex = maxIndex;
 
     /// <summary>
     ///     Marks an object as overflowed and stores its current maximum numeric index.
@@ -1167,10 +1126,7 @@ internal static partial class Utils
     /// </summary>
     /// <param name="list">List to convert.</param>
     /// <returns>An overflow dictionary preserving all list values and the highest index.</returns>
-    internal static Dictionary<object, object?> MarkListOverflow(List<object?> list)
-    {
-        return (Dictionary<object, object?>)MarkOverflow(ListToIndexMap(list), list.Count - 1);
-    }
+    internal static Dictionary<object, object?> MarkListOverflow(List<object?> list) => (Dictionary<object, object?>)MarkOverflow(ListToIndexMap(list), list.Count - 1);
 
     /// <summary>
     ///     Tries to parse a key as a canonical non-negative array index.
@@ -1287,12 +1243,10 @@ internal static partial class Utils
         switch (value)
         {
             case IEnumerable<T> enumerable:
-                {
-                    var list = new List<T>();
-                    foreach (var it in enumerable)
-                        list.Add(fn(it));
-                    return list;
-                }
+                var list = new List<T>();
+                foreach (var it in enumerable)
+                    list.Add(fn(it));
+                return list;
             case T item:
                 return fn(item);
             default:
@@ -1306,9 +1260,8 @@ internal static partial class Utils
     /// <param name="value">The value to check.</param>
     /// <param name="skipNulls">If true, empty strings and URIs are not considered non-nullish.</param>
     /// <returns>True if the value is a non-nullish primitive, false otherwise.</returns>
-    public static bool IsNonNullishPrimitive(object? value, bool skipNulls = false)
-    {
-        return value switch
+    public static bool IsNonNullishPrimitive(object? value, bool skipNulls = false) =>
+        value switch
         {
             string str => !skipNulls || !string.IsNullOrEmpty(str),
             int or long or float or double or decimal or bool or Enum or DateTime => true,
@@ -1317,16 +1270,14 @@ internal static partial class Utils
             null => false,
             _ => true
         };
-    }
 
     /// <summary>
     ///     Checks if a value is empty.
     /// </summary>
     /// <param name="value">The value to check.</param>
     /// <returns>True if the value is empty, false otherwise.</returns>
-    public static bool IsEmpty(object? value)
-    {
-        return value switch
+    public static bool IsEmpty(object? value) =>
+        value switch
         {
             null or Undefined => true,
             string str => string.IsNullOrEmpty(str),
@@ -1334,7 +1285,6 @@ internal static partial class Utils
             IEnumerable enumerable => !HasAny(enumerable),
             _ => false
         };
-    }
 
     /// <summary>
     ///     Checks if an IEnumerable has any elements.
@@ -1504,10 +1454,7 @@ internal static partial class Utils
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
-    internal static object? ConvertNestedValues(object? value)
-    {
-        return ConvertNestedValues(value, new HashSet<object>(ReferenceEqualityComparer.Instance));
-    }
+    internal static object? ConvertNestedValues(object? value) => ConvertNestedValues(value, new HashSet<object>(ReferenceEqualityComparer.Instance));
 
     /// <summary>
     ///     Recursively converts nested values in a structure, handling circular references.
@@ -1537,7 +1484,8 @@ internal static partial class Utils
             case IEnumerable seq
                 and not string:
                 var seqList = new List<object?>();
-                foreach (var v in seq) seqList.Add(ConvertNestedValues(v, visited));
+                foreach (var v in seq)
+                    seqList.Add(ConvertNestedValues(v, visited));
                 return seqList;
 
             default:
@@ -1550,14 +1498,12 @@ internal static partial class Utils
     /// </summary>
     /// <param name="dict"></param>
     /// <returns></returns>
-    internal static Dictionary<string, object?> ConvertNestedDictionary(IDictionary dict)
-    {
-        return ConvertNestedDictionary(
+    internal static Dictionary<string, object?> ConvertNestedDictionary(IDictionary dict) =>
+        ConvertNestedDictionary(
             dict,
             new HashSet<object>(ReferenceEqualityComparer.Instance),
             new Dictionary<object, object?>(ReferenceEqualityComparer.Instance)
         );
-    }
 
     /// <summary>
     ///     Recursive worker overload that reuses shared cycle-detection and enumerable materialization state.
@@ -1595,17 +1541,13 @@ internal static partial class Utils
             var key = StringifyKey(entry.Key);
             var item = entry.Value;
 
-            switch (item)
+            item = item switch
             {
-                case IDictionary child when ReferenceEquals(child, dict):
+                IDictionary child when ReferenceEquals(child, dict) =>
                     // Direct self-reference: keep the same instance to preserve identity
-                    item = child;
-                    break;
-
-                default:
-                    item = NormalizeDictionaryValue(item, visited, enumerableCache);
-                    break;
-            }
+                    child,
+                _ => NormalizeDictionaryValue(item, visited, enumerableCache)
+            };
 
             result[key] = item;
         }
@@ -1737,12 +1679,11 @@ internal static partial class Utils
                                 if (child is Dictionary<string, object?> sk)
                                 {
                                     dd[key] = sk;
-                                    if (!visited.ContainsKey(child)) visited[child] = sk;
+                                    if (!visited.ContainsKey(child))
+                                        visited[child] = sk;
                                 }
                                 else if (visited.TryGetValue(child, out var existing))
-                                {
                                     dd[key] = existing;
-                                }
                                 else
                                 {
                                     var newChild = new Dictionary<string, object?>(child.Count);
@@ -1755,9 +1696,7 @@ internal static partial class Utils
 
                             case IList list:
                                 if (visited.TryGetValue(list, out var existingList))
-                                {
                                     dd[key] = existingList;
-                                }
                                 else
                                 {
                                     var newList = new List<object?>(list.Count);
@@ -1788,9 +1727,7 @@ internal static partial class Utils
                                     if (!visited.ContainsKey(innerDict)) visited[innerDict] = sk;
                                 }
                                 else if (visited.TryGetValue(innerDict, out var existing))
-                                {
                                     dstList.Add(existing);
-                                }
                                 else
                                 {
                                     var newDict = new Dictionary<string, object?>(innerDict.Count);
@@ -1803,9 +1740,7 @@ internal static partial class Utils
 
                             case IList innerList:
                                 if (visited.TryGetValue(innerList, out var existingList))
-                                {
                                     dstList.Add(existingList);
-                                }
                                 else
                                 {
                                     var newList = new List<object?>(innerList.Count);
@@ -1833,10 +1768,7 @@ internal static partial class Utils
     /// </summary>
     /// <param name="key">The key to stringify.</param>
     /// <returns>The key as a string, or an empty string when the key is null.</returns>
-    private static string StringifyKey(object? key)
-    {
-        return key?.ToString() ?? string.Empty;
-    }
+    private static string StringifyKey(object? key) => key?.ToString() ?? string.Empty;
 }
 
 /// <summary>
@@ -1862,18 +1794,12 @@ internal sealed class ReferenceEqualityComparer : IEqualityComparer<object>
     /// <param name="x">First object.</param>
     /// <param name="y">Second object.</param>
     /// <returns><see langword="true" /> when both references point to the same instance.</returns>
-    public new bool Equals(object? x, object? y)
-    {
-        return ReferenceEquals(x, y);
-    }
+    public new bool Equals(object? x, object? y) => ReferenceEquals(x, y);
 
     /// <summary>
     ///     Returns a hash code based on object identity rather than value semantics.
     /// </summary>
     /// <param name="obj">Object to hash.</param>
     /// <returns>Identity-based hash code.</returns>
-    public int GetHashCode(object obj)
-    {
-        return RuntimeHelpers.GetHashCode(obj);
-    }
+    public int GetHashCode(object obj) => RuntimeHelpers.GetHashCode(obj);
 }
