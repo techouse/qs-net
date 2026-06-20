@@ -21,17 +21,11 @@ internal sealed class Undefined
     ///     Returns a string representation of the Undefined instance.
     /// </summary>
     /// <returns>The string "Undefined"</returns>
-    public override string ToString()
-    {
-        return "Undefined";
-    }
+    public override string ToString() => "Undefined";
 
     /// <summary>
     ///     Creates an instance of Undefined (returns the singleton).
     /// </summary>
     /// <returns>The singleton Undefined instance</returns>
-    public static Undefined Create()
-    {
-        return Instance;
-    }
+    public static Undefined Create() => Instance;
 }
