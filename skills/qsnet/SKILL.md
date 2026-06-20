@@ -1,6 +1,6 @@
 ---
 name: qsnet
-description: Use this skill whenever a user wants to install, configure, troubleshoot, or write C#/.NET code with QsNet or its adapter packages (QsNet.AspNetCore, QsNet.Flurl, QsNet.Refit, QsNet.RestSharp) for encoding and decoding nested query strings. This skill helps produce practical Qs.Decode, Qs.Encode, ToQueryMap, ToQueryString, AddQueryString, AppendQsQueryParams, SetQsQueryParams, QsQuery, and AddQsQueryParameters snippets, choose DecodeOptions and EncodeOptions, explain option tradeoffs, and avoid QsNet edge-case pitfalls around lists, dot notation, duplicates, null handling, charset sentinels, depth limits, web framework query normalization, double encoding, and untrusted input.
+description: Use this skill whenever a user wants to install, configure, troubleshoot, or write C#/.NET code with QsNet or its adapter packages (QsNet.AspNetCore, QsNet.Flurl, QsNet.Refit, QsNet.RestSharp) for encoding and decoding nested query strings. This skill helps produce practical Qs.Decode, Qs.Encode, DecodeQsQuery, ToQueryMap, ToQueryString, AddQueryString, AppendQsQueryParams, SetQsQueryParams, QsQuery, and AddQsQueryParameters snippets, choose DecodeOptions and EncodeOptions, explain option tradeoffs, and avoid QsNet edge-case pitfalls around URI query extraction, lists, dot notation, duplicates, null handling, charset sentinels, depth limits, web framework query normalization, double encoding, and untrusted input.
 ---
 
 # QsNet Usage Assistant
@@ -17,8 +17,8 @@ the code:
 - Runtime: C# application, ASP.NET Core request handling, Flurl URL building,
   Refit interface calls, RestSharp requests, tests, library code, .NET
   Framework/netstandard consumer, or generated example.
-- Direction: decode an incoming query string, encode .NET data, or normalize
-  query-string handling around an existing URL/request object.
+- Direction: decode an incoming query string or `System.Uri`, encode .NET data,
+  or normalize query-string handling around an existing URL/request object.
 - Package choice: core `QsNet` only, or an adapter package such as
   `QsNet.AspNetCore`, `QsNet.Flurl`, `QsNet.Refit`, or `QsNet.RestSharp`.
 - The actual query string or data structure when available.
@@ -94,13 +94,29 @@ Dictionary<string, object?> values = Qs.Decode("a[b]=c");
 string query = Qs.Encode(new Dictionary<string, object?> { ["a"] = "c" });
 ```
 
-Extension helpers are available when the shape is already a query string or a
-`Dictionary<string, object?>`:
+Core extension helpers are available when the input is a query string or
+`System.Uri`, or the value is already a `Dictionary<string, object?>`:
 
 ```csharp
 Dictionary<string, object?> values = "a[b]=c".ToQueryMap();
 string query = values.ToQueryString();
+
+var uri = new Uri("https://example.com/search?a%5Bb%5D=c#results");
+Dictionary<string, object?> uriValues = uri.DecodeQsQuery();
 ```
+
+`DecodeQsQuery` supports absolute and relative URIs. It passes the escaped
+query component directly to `Qs.Decode`, excludes the fragment, passes through
+`DecodeOptions`, and returns an empty dictionary for an absent or empty query.
+Do not pre-decode with `Uri.UnescapeDataString`, `UriFormat.Unescaped`, or
+`UriFormat.SafeUnescaped`; that can change separators or query spelling before
+QsNet parses it.
+
+The URI helper is read-only. For a new URI without an existing query, construct
+one explicitly from default `Qs.Encode` output. Account for `AddQueryPrefix`
+instead of adding two `?` characters, and do not present decode/re-encode as a
+safe merger for an arbitrary existing query. `Encode = false` or a custom
+encoder can produce text unsuitable for `Uri` construction.
 
 `Qs.Decode` accepts a raw string, an `IDictionary`, or an
 `IEnumerable<KeyValuePair<string?, object?>>`. Prefer the raw query string when
@@ -461,7 +477,7 @@ For code-generation requests, answer with:
    handling, charset, prefix handling, adapter package choice, framework
    query normalization, and whether input is trusted.
 2. One concrete C# snippet using the right public entry point for the runtime:
-   `Qs.Decode`, `Qs.Encode`, `ToQueryMap`, `ToQueryString`,
+   `Qs.Decode`, `Qs.Encode`, `DecodeQsQuery`, `ToQueryMap`, `ToQueryString`,
    `AddQueryString`, `AppendQsQueryParams`, `SetQsQueryParams`, `QsQuery`,
    `QsQuery<T>`, or `AddQsQueryParameters`.
 3. A brief explanation of only the options used.
