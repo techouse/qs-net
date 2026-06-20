@@ -4,7 +4,7 @@ Concise, project-specific guidance for automated coding agents. Keep answers gro
 
 ## 1. Purpose & Architecture
 - Library: Query string encode/decode parity with JS `qs` but idiomatic C#.
-- Public surface: `Qs` static API (`QsNet/Qs.cs`) + extension helpers (`Extensions.cs`). All other code under `Internal/`, `Models/`, `Enums/`, `Constants/` is implementation detail.
+- Public surface: `Qs` static API (`src/QsNet/Qs.cs`) + extension helpers (`Extensions.cs`). All other code under `Internal/`, `Models/`, `Enums/`, `Constants/` is implementation detail.
 - Core flow (Decode): Raw string -> token split (`Internal/Decoder` + delimiters) -> key path parsing (`Decoder.ParseKeys`) -> progressive structure merge (`Utils.Merge`) -> compaction + string-key normalization (`Utils.Compact`, `Utils.ToStringKeyDeepNonRecursive`).
 - Core flow (Encode): Input normalization to `Dictionary<string, object?>` -> optional filter/sort -> iterative encode traversal via `Internal/Encoder.Encode` producing `key=value` parts -> delimiter join + optional prefix/sentinel.
 - Data model: Heterogeneous tree of `Dictionary<object, object?>`, `List<object?>`, primitives, sentinel `Undefined` (represents omitted vs null). Lists can degrade to dictionaries when sparse / large indices / list parsing disabled.
@@ -19,7 +19,7 @@ Concise, project-specific guidance for automated coding agents. Keep answers gro
 - Cycle detection in encode implemented with `SideChannelFrame`; maintain when adding new container handling.
 
 ## 4. Conventions
-- Public API additions require: docs (`docs/api` via DocFX), tests (`QsNet.Tests`), README snippet if user-facing.
+- Public API additions require: docs (`docs/api` via DocFX), tests (`tests/QsNet.Tests`), README snippet if user-facing.
 - Tests: xUnit + FluentAssertions. Naming style for new tests: `Should<Behavior>` in fact methods; extremely exhaustive existing tests—mirror patterns instead of new frameworks.
 - Encoding/decoding examples in README serve as canonical behavior; keep them synchronized when changing logic.
 - Use `Undefined.Create()` only to signal omission during encode filtering; never return it from public API results.

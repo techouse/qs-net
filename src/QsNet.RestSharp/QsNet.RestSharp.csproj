@@ -1,20 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>net10.0</TargetFramework>
+        <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
         <Nullable>enable</Nullable>
-        <ImplicitUsings>enable</ImplicitUsings>
         <LangVersion>latest</LangVersion>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <PackageId>QsNet.AspNetCore</PackageId>
+        <PackageId>QsNet.RestSharp</PackageId>
         <Version>$(QsNetPackageVersion)</Version>
         <Authors>Klemen Tusar</Authors>
         <PackageTags>
             querystring;query-string;query;parameters;url;uri;http;
-            parser;encoder;decoder;encoding;decoding;
-            form-urlencoded;percent-encoding;nested;arrays;brackets;
-            qs;aspnetcore;aspnet-core;minimal-api
+            parser;encoder;encoding;nested;arrays;brackets;
+            qs;restsharp;rest
         </PackageTags>
-        <Description>ASP.NET Core helpers for QsNet qs-style nested query strings.</Description>
+        <Description>RestSharp request helpers for QsNet qs-style nested query strings.</Description>
         <PackageProjectUrl>https://techouse.github.io/qs-net/</PackageProjectUrl>
         <RepositoryUrl>https://github.com/techouse/qs-net</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
@@ -34,22 +32,23 @@
         <TreatWarningsAsErrors Condition="'$(CI)' == 'true'">true</TreatWarningsAsErrors>
 
         <PackageReleaseNotes>See CHANGELOG: https://github.com/techouse/qs-net/releases</PackageReleaseNotes>
-        <Title>QsNet.AspNetCore - ASP.NET Core helpers for QsNet</Title>
+        <Title>QsNet.RestSharp - RestSharp request helpers for QsNet</Title>
         <PackageIcon>logo.png</PackageIcon>
     </PropertyGroup>
 
+    <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+        <ImplicitUsings>enable</ImplicitUsings>
+    </PropertyGroup>
+
     <ItemGroup>
-        <None Include="..\README.md" Pack="true" PackagePath="\"/>
-        <None Include="..\LICENSE" Pack="true" PackagePath="\"/>
-        <None Include="..\logo.png" Pack="true" PackagePath="\"/>
+        <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
+        <None Include="..\..\LICENSE" Pack="true" PackagePath="\"/>
+        <None Include="..\..\logo.png" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
     <ItemGroup>
-        <FrameworkReference Include="Microsoft.AspNetCore.App"/>
         <ProjectReference Include="..\QsNet\QsNet.csproj"/>
-    </ItemGroup>
-
-    <ItemGroup>
+        <PackageReference Include="RestSharp" Version="114.0.0"/>
         <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.300" PrivateAssets="All"/>
     </ItemGroup>
 </Project>

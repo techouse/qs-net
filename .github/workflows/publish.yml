@@ -36,11 +36,11 @@ jobs:
         run: dotnet restore
       - name: Build & Pack
         run: |
-          dotnet pack QsNet/QsNet.csproj -c Release -o ./artifacts
-          dotnet pack QsNet.AspNetCore/QsNet.AspNetCore.csproj -c Release -o ./artifacts
-          dotnet pack QsNet.Flurl/QsNet.Flurl.csproj -c Release -o ./artifacts
-          dotnet pack QsNet.Refit/QsNet.Refit.csproj -c Release -o ./artifacts
-          dotnet pack QsNet.RestSharp/QsNet.RestSharp.csproj -c Release -o ./artifacts
+          dotnet pack src/QsNet/QsNet.csproj -c Release -o ./artifacts
+          dotnet pack src/QsNet.AspNetCore/QsNet.AspNetCore.csproj -c Release -o ./artifacts
+          dotnet pack src/QsNet.Flurl/QsNet.Flurl.csproj -c Release -o ./artifacts
+          dotnet pack src/QsNet.Refit/QsNet.Refit.csproj -c Release -o ./artifacts
+          dotnet pack src/QsNet.RestSharp/QsNet.RestSharp.csproj -c Release -o ./artifacts
       - name: NuGet login
         uses: NuGet/login@v1
         id: nuget-login

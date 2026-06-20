@@ -83,7 +83,7 @@ We use **xUnit** with **FluentAssertions** for unit tests. When you change code 
 ### Test structure
 
 ```
-QsNet.Tests/
+tests/QsNet.Tests/
   DecodeTests.cs          # Core decoding functionality
   EncodeTests.cs          # Core encoding functionality
   ExampleTests.cs         # Real-world usage examples
@@ -123,30 +123,41 @@ public class DecodeTests
 ## Project layout (high level)
 
 ```
-QsNet/
-  Qs.cs                   # Public API (Decode/Encode static methods)
-  Extensions.cs           # Extension methods
-  Constants/
-    HexTable.cs           # Hex encoding lookup tables
-  Enums/
-    Duplicates.cs         # How to handle duplicate keys
-    Format.cs             # RFC format options
-    ListFormat.cs         # Array serialization formats
-    Sentinel.cs           # Charset sentinel handling
-  Internal/
-    Decoder.cs            # Core decoding logic
-    Encoder.cs            # Core encoding logic
-    Utils.cs              # Utility methods and helpers
-    SideChannelFrame.cs   # Side-channel data for nested parsing
-  Models/
-    DecodeOptions.cs      # Configuration for decoding
-    EncodeOptions.cs      # Configuration for encoding
-    Delimiter.cs          # Parameter delimiter abstractions
-    Filter.cs             # Value filtering abstractions
-    Undefined.cs          # Represents undefined values
-QsNet.Tests/
-  *Tests.cs              # xUnit test classes
-  Fixtures/              # Test data and helper types
+src/
+  QsNet/
+    Qs.cs                   # Public API (Decode/Encode static methods)
+    Extensions.cs           # Extension methods
+    Constants/
+      HexTable.cs           # Hex encoding lookup tables
+    Enums/
+      Duplicates.cs         # How to handle duplicate keys
+      Format.cs             # RFC format options
+      ListFormat.cs         # Array serialization formats
+      Sentinel.cs           # Charset sentinel handling
+    Internal/
+      Decoder.cs            # Core decoding logic
+      Encoder.cs            # Core encoding logic
+      Utils.cs              # Utility methods and helpers
+      SideChannelFrame.cs   # Side-channel data for nested parsing
+    Models/
+      DecodeOptions.cs      # Configuration for decoding
+      EncodeOptions.cs      # Configuration for encoding
+      Delimiter.cs          # Parameter delimiter abstractions
+      Filter.cs             # Value filtering abstractions
+      Undefined.cs          # Represents undefined values
+  QsNet.AspNetCore/         # ASP.NET Core adapter
+  QsNet.Flurl/              # Flurl adapter
+  QsNet.Refit/              # Refit adapter
+  QsNet.RestSharp/          # RestSharp adapter
+tests/
+  QsNet.Tests/
+    *Tests.cs               # xUnit test classes
+    Fixtures/               # Test data and helper types
+  QsNet.AspNetCore.Tests/
+  QsNet.Flurl.Tests/
+  QsNet.Refit.Tests/
+  QsNet.RestSharp.Tests/
+  QsNet.Comparison/         # C# versus JS qs parity harness
 ```
 
 ---

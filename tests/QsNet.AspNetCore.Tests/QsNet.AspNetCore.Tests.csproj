@@ -19,6 +19,6 @@
         </PackageReference>
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\QsNet.AspNetCore\QsNet.AspNetCore.csproj"/>
+        <ProjectReference Include="..\..\src\QsNet.AspNetCore\QsNet.AspNetCore.csproj"/>
     </ItemGroup>
 </Project>
