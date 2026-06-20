@@ -54,10 +54,7 @@ internal readonly struct StructuredKeyScan
     ///     <see langword="true" /> when the key is a structured root;
     ///     otherwise <see langword="false" />.
     /// </returns>
-    internal bool ContainsStructuredRoot(string key)
-    {
-        return _structuredRoots is not null && _structuredRoots.Contains(key);
-    }
+    internal bool ContainsStructuredRoot(string key) => _structuredRoots is not null && _structuredRoots.Contains(key);
 
     /// <summary>
     ///     Checks whether a full key was identified as structured.
@@ -67,8 +64,5 @@ internal readonly struct StructuredKeyScan
     ///     <see langword="true" /> when the key is structured;
     ///     otherwise <see langword="false" />.
     /// </returns>
-    internal bool ContainsStructuredKey(string key)
-    {
-        return _structuredKeys is not null && _structuredKeys.Contains(key);
-    }
+    internal bool ContainsStructuredKey(string key) => _structuredKeys is not null && _structuredKeys.Contains(key);
 }
