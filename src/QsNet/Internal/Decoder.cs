@@ -65,12 +65,10 @@ internal static class Decoder
                 {
                     var end = idx >= 0 ? idx : str.Length;
                     if (enforceListLimit && options.ThrowOnLimitExceeded)
-                    {
                         if (currentListLength + list.Count >= options.ListLimit)
                             throw new InvalidOperationException(
                                 $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
                             );
-                    }
 
                     list.Add(str.Substring(start, end - start));
 
@@ -129,10 +127,8 @@ internal static class Decoder
         var tmp = options.IgnoreQueryPrefix ? str.TrimStart('?') : str;
         // Only scan/replace when there's any percent-encoding in the string
         if (tmp.Contains('%'))
-        {
             tmp = tmp.Replace("%5B", "[", StringComparison.OrdinalIgnoreCase)
                 .Replace("%5D", "]", StringComparison.OrdinalIgnoreCase);
-        }
 
         var cleanStr = tmp;
 #endif
@@ -209,18 +205,14 @@ internal static class Decoder
             var isBracketArrayKey = pos != -1 && rawKey.EndsWith("[]", StringComparison.Ordinal);
             var hadExisting = obj.TryGetValue(key, out var existingVal);
             if (pos == -1)
-            {
                 value = options.StrictNullHandling ? null : "";
-            }
             else
             {
                 // Only count existing when combining; Last/First do not increase length.
                 var currentLength = 0;
                 if (hadExisting && (options.Duplicates == Duplicates.Combine || isBracketArrayKey))
-                {
                     if (existingVal is IList<object?> l) currentLength = l.Count;
                     else if (!Utils.IsEmpty(existingVal)) currentLength = 1;
-                }
 
                 object? parsedValue;
 #if NETSTANDARD2_0
@@ -234,23 +226,19 @@ internal static class Decoder
                     case Undefined:
                         continue;
                     case IList<object?> parsedList:
-                        {
-                            var decodedList = new List<object?>(parsedList.Count);
-                            for (var listIndex = 0; listIndex < parsedList.Count; listIndex++)
-                                decodedList.Add(options.DecodeValue(parsedList[listIndex] as string, charset));
-                            value = decodedList;
-                            break;
-                        }
+                        var decodedList = new List<object?>(parsedList.Count);
+                        for (var listIndex = 0; listIndex < parsedList.Count; listIndex++)
+                            decodedList.Add(options.DecodeValue(parsedList[listIndex] as string, charset));
+                        value = decodedList;
+                        break;
                     case IDictionary parsedMap:
-                        {
-                            var decodedMap = new Dictionary<object, object?>(parsedMap.Count);
-                            foreach (DictionaryEntry entry in parsedMap)
-                                decodedMap[entry.Key] = options.DecodeValue(entry.Value as string, charset);
-                            if (Utils.IsOverflow(parsedMap))
-                                Utils.MarkOverflow(decodedMap, GetMaxIndex(decodedMap));
-                            value = decodedMap;
-                            break;
-                        }
+                        var decodedMap = new Dictionary<object, object?>(parsedMap.Count);
+                        foreach (DictionaryEntry entry in parsedMap)
+                            decodedMap[entry.Key] = options.DecodeValue(entry.Value as string, charset);
+                        if (Utils.IsOverflow(parsedMap))
+                            Utils.MarkOverflow(decodedMap, GetMaxIndex(decodedMap));
+                        value = decodedMap;
+                        break;
                     default:
                         value = options.DecodeValue(parsedValue as string, charset);
                         break;
@@ -486,15 +474,12 @@ internal static class Decoder
                     // Degrade to a map: treat the first element as index "0".
                     obj = new Dictionary<object, object?> { ["0"] = leaf };
                 }
+                else if (Utils.IsOverflow(leaf))
+                    obj = leaf;
                 else
-                {
-                    if (Utils.IsOverflow(leaf))
-                        obj = leaf;
-                    else
-                        obj = ShouldCreateEmptyList(options, leaf)
-                            ? new List<object?>()
-                            : Utils.CombineWithLimit(new List<object?>(), leaf, options);
-                }
+                    obj = ShouldCreateEmptyList(options, leaf)
+                        ? new List<object?>()
+                        : Utils.CombineWithLimit(new List<object?>(), leaf, options);
             }
             else
             {
@@ -575,14 +560,12 @@ internal static class Decoder
                     switch (isBracketedNumeric)
                     {
                         case true when idx >= 0 && idx < options.ListLimit:
-                            {
-                                // Build a list up to idx.
-                                var list = new List<object?>(idx + 1);
-                                for (var j = 0; j <= idx; j++)
-                                    list.Add(j == idx ? leaf : Undefined.Instance);
-                                obj = list;
-                                break;
-                            }
+                            // Build a list up to idx.
+                            var list = new List<object?>(idx + 1);
+                            for (var j = 0; j <= idx; j++)
+                                list.Add(j == idx ? leaf : Undefined.Instance);
+                            obj = list;
+                            break;
                         case true when idx >= 0 && options.ThrowOnLimitExceeded:
                             throw new InvalidOperationException(
                                 $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
@@ -670,37 +653,31 @@ internal static class Decoder
                     sb.Append(ch);
                     break;
                 case ']':
-                    {
-                        if (depth > 0) depth--;
-                        sb.Append(ch);
-                        break;
-                    }
+                    if (depth > 0) depth--;
+                    sb.Append(ch);
+                    break;
                 case '.' when depth == 0:
+                    var hasNext = i + 1 < key.Length;
+                    var nextCh = hasNext ? key[i + 1] : '\0';
+
+                    if (nextCh == '[')
                     {
-                        var hasNext = i + 1 < key.Length;
-                        var nextCh = hasNext ? key[i + 1] : '\0';
-
-                        if (nextCh == '[')
-                        {
-                            // Degenerate ".[" → skip the dot so "a.[b]" behaves like "a[b]".
-                            // Do nothing here; the next loop iteration will see '['.
-                        }
-                        else if (!hasNext || nextCh == '.')
-                        {
-                            // Trailing dot, or first of a double dot: preserve the literal dot.
-                            sb.Append('.');
-                        }
-                        else
-                        {
-                            // Normal split: convert the token after the dot into a bracket segment.
-                            var j = i + 1;
-                            while (j < key.Length && key[j] != '.' && key[j] != '[') j++;
-                            sb.Append('[').Append(key, i + 1, j - (i + 1)).Append(']');
-                            i = j - 1; // continue from the delimiter we stopped at
-                        }
-
-                        break;
+                        // Degenerate ".[" → skip the dot so "a.[b]" behaves like "a[b]".
+                        // Do nothing here; the next loop iteration will see '['.
                     }
+                    else if (!hasNext || nextCh == '.')
+                        // Trailing dot, or first of a double dot: preserve the literal dot.
+                        sb.Append('.');
+                    else
+                    {
+                        // Normal split: convert the token after the dot into a bracket segment.
+                        var j = i + 1;
+                        while (j < key.Length && key[j] != '.' && key[j] != '[') j++;
+                        sb.Append('[').Append(key, i + 1, j - (i + 1)).Append(']');
+                        i = j - 1; // continue from the delimiter we stopped at
+                    }
+
+                    break;
                 default:
                     sb.Append(ch);
                     break;
@@ -759,9 +736,7 @@ internal static class Decoder
             {
                 var ch = key[i];
                 if (ch == '[')
-                {
                     level++;
-                }
                 else if (ch == ']')
                 {
                     level--;
@@ -825,7 +800,9 @@ internal static class Decoder
 
         // Otherwise, handle any *trailing text* that comes after the last balanced group,
         // like "a[b]c" → remainder "c". Ignore a lone trailing '.' (degenerate top‑level dot).
-        if (lastClose < 0 || lastClose + 1 >= key.Length) return segments;
+        if (lastClose < 0 || lastClose + 1 >= key.Length)
+            return segments;
+
         string trailing;
 #if NETSTANDARD2_0
         trailing = key.Substring(lastClose + 1);
