@@ -37,13 +37,11 @@ public static class FormatExtensions
     /// </summary>
     /// <param name="format">The format</param>
     /// <returns>The formatter function</returns>
-    public static Formatter GetFormatter(this Format format)
-    {
-        return format switch
+    public static Formatter GetFormatter(this Format format) =>
+        format switch
         {
             Format.Rfc3986 => value => value,
             Format.Rfc1738 => value => value.Replace("%20", "+"),
             _ => throw new ArgumentOutOfRangeException(nameof(format))
         };
-    }
 }
