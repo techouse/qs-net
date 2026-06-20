@@ -1,9 +1,9 @@
-using System.Text;
-using QsNet.Enums;
-using QsNet.Internal;
 #if NETSTANDARD2_0
 using System;
 #endif
+using System.Text;
+using QsNet.Enums;
+using QsNet.Internal;
 
 namespace QsNet.Models;
 
@@ -168,8 +168,8 @@ public sealed class DecodeOptions
     /// </summary>
     public bool AllowDots
     {
-        init => _allowDots = value;
-        get => _allowDots ?? _decodeDotInKeys == true; // implied true when DecodeDotInKeys is true
+        get => _allowDots ?? _decodeDotInKeys == true;
+        init => _allowDots = value; // implied true when DecodeDotInKeys is true
     }
 
     /// <summary>
@@ -188,8 +188,8 @@ public sealed class DecodeOptions
     /// </summary>
     public bool DecodeDotInKeys
     {
-        init => _decodeDotInKeys = value;
         get => _decodeDotInKeys ?? false;
+        init => _decodeDotInKeys = value;
     }
 
     /// <summary>
@@ -231,19 +231,13 @@ public sealed class DecodeOptions
     /// <summary>
     ///     Decode a value token. Returns any scalar (string/number/etc.) or null.
     /// </summary>
-    public object? DecodeValue(string? value, Encoding? encoding = null)
-    {
-        return Decode(value, encoding);
-    }
+    public object? DecodeValue(string? value, Encoding? encoding = null) => Decode(value, encoding);
 
     /// <summary>
     ///     Default decoder when no custom decoder is supplied. Keys are decoded identically
     ///     to values using <see cref="Utils.Decode" /> with the provided encoding.
     /// </summary>
-    private static string? DefaultDecode(string? value, Encoding? encoding)
-    {
-        return value is null ? null : Utils.Decode(value, encoding);
-    }
+    private static string? DefaultDecode(string? value, Encoding? encoding) => value is null ? null : Utils.Decode(value, encoding);
 
 
     /// <summary>
@@ -334,10 +328,8 @@ public sealed class DecodeOptions
     /// <param name="fallback">Fallback value when preferred is null.</param>
     /// <returns>The selected non-null value, or null when both values are null.</returns>
     private static T? Coalesce<T>(T? value, T? fallback)
-        where T : class
-    {
-        return value ?? fallback;
-    }
+        where T : class =>
+        value ?? fallback;
 
     /// <summary>
     ///     Validates option combinations and invariant constraints before decoding.
