@@ -1,3 +1,10 @@
+## 1.5.0
+
+* [DOCS] document using core `QsNet` with RestEase's `[RawQueryString]` parameter, including query-composition and double-encoding guidance, and extend the QsNet usage skill with the same integration guidance
+* [CHORE] make the percent-encoding `HexTable` implementation internal instead of exposing it in the public API
+* [CHORE] upgrade `actions/checkout` from v6 to v7 across CI, documentation, and publishing workflows
+* [CHORE] update test dependencies to JetBrains.Annotations 2026.2.0 and Refit 11.2.0
+
 ## 1.4.4
 
 * [FEAT] add a read-only `DecodeQsQuery` extension for `System.Uri` that decodes escaped query components from absolute and relative URIs while excluding fragments and preserving QsNet decoder options
