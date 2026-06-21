@@ -66,6 +66,10 @@ need integration with a specific HTTP or URL library.
 `QsNet.Refit` does **not** depend on Refit at runtime. Install `Refit` separately in
 the application or test project that declares the Refit API interface.
 
+[RestEase](https://github.com/canton7/RestEase) does not need a dedicated QsNet
+adapter. Encode with the core `QsNet` package and pass the result through
+RestEase's built-in `[RawQueryString]` parameter as shown below.
+
 ---
 
 ## Requirements
@@ -171,6 +175,55 @@ await api.GetUsers(QsQuery.From(
 
 `QsNet.Refit` formalizes a wrapper workaround for complex nested query strings.
 It does not change Refit's native `[Query]` object serializer for DTOs.
+
+### RestEase without an adapter package
+
+```csharp
+using QsNet;
+using QsNet.Enums;
+using QsNet.Models;
+using RestEase;
+
+public interface IProductsApi
+{
+    [Get("products")]
+    Task<Response<Product[]>> SearchAsync(
+        [RawQueryString] string query,
+        CancellationToken cancellationToken = default
+    );
+}
+
+var query = Qs.Encode(
+    new Dictionary<string, object?>
+    {
+        ["filter"] = new Dictionary<string, object?>
+        {
+            ["where"] = new Dictionary<string, object?> { ["name"] = "John" },
+        },
+        ["tags"] = new[] { "a", "b" },
+        ["flag"] = null,
+        ["empty"] = "",
+    },
+    new EncodeOptions
+    {
+        ListFormat = ListFormat.Brackets,
+        StrictNullHandling = true,
+    }
+);
+
+await api.SearchAsync(query, cancellationToken);
+```
+
+`[RawQueryString]` inserts QsNet's encoded query verbatim, preserving bracket
+syntax, duplicate order, name-only nulls, `%20` or `+` spaces, and encoded
+percent signs. Do not route the encoded result through `[Query]`, `[QueryMap]`,
+or a custom query serializer; those paths encode returned names and values
+again.
+
+Pass a fragment without a leading `?` or trailing `&`. RestEase joins an
+existing method query, multiple raw fragments, and normal query parameters with
+`&`, so a custom QsNet delimiter is safe only when the raw QsNet fragment is
+the entire query contribution. JSON and form bodies remain independent.
 
 ### RestSharp helpers
 

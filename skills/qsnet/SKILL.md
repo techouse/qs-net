@@ -1,6 +1,6 @@
 ---
 name: qsnet
-description: Use this skill whenever a user wants to install, configure, troubleshoot, or write C#/.NET code with QsNet or its adapter packages (QsNet.AspNetCore, QsNet.Flurl, QsNet.Refit, QsNet.RestSharp) for encoding and decoding nested query strings. This skill helps produce practical Qs.Decode, Qs.Encode, DecodeQsQuery, ToQueryMap, ToQueryString, AddQueryString, AppendQsQueryParams, SetQsQueryParams, QsQuery, and AddQsQueryParameters snippets, choose DecodeOptions and EncodeOptions, explain option tradeoffs, and avoid QsNet edge-case pitfalls around URI query extraction, lists, dot notation, duplicates, null handling, charset sentinels, depth limits, web framework query normalization, double encoding, and untrusted input.
+description: Use this skill whenever a user wants to install, configure, troubleshoot, or write C#/.NET code with QsNet, its adapter packages (QsNet.AspNetCore, QsNet.Flurl, QsNet.Refit, QsNet.RestSharp), or RestEase raw-query composition for encoding and decoding nested query strings. This skill helps produce practical Qs.Decode, Qs.Encode, DecodeQsQuery, ToQueryMap, ToQueryString, AddQueryString, AppendQsQueryParams, SetQsQueryParams, QsQuery, AddQsQueryParameters, and RestEase RawQueryString snippets, choose DecodeOptions and EncodeOptions, explain option tradeoffs, and avoid QsNet edge-case pitfalls around URI query extraction, lists, dot notation, duplicates, null handling, charset sentinels, depth limits, web framework query normalization, double encoding, and untrusted input.
 ---
 
 # QsNet Usage Assistant
@@ -15,12 +15,13 @@ Before producing a final snippet, collect only the missing details that change
 the code:
 
 - Runtime: C# application, ASP.NET Core request handling, Flurl URL building,
-  Refit interface calls, RestSharp requests, tests, library code, .NET
-  Framework/netstandard consumer, or generated example.
+  Refit or RestEase interface calls, RestSharp requests, tests, library code,
+  .NET Framework/netstandard consumer, or generated example.
 - Direction: decode an incoming query string or `System.Uri`, encode .NET data,
   or normalize query-string handling around an existing URL/request object.
-- Package choice: core `QsNet` only, or an adapter package such as
-  `QsNet.AspNetCore`, `QsNet.Flurl`, `QsNet.Refit`, or `QsNet.RestSharp`.
+- Package choice: core `QsNet` only, an adapter package such as
+  `QsNet.AspNetCore`, `QsNet.Flurl`, `QsNet.Refit`, or `QsNet.RestSharp`, or
+  core QsNet composed with RestEase's built-in `[RawQueryString]` parameter.
 - The actual query string or data structure when available.
 - Target API convention for lists: indexed brackets, empty brackets, repeated
   keys, or comma-separated values.
@@ -54,6 +55,10 @@ and `Uri` helpers. Use `QsNet.Flurl` for Flurl `Url` builders and Flurl.Http
 chains. Use `QsNet.Refit` for `QsQuery` wrappers passed through Refit
 interfaces. Use `QsNet.RestSharp` for adding QsNet-generated query parameters
 to `RestRequest`.
+
+There is no `QsNet.RestEase` package. For RestEase, install `QsNet` and
+`RestEase`, call `Qs.Encode`, and pass the encoded string through RestEase's
+built-in `[RawQueryString]` parameter.
 
 `QsNet.Refit` intentionally has no runtime dependency on Refit. Install `Refit`
 separately in the project that declares or consumes the Refit API interface.
@@ -128,6 +133,9 @@ Adapter entry points: `QsNet.AspNetCore` adds `AddQueryString` and
 `ToQueryMap`; `QsNet.Flurl` adds `AppendQsQueryParams` and
 `SetQsQueryParams`; `QsNet.Refit` provides `QsQuery`/`QsQuery<T>` wrappers;
 `QsNet.RestSharp` adds `AddQsQueryParameters`.
+
+RestEase is a composition case rather than an adapter entry point: pass
+`Qs.Encode(...)` output as a `[RawQueryString]` method argument.
 
 ## Base Patterns
 
@@ -318,6 +326,48 @@ Repeated keys and key-only pairs from `StrictNullHandling = true` are supported.
 Custom `EncodeOptions.Delimiter` values are rejected when encoding produces
 query output because RestSharp joins query parameters with `&`.
 
+## RestEase Composition
+
+Do not invent or recommend a `QsNet.RestEase` package. RestEase already accepts
+externally generated query text verbatim:
+
+```csharp
+using QsNet;
+using QsNet.Enums;
+using QsNet.Models;
+using RestEase;
+
+public interface IProductsApi
+{
+    [Get("products")]
+    Task<Response<Product[]>> SearchAsync([RawQueryString] string query);
+}
+
+var query = Qs.Encode(
+    new Dictionary<string, object?>
+    {
+        ["filter"] = new Dictionary<string, object?> { ["name"] = "John" },
+        ["tags"] = new[] { "a", "b" },
+        ["flag"] = null,
+    },
+    new EncodeOptions
+    {
+        ListFormat = ListFormat.Brackets,
+        StrictNullHandling = true,
+    }
+);
+
+await api.SearchAsync(query);
+```
+
+Use `[RawQueryString]`, not `[Query]`, `[QueryMap]`, or a custom query
+serializer, because RestEase re-encodes ordinary serialized query pairs. Pass
+the QsNet fragment without a leading `?` or trailing `&`. A custom delimiter is
+safe only when it is the sole query contribution; RestEase joins existing,
+raw, and normal query contributions with `&`. Existing method-query `%20`
+spelling may become `+`, but the raw QsNet fragment remains unchanged. Query
+composition is independent of JSON or form body serialization.
+
 ## Decode Recipes
 
 Use these options with `Qs.Decode(query, new DecodeOptions { ... })`:
@@ -474,12 +524,13 @@ Warn or adjust before giving code for these cases:
 For code-generation requests, answer with:
 
 1. A short statement of assumptions, especially runtime, list format, null
-   handling, charset, prefix handling, adapter package choice, framework
-   query normalization, and whether input is trusted.
+   handling, charset, prefix handling, adapter or RestEase composition choice,
+   framework query normalization, and whether input is trusted.
 2. One concrete C# snippet using the right public entry point for the runtime:
    `Qs.Decode`, `Qs.Encode`, `DecodeQsQuery`, `ToQueryMap`, `ToQueryString`,
    `AddQueryString`, `AppendQsQueryParams`, `SetQsQueryParams`, `QsQuery`,
-   `QsQuery<T>`, or `AddQsQueryParameters`.
+   `QsQuery<T>`, `AddQsQueryParameters`, or `Qs.Encode` passed through
+   RestEase's `[RawQueryString]`.
 3. A brief explanation of only the options used.
 4. A small verification example, such as an expected dictionary shape, expected
    query string, xUnit assertion, FluentAssertions assertion, or `Debug.Assert`.
@@ -487,4 +538,5 @@ For code-generation requests, answer with:
 Keep snippets application-oriented. Prefer public API imports from `QsNet`,
 `QsNet.Models`, `QsNet.Enums`, or the relevant adapter namespace
 (`QsNet.AspNetCore`, `QsNet.Flurl`, `QsNet.Refit`, or `QsNet.RestSharp`); do
-not ask users to import from `QsNet.Internal`.
+import the host `RestEase` namespace for RestEase attributes, and do not ask
+users to import from `QsNet.Internal`.
