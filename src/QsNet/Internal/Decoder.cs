@@ -50,9 +50,6 @@ internal static class Decoder
         bool isFlatListValue = true
     )
     {
-        if (options is { ListLimit: < 0, Comma: false })
-            return value;
-
         if (value is string str && options.Comma && str.Length != 0)
         {
             var idx = str.IndexOf(',');
@@ -97,7 +94,7 @@ internal static class Decoder
             }
         }
 
-        if (options is { ListLimit: >= 0, ThrowOnLimitExceeded: true } && currentListLength >= options.ListLimit)
+        if (options.ThrowOnLimitExceeded && currentListLength >= options.ListLimit)
             throw Utils.CreateListLimitExceededException(options.ListLimit);
 
         return value;
@@ -474,12 +471,9 @@ internal static class Decoder
 
             if (root == "[]")
             {
-                // If lists are disabled or list parsing is off, do not create lists.
-                if (!options.ParseLists || options.ListLimit < 0)
+                // If list parsing is disabled, do not create lists.
+                if (!options.ParseLists)
                 {
-                    if (options is { ListLimit: < 0, ThrowOnLimitExceeded: true })
-                        throw new InvalidOperationException("Lists are disabled (ListLimit < 0).");
-
                     // Degrade to a map: treat the first element as index "0".
                     obj = new Dictionary<object, object?> { ["0"] = leaf };
                 }
@@ -522,7 +516,7 @@ internal static class Decoder
                 var isBracketedNumeric =
                     isPureNumeric && root != decodedRoot && idx.ToString(CultureInfo.InvariantCulture) == decodedRoot;
 
-                if (!options.ParseLists || options.ListLimit < 0)
+                if (!options.ParseLists)
                     obj = new Dictionary<object, object?> { [decodedRoot] = leaf };
                 else
                     switch (isBracketedNumeric)
