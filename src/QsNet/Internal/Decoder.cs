@@ -41,13 +41,13 @@ internal static class Decoder
     /// <param name="value">The value to parse, which can be a string or any other type.</param>
     /// <param name="options">The decoding options that affect how the value is parsed.</param>
     /// <param name="currentListLength">The current length of the list being parsed, used for limit checks.</param>
-    /// <param name="enforceListLimit">Whether to enforce comma-split list limits for this value.</param>
+    /// <param name="isFlatListValue">Whether this value is a flat comma list rather than a bracket-array group.</param>
     /// <returns>The parsed value, which may be a List or the original value if no parsing is needed.</returns>
     private static object? ParseListValue(
         object? value,
         DecodeOptions options,
         int currentListLength,
-        bool enforceListLimit = true
+        bool isFlatListValue = true
     )
     {
         if (options is { ListLimit: < 0, Comma: false })
@@ -58,18 +58,26 @@ internal static class Decoder
             var idx = str.IndexOf(',');
             if (idx >= 0)
             {
+                if (isFlatListValue && options.ThrowOnLimitExceeded)
+                {
+                    var commaCount = 0;
+                    var commaIndex = idx;
+                    while (commaIndex >= 0)
+                    {
+                        commaCount++;
+                        if (commaCount >= options.ListLimit)
+                            throw Utils.CreateListLimitExceededException(options.ListLimit);
+
+                        commaIndex = str.IndexOf(',', commaIndex + 1);
+                    }
+                }
+
                 var list = new List<object?>();
                 var start = 0;
 
                 while (true)
                 {
                     var end = idx >= 0 ? idx : str.Length;
-                    if (enforceListLimit && options.ThrowOnLimitExceeded)
-                        if (currentListLength + list.Count >= options.ListLimit)
-                            throw new InvalidOperationException(
-                                $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
-                            );
-
                     list.Add(str.Substring(start, end - start));
 
                     if (idx < 0)
@@ -80,7 +88,7 @@ internal static class Decoder
                 }
 
                 if (
-                    enforceListLimit
+                    isFlatListValue
                     && list.Count > options.ListLimit
                 )
                     return Utils.MarkListOverflow(list);
@@ -90,9 +98,7 @@ internal static class Decoder
         }
 
         if (options is { ListLimit: >= 0, ThrowOnLimitExceeded: true } && currentListLength >= options.ListLimit)
-            throw new InvalidOperationException(
-                $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
-            );
+            throw Utils.CreateListLimitExceededException(options.ListLimit);
 
         return value;
     }
@@ -442,7 +448,10 @@ internal static class Decoder
 
         var leaf = valuesParsed ? value : ParseListValue(value, options, currentListLength);
 
-        if (leaf is IDictionary id and not Dictionary<object, object?>)
+        if (
+            leaf is IDictionary id and not Dictionary<object, object?>
+            && (valuesParsed || id is not Dictionary<string, object?>)
+        )
         {
             // Preserve identity for self-referencing maps
             var selfRef = false;
@@ -493,47 +502,6 @@ internal static class Decoder
                 var cleanRoot = root.StartsWith('[') && root.EndsWith(']') ? root[1..^1] : root;
 #endif
 
-                // Why does `opens > closes` imply the trailing ']' is synthetic?
-                // SplitKeyIntoSegments() wraps any overflow/unterminated remainder exactly once:
-                //   segments.Add("[" + remainder + "]");
-                // Here we've already removed that outer wrapper (cleanRoot = root[1..^1]).
-                // If the remaining inner text has more '[' than ']' and *still* ends with ']',
-                // that last ']' cannot be balancing any '[' from the inner text — it's the
-                // closing bracket from the synthetic wrapper that leaked into this inner slice.
-                // Trimming it recovers the literal remainder (e.g., "[[b[c]]" → cleanRoot "[b[c]" → trim → "[b[c").
-#if NETSTANDARD2_0
-                if (root.Length >= 2 && root[0] == '[' && root[root.Length - 1] == ']')
-#else
-                if (root is ['[', _, ..] && root[^1] == ']')
-#endif
-                {
-                    var inner = cleanRoot;
-                    int opens = 0, closes = 0;
-                    foreach (var ch2 in inner)
-                        switch (ch2)
-                        {
-                            case '[':
-                                opens++;
-                                break;
-                            case ']':
-                                closes++;
-                                break;
-                        }
-
-#if NETSTANDARD2_0
-                    if (opens > closes && inner.Length > 0 && inner[inner.Length - 1] == ']')
-#else
-                    if (opens > closes && inner.Length > 0 && inner[^1] == ']')
-#endif
-                    {
-#if NETSTANDARD2_0
-                        cleanRoot = inner.Substring(0, inner.Length - 1);
-#else
-                        cleanRoot = inner[..^1];
-#endif
-                    }
-                }
-
                 string decodedRoot;
 #if NETSTANDARD2_0
                 decodedRoot = options.DecodeDotInKeys &&
@@ -567,9 +535,7 @@ internal static class Decoder
                             obj = list;
                             break;
                         case true when idx >= 0 && options.ThrowOnLimitExceeded:
-                            throw new InvalidOperationException(
-                                $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
-                            );
+                            throw Utils.CreateListLimitExceededException(options.ListLimit);
                         case true:
                             // Not a list (e.g., idx > ListLimit) → map with the string key (e.g., "2", "99999999")
                             obj = Utils.MarkOverflow(
@@ -725,7 +691,6 @@ internal static class Decoder
 
         var open = first;
         var depth = 0;
-        var lastClose = -1;
         var brokeUnterminated = false;
         while (open >= 0 && depth < maxDepth)
         {
@@ -761,7 +726,6 @@ internal static class Decoder
 #else
             segments.Add(key[open..(close + 1)]); // balanced group, e.g. "[b[c]]"
 #endif
-            lastClose = close;
             depth++;
             open = key.IndexOf('[', close + 1);
         }
@@ -798,24 +762,7 @@ internal static class Decoder
             return segments;
         }
 
-        // Otherwise, handle any *trailing text* that comes after the last balanced group,
-        // like "a[b]c" → remainder "c". Ignore a lone trailing '.' (degenerate top‑level dot).
-        if (lastClose < 0 || lastClose + 1 >= key.Length)
-            return segments;
-
-        string trailing;
-#if NETSTANDARD2_0
-        trailing = key.Substring(lastClose + 1);
-#else
-        trailing = key[(lastClose + 1)..];
-#endif
-        if (trailing == ".") return segments;
-        if (strictDepth)
-            throw new InvalidOperationException(
-                $"Input depth exceeded depth option of {maxDepth} and strictDepth is true"
-            );
-        segments.Add("[" + trailing + "]");
-
+        // qs ignores text after the final balanced bracket group (for example, "a[b]extra").
         return segments;
     }
 

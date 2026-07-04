@@ -145,7 +145,7 @@ internal static partial class Utils
                                             frame,
                                             currentTarget is ISet<object?>
                                                 ? new HashSet<object?>(indexMap.Values)
-                                                : CopyToList(indexMap.Values)
+                                                : EnforceListLimit(CopyToList(indexMap.Values), opts)
                                         );
                                         continue;
                                     }
@@ -186,7 +186,7 @@ internal static partial class Utils
                                             if (v is not Undefined)
                                                 res.Add(v);
 
-                                        Complete(frame, res);
+                                        Complete(frame, EnforceListLimit(res, opts));
                                         continue;
                                     }
 
@@ -200,7 +200,7 @@ internal static partial class Utils
                                     var appended = new List<object?>(targetList.Count + 1);
                                     appended.AddRange(targetList);
                                     appended.Add(currentSource);
-                                    Complete(frame, appended);
+                                    Complete(frame, EnforceListLimit(appended, opts));
                                     continue;
 
                                 case IDictionary targetMap:
@@ -285,7 +285,7 @@ internal static partial class Utils
                                         if (v is not Undefined)
                                             list.Add(v);
 
-                                    Complete(frame, list);
+                                    Complete(frame, EnforceListLimit(list, opts));
                                     continue;
                             }
 
@@ -367,7 +367,13 @@ internal static partial class Utils
                                     continue;
                                 }
 
-                                Complete(frame, new List<object?> { currentTarget, ToObjectKeyedDictionary(sourceMap) });
+                                Complete(
+                                    frame,
+                                    EnforceListLimit(
+                                        [currentTarget, ToObjectKeyedDictionary(sourceMap)],
+                                        opts
+                                    )
+                                );
                                 continue;
                         }
 
@@ -433,7 +439,7 @@ internal static partial class Utils
                                 frame,
                                 frame.TargetIsSet
                                     ? new HashSet<object?>(indexed.Values)
-                                    : CopyToList(indexed.Values)
+                                    : EnforceListLimit(CopyToList(indexed.Values), frame.Options)
                             );
                             continue;
                         }
@@ -1089,6 +1095,29 @@ internal static partial class Utils
     }
 
     /// <summary>
+    ///     Creates the standard exception used when list growth exceeds the configured limit.
+    /// </summary>
+    /// <param name="listLimit">Configured maximum list size.</param>
+    /// <returns>The exception to throw.</returns>
+    internal static InvalidOperationException CreateListLimitExceededException(int listLimit) =>
+        new(
+            $"List limit exceeded. Only {listLimit} element{(listLimit == 1 ? "" : "s")} allowed in a list."
+        );
+
+    /// <summary>
+    ///     Keeps an in-limit list, throws in strict mode, or converts all values to an overflow map.
+    /// </summary>
+    private static object EnforceListLimit(List<object?> values, DecodeOptions options)
+    {
+        if (options.ListLimit < 0 || values.Count <= options.ListLimit)
+            return values;
+
+        return options.ThrowOnLimitExceeded
+            ? throw CreateListLimitExceededException(options.ListLimit)
+            : MarkListOverflow(values);
+    }
+
+    /// <summary>
     ///     Indicates whether an object has been marked as a list-overflow dictionary.
     /// </summary>
     /// <param name="obj">Candidate object.</param>
@@ -1100,14 +1129,16 @@ internal static partial class Utils
     /// </summary>
     /// <param name="obj">Overflow-marked object.</param>
     /// <returns>The tracked max index, or <c>-1</c> when not tracked.</returns>
-    private static int GetOverflowMaxIndex(object obj) => OverflowTable.TryGetValue(obj, out var state) ? state.MaxIndex : -1;
+    private static int GetOverflowMaxIndex(object obj) =>
+        OverflowTable.TryGetValue(obj, out var state) ? state.MaxIndex : -1;
 
     /// <summary>
     ///     Updates overflow metadata with the latest maximum numeric index.
     /// </summary>
     /// <param name="obj">Overflow-marked object.</param>
     /// <param name="maxIndex">Newest maximum index.</param>
-    private static void SetOverflowMaxIndex(object obj, int maxIndex) => OverflowTable.GetOrCreateValue(obj).MaxIndex = maxIndex;
+    private static void SetOverflowMaxIndex(object obj, int maxIndex) =>
+        OverflowTable.GetOrCreateValue(obj).MaxIndex = maxIndex;
 
     /// <summary>
     ///     Marks an object as overflowed and stores its current maximum numeric index.
@@ -1126,7 +1157,8 @@ internal static partial class Utils
     /// </summary>
     /// <param name="list">List to convert.</param>
     /// <returns>An overflow dictionary preserving all list values and the highest index.</returns>
-    internal static Dictionary<object, object?> MarkListOverflow(List<object?> list) => (Dictionary<object, object?>)MarkOverflow(ListToIndexMap(list), list.Count - 1);
+    internal static Dictionary<object, object?> MarkListOverflow(List<object?> list) =>
+        (Dictionary<object, object?>)MarkOverflow(ListToIndexMap(list), list.Count - 1);
 
     /// <summary>
     ///     Tries to parse a key as a canonical non-negative array index.
@@ -1192,31 +1224,17 @@ internal static partial class Utils
         if (options.ListLimit < 0)
             return Combine<object?>(a, b);
 
-        if (IsOverflow(a))
-        {
-            var target = (IDictionary)a!;
-            var nextIndex = GetOverflowMaxIndex(target) + 1;
-            if (options.ThrowOnLimitExceeded && nextIndex >= options.ListLimit)
-                throw new InvalidOperationException(
-                    $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
-                );
-
-            // Overflow dictionaries continue accepting appended values using synthetic numeric-string keys.
-            target[nextIndex.ToString(CultureInfo.InvariantCulture)] = b;
-            SetOverflowMaxIndex(target, nextIndex);
-            return target;
-        }
-
-        var combined = Combine<object?>(a, b);
-        if (combined.Count <= options.ListLimit)
-            return combined;
-
+        if (!IsOverflow(a)) return EnforceListLimit(Combine<object?>(a, b), options);
+        var target = (IDictionary)a!;
+        var nextIndex = GetOverflowMaxIndex(target) + 1;
         if (options.ThrowOnLimitExceeded)
-            throw new InvalidOperationException(
-                $"List limit exceeded. Only {options.ListLimit} element{(options.ListLimit == 1 ? "" : "s")} allowed in a list."
-            );
+            throw CreateListLimitExceededException(options.ListLimit);
 
-        return MarkOverflow(ListToIndexMap(combined), combined.Count - 1);
+        // Overflow dictionaries continue accepting appended values using synthetic numeric-string keys.
+        target[nextIndex.ToString(CultureInfo.InvariantCulture)] = b;
+        SetOverflowMaxIndex(target, nextIndex);
+        return target;
+
     }
 
     /// <summary>
@@ -1454,7 +1472,8 @@ internal static partial class Utils
     /// </summary>
     /// <param name="value"></param>
     /// <returns></returns>
-    internal static object? ConvertNestedValues(object? value) => ConvertNestedValues(value, new HashSet<object>(ReferenceEqualityComparer.Instance));
+    internal static object? ConvertNestedValues(object? value) =>
+        ConvertNestedValues(value, new HashSet<object>(ReferenceEqualityComparer.Instance));
 
     /// <summary>
     ///     Recursively converts nested values in a structure, handling circular references.
@@ -1474,7 +1493,7 @@ internal static partial class Utils
                 var keysArr = new object[dict.Count];
                 keysCol.CopyTo(keysArr, 0);
                 foreach (var key in keysArr) dict[key] = ConvertNestedValues(dict[key], visited);
-                return NormalizeForTarget(dict);
+                return dict is Dictionary<string, object?> ? dict : NormalizeForTarget(dict);
 
             case IList list:
                 for (var i = 0; i < list.Count; i++)
@@ -1520,6 +1539,12 @@ internal static partial class Utils
         Dictionary<object, object?> enumerableCache
     )
     {
+        if (
+            enumerableCache.TryGetValue(dict, out var cached)
+            && cached is Dictionary<string, object?> cachedDictionary
+        )
+            return cachedDictionary;
+
         // If we've already seen this dictionary, don't descend again.
         // If it's already string-keyed, just return it to preserve identity.
         if (!visited.Add(dict))
@@ -1535,6 +1560,7 @@ internal static partial class Utils
         }
 
         var result = new Dictionary<string, object?>(dict.Count);
+        enumerableCache[dict] = result;
 
         foreach (DictionaryEntry entry in dict)
         {
@@ -1543,9 +1569,7 @@ internal static partial class Utils
 
             item = item switch
             {
-                IDictionary child when ReferenceEquals(child, dict) =>
-                    // Direct self-reference: keep the same instance to preserve identity
-                    child,
+                IDictionary child when ReferenceEquals(child, dict) => result,
                 _ => NormalizeDictionaryValue(item, visited, enumerableCache)
             };
 
