@@ -1109,7 +1109,7 @@ internal static partial class Utils
     /// </summary>
     private static object EnforceListLimit(List<object?> values, DecodeOptions options)
     {
-        if (options.ListLimit < 0 || values.Count <= options.ListLimit)
+        if (values.Count <= options.ListLimit)
             return values;
 
         return options.ThrowOnLimitExceeded
@@ -1221,9 +1221,6 @@ internal static partial class Utils
     /// </exception>
     internal static object CombineWithLimit(object? a, object? b, DecodeOptions options)
     {
-        if (options.ListLimit < 0)
-            return Combine<object?>(a, b);
-
         if (!IsOverflow(a)) return EnforceListLimit(Combine<object?>(a, b), options);
         var target = (IDictionary)a!;
         var nextIndex = GetOverflowMaxIndex(target) + 1;
