@@ -3179,7 +3179,30 @@ public partial class DecodeTest
         var options = new DecodeOptions { ListLimit = -1, ThrowOnLimitExceeded = true };
 
         Action act = () => Qs.Decode("a[]=1&a[]=2", options);
-        act.Should().Throw<InvalidOperationException>();
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("List limit exceeded. Only -1 elements allowed in a list.");
+    }
+
+    [Fact]
+    public void Decode_NegativeListLimit_ConvertsDuplicateGrowthToOverflowMap()
+    {
+        Qs.Decode("a=x&a=y", new DecodeOptions { ListLimit = -1 })
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "x", ["1"] = "y" }
+                }
+            );
+
+        Action act = () => Qs.Decode(
+            "a=x&a=y",
+            new DecodeOptions { ListLimit = -1, ThrowOnLimitExceeded = true }
+        );
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("List limit exceeded. Only -1 elements allowed in a list.");
     }
 
     [Fact]
