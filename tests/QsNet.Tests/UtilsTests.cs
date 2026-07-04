@@ -2863,6 +2863,122 @@ public class UtilsTests
     }
 
     [Fact]
+    public void Merge_Qs6153_EnforcesListLimitAcrossListProducingPaths()
+    {
+        var options = new DecodeOptions { ListLimit = 1, ThrowOnLimitExceeded = true };
+
+        Action listScalar = () => Utils.Merge(new List<object?> { "a" }, "b", options);
+        Action scalarList = () => Utils.Merge("a", new List<object?> { "b", "c" }, options);
+        Action listList = () => Utils.Merge(
+            new List<object?> { "a" },
+            new List<object?> { "b" },
+            options
+        );
+        Action scalarMap = () => Utils.Merge(
+            "a",
+            new Dictionary<string, object?> { ["b"] = "c" },
+            options
+        );
+
+        listScalar.Should().Throw<InvalidOperationException>();
+        scalarList.Should().Throw<InvalidOperationException>();
+        listList.Should().Throw<InvalidOperationException>();
+        scalarMap.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Merge_Qs6153_ConvertsOverLimitListsToOverflowMaps()
+    {
+        var options = new DecodeOptions { ListLimit = 1 };
+        var cases = new (object? Target, object? Source)[]
+        {
+            (new List<object?> { "a" }, "b"),
+            ("a", new List<object?> { "b", "c" }),
+            (new List<object?> { "a" }, new List<object?> { "b" })
+        };
+
+        foreach (var (target, source) in cases)
+        {
+            var merged = Utils.Merge(target, source, options);
+
+            Utils.IsOverflow(merged).Should().BeTrue();
+            merged.Should().BeAssignableTo<IDictionary>();
+        }
+    }
+
+    [Fact]
+    public void Merge_Qs6153_EnforcesLimitAfterNestedListMerge()
+    {
+        var target = new List<object?>
+        {
+            new Dictionary<string, object?> { ["a"] = 1 }
+        };
+        var source = new List<object?>
+        {
+            new Dictionary<string, object?> { ["b"] = 2 },
+            new Dictionary<string, object?> { ["c"] = 3 }
+        };
+
+        var merged = Utils.Merge(target, source, new DecodeOptions { ListLimit = 1 });
+
+        Utils.IsOverflow(merged).Should().BeTrue();
+        merged.Should().BeEquivalentTo(
+            new Dictionary<string, object?>
+            {
+                ["0"] = new Dictionary<string, object?> { ["a"] = 1, ["b"] = 2 },
+                ["1"] = new Dictionary<string, object?> { ["c"] = 3 }
+            }
+        );
+    }
+
+    [Fact]
+    public void Merge_Qs6153_StrictOverflowDoesNotMutateInputList()
+    {
+        var target = new List<object?> { "a" };
+
+        Action act = () => Utils.Merge(
+            target,
+            new List<object?> { "b" },
+            new DecodeOptions { ListLimit = 1, ThrowOnLimitExceeded = true }
+        );
+
+        act.Should().Throw<InvalidOperationException>();
+        target.Should().Equal("a");
+    }
+
+    [Fact]
+    public void Merge_Qs6153_PreservesSetAndStrictMergeAsymmetry()
+    {
+        var options = new DecodeOptions { ListLimit = 1, ThrowOnLimitExceeded = true };
+        var set = Utils.Merge(new HashSet<object?> { "a" }, new HashSet<object?> { "b" }, options);
+
+        set.Should()
+            .BeOfType<HashSet<object?>>()
+            .Which.Should().BeEquivalentTo(new object?[] { "a", "b" });
+
+        Action scalarThenMap = () => Utils.Merge(
+            "a",
+            new Dictionary<string, object?> { ["b"] = "c" },
+            options
+        );
+        scalarThenMap.Should().Throw<InvalidOperationException>();
+
+        Utils.Merge(
+                new Dictionary<string, object?> { ["b"] = "c" },
+                "a",
+                options
+            )
+            .Should()
+            .BeEquivalentTo(
+                new List<object?>
+                {
+                    new Dictionary<string, object?> { ["b"] = "c" },
+                    "a"
+                }
+            );
+    }
+
+    [Fact]
     public void Merge_RemovesUndefinedEntriesWhenListsAreDisabled()
     {
         var undefined = Undefined.Create();
@@ -2880,6 +2996,16 @@ public class UtilsTests
         const string highSurrogate = "\uD83D"; // lone high surrogate, invalid pair
         var encoded = Utils.Encode(highSurrogate);
         encoded.Should().Be("%ED%A0%BD");
+    }
+
+    [Theory]
+    [InlineData(1023)]
+    [InlineData(2047)]
+    public void Encode_Qs6153_PreservesSurrogatePairsAcrossChunkBoundaries(int prefixLength)
+    {
+        var input = new string('a', prefixLength) + "😀";
+
+        Utils.Encode(input).Should().Be(new string('a', prefixLength) + "%F0%9F%98%80");
     }
 
     [Fact]
@@ -2910,9 +3036,8 @@ public class UtilsTests
         converted.Should().ContainKey("next");
         var next = converted["next"].Should().BeOfType<Dictionary<string, object?>>().Which;
         next.Should().ContainKey("back");
-        var back = next["back"].Should().BeOfType<Dictionary<string, object?>>().Which;
-        back.Should().ContainKey("next");
-        back["next"].Should().BeAssignableTo<IDictionary>();
+        next["back"].Should().BeSameAs(converted);
+        converted["next"].Should().BeSameAs(next);
     }
 
     [Fact]
@@ -3103,7 +3228,7 @@ public class UtilsTests
 
         var converted = Utils.ConvertNestedDictionary(parent);
 
-        converted["self"].Should().BeSameAs(parent);
+        converted["self"].Should().BeSameAs(converted);
         converted["string"].Should().BeSameAs(stringChild);
     }
 
