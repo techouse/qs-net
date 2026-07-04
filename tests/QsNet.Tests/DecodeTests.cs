@@ -5820,6 +5820,61 @@ public partial class DecodeTest
     }
 
     [Fact]
+    public void Decode_Qs6153_OverflowValuesMergeWithBracketAssignments()
+    {
+        var cases = new (string Query, int ListLimit, Dictionary<string, object?> Expected)[]
+        {
+            (
+                "a=1,2&a[]=x",
+                1,
+                new Dictionary<string, object?>
+                {
+                    ["0"] = new List<object?> { "1", "x" },
+                    ["1"] = "2"
+                }
+            ),
+            (
+                "a[]=x&a=1,2",
+                1,
+                new Dictionary<string, object?>
+                {
+                    ["0"] = new List<object?> { "x", "1" },
+                    ["1"] = "2"
+                }
+            ),
+            (
+                "a=x&a=x&a[]=x",
+                1,
+                new Dictionary<string, object?>
+                {
+                    ["0"] = new List<object?> { "x", "x" },
+                    ["1"] = "x"
+                }
+            ),
+            (
+                "a=1,2&a[2]=z&a[]=x",
+                2,
+                new Dictionary<string, object?>
+                {
+                    ["0"] = new List<object?> { "1", "x" },
+                    ["1"] = "2",
+                    ["2"] = "z"
+                }
+            )
+        };
+
+        foreach (var (query, listLimit, expected) in cases)
+        {
+            var decoded = Qs.Decode(
+                query,
+                new DecodeOptions { Comma = true, ListLimit = listLimit }
+            );
+
+            decoded["a"].Should().BeEquivalentTo(expected, because: query);
+        }
+    }
+
+    [Fact]
     public void Decode_Qs6153_OversizedFlatCommaValueThrowsBeforeDecoding()
     {
         var decodedValues = 0;
