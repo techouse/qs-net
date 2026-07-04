@@ -1312,6 +1312,27 @@ public class UtilsTests
     }
 
     [Fact]
+    public void Combine_WithNegativeListLimitConvertsToMapOrThrows()
+    {
+        var combined = Utils.CombineWithLimit(
+            new List<object?>(),
+            "a",
+            new DecodeOptions { ListLimit = -1 }
+        );
+        combined.Should().BeEquivalentTo(new Dictionary<object, object?> { ["0"] = "a" });
+        Utils.IsOverflow(combined).Should().BeTrue();
+
+        Action act = () => Utils.CombineWithLimit(
+            new List<object?>(),
+            "a",
+            new DecodeOptions { ListLimit = -1, ThrowOnLimitExceeded = true }
+        );
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("List limit exceeded. Only -1 elements allowed in a list.");
+    }
+
+    [Fact]
     public void Combine_WithOverflowObject_AppendsAtNextIndex()
     {
         var overflow = Utils.CombineWithLimit(
