@@ -384,8 +384,12 @@ Use these options with `Qs.Decode(query, new DecodeOptions { ... })`:
 - Empty list tokens such as `foo[]`: `AllowEmptyLists = true`.
 - Sparse numeric indices: `AllowSparseLists = true` preserves holes as `null`
   entries; the default compacts lists.
-- Large or sparse list indices: default `ListLimit` is `20`; indices above the
-  limit become dictionary keys or are limited according to the merge path.
+- List limits: default `ListLimit` is `20`; explicit numeric indices at or above
+  the limit become dictionary keys. Implicit, comma, duplicate, and mixed list
+  growth that exceeds the limit becomes a numeric-keyed dictionary preserving
+  every value, or throws when `ThrowOnLimitExceeded = true`.
+- List parsing is disabled only by `ParseLists = false`; the number of top-level
+  parameters does not change list parsing.
 - Comma-separated values such as `a=b,c`: `Comma = true`.
 - Tokens without `=` as `null`: `StrictNullHandling = true`.
 - Custom delimiters: `Delimiter = new StringDelimiter(";")` or
@@ -503,7 +507,8 @@ Warn or adjust before giving code for these cases:
 - `DecodeOptions { DecodeDotInKeys = true, AllowDots = false }` is invalid.
 - `ParameterLimit` must be positive.
 - `ThrowOnLimitExceeded = true` turns parameter and list limit violations into
-  exceptions; without it, parsing truncates or falls back where possible.
+  exceptions. Without it, parameter parsing stops at `ParameterLimit`, while
+  list overflow becomes a numeric-keyed dictionary that preserves every value.
 - `StrictDepth = true` throws on well-formed depth overflow; with the default
   `false`, the remainder beyond `Depth` is kept as a trailing key segment.
 - Built-in charset handling supports UTF-8 and ISO-8859-1/Latin1; other
