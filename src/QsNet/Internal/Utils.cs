@@ -215,18 +215,18 @@ internal static partial class Utils
                                         switch (currentSource)
                                         {
                                             case IEnumerable<object?> srcIter:
-                                                var appendIndex = targetMaxIndex;
+                                                var indexedSource = new Dictionary<object, object?>();
+                                                var sourceIndex = 0;
                                                 foreach (var item in srcIter)
                                                 {
-                                                    appendIndex++;
-                                                    if (item is Undefined)
-                                                        continue;
-
-                                                    mutable[appendIndex.ToString(CultureInfo.InvariantCulture)] = item;
+                                                    if (item is not Undefined)
+                                                        indexedSource[
+                                                            sourceIndex.ToString(CultureInfo.InvariantCulture)
+                                                        ] = item;
+                                                    sourceIndex++;
                                                 }
 
-                                                SetOverflowMaxIndex(mutable, appendIndex);
-                                                Complete(frame, mutable);
+                                                frame.Source = indexedSource;
                                                 continue;
                                             case Undefined:
                                                 Complete(frame, mutable);
