@@ -1479,7 +1479,7 @@ public class UtilsTests
     }
 
     [Fact]
-    public void ShouldAdvanceOverflowMaxIndexWhenUndefinedIterableSlotsAreMerged()
+    public void ShouldNotAdvanceOverflowMaxIndexWhenUndefinedIterableSlotsAreMerged()
     {
         var options = new DecodeOptions { ListLimit = 1 };
         var overflow = Utils.CombineWithLimit(new List<object?> { "a" }, "b", options);
@@ -1495,7 +1495,7 @@ public class UtilsTests
                 {
                     ["0"] = "a",
                     ["1"] = "b",
-                    ["4"] = "c"
+                    ["2"] = "c"
                 }
             );
     }
@@ -1685,10 +1685,9 @@ public class UtilsTests
         merged.Should().BeEquivalentTo(
             new Dictionary<object, object?>
             {
-                ["0"] = "a",
+                ["0"] = new List<object?> { "a", "c" },
                 ["1"] = "b",
-                ["2"] = "c",
-                ["4"] = "d"
+                ["2"] = "d"
             }
         );
         Utils.IsOverflow(merged).Should().BeTrue();
@@ -1697,11 +1696,10 @@ public class UtilsTests
         appended.Should().BeEquivalentTo(
             new Dictionary<object, object?>
             {
-                ["0"] = "a",
+                ["0"] = new List<object?> { "a", "c" },
                 ["1"] = "b",
-                ["2"] = "c",
-                ["4"] = "d",
-                ["5"] = "tail"
+                ["2"] = "d",
+                ["3"] = "tail"
             }
         );
     }
@@ -1722,8 +1720,7 @@ public class UtilsTests
             new Dictionary<object, object?>
             {
                 ["0"] = "a",
-                ["1"] = "b",
-                ["3"] = "c"
+                ["1"] = new List<object?> { "b", "c" }
             }
         );
         Utils.IsOverflow(merged).Should().BeTrue();
@@ -1733,9 +1730,8 @@ public class UtilsTests
             new Dictionary<object, object?>
             {
                 ["0"] = "a",
-                ["1"] = "b",
-                ["3"] = "c",
-                ["4"] = "tail"
+                ["1"] = new List<object?> { "b", "c" },
+                ["2"] = "tail"
             }
         );
     }
