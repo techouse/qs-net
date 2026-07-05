@@ -38,19 +38,111 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void SplitKeyIntoSegments_StrictDepthThrowsOnTrailingText()
+    public void SplitKeyIntoSegments_StrictDepthIgnoresTrailingText()
     {
-        Action act = () => InternalDecoder.SplitKeyIntoSegments("a[b]c", false, 1, true);
-        act.Should()
-            .Throw<InvalidOperationException>()
-            .WithMessage("Input depth exceeded depth option of 1 and strictDepth is true");
+        var segments = InternalDecoder.SplitKeyIntoSegments("a[b]c", false, 1, true);
+
+        segments.Should().Equal("a", "[b]");
     }
 
     [Fact]
-    public void SplitKeyIntoSegments_AppendsTrailingSegmentWhenNotStrict()
+    public void SplitKeyIntoSegments_IgnoresTrailingTextWhenNotStrict()
     {
         var segments = InternalDecoder.SplitKeyIntoSegments("a[b]c", false, 2, false);
-        segments.Should().Contain("[c]");
+
+        segments.Should().Equal("a", "[b]");
+    }
+
+    [Fact]
+    public void Decode_CharacterizesUnbalancedBracketKeysLikeQs6153()
+    {
+        var cases = new (string Query, DecodeOptions Options, Dictionary<string, object?> Expected)[]
+        {
+            ("a[bc=v", new DecodeOptions(), new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["[bc"] = "v" }
+            }),
+            ("a[=v", new DecodeOptions(), new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["["] = "v" }
+            }),
+            ("a[b][c=v", new DecodeOptions(), new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?>
+                {
+                    ["b"] = new Dictionary<string, object?> { ["[c"] = "v" }
+                }
+            }),
+            ("a[b]c[d=v", new DecodeOptions(), new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?>
+                {
+                    ["b"] = new Dictionary<string, object?> { ["[d"] = "v" }
+                }
+            }),
+            ("filters[customtags:Env: Prod=v", new DecodeOptions(), new Dictionary<string, object?>
+            {
+                ["filters"] = new Dictionary<string, object?> { ["[customtags:Env: Prod"] = "v" }
+            }),
+            ("][a=v", new DecodeOptions(), new Dictionary<string, object?>
+            {
+                ["]"] = new Dictionary<string, object?> { ["[a"] = "v" }
+            }),
+            ("a][b=v", new DecodeOptions(), new Dictionary<string, object?>
+            {
+                ["a]"] = new Dictionary<string, object?> { ["[b"] = "v" }
+            }),
+            ("a[b[c=v", new DecodeOptions(), new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["[b[c"] = "v" }
+            }),
+            ("a[b[c]=v", new DecodeOptions(), new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["[b[c]"] = "v" }
+            }),
+            ("a[b][c[d=v", new DecodeOptions(), new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?>
+                {
+                    ["b"] = new Dictionary<string, object?> { ["[c[d"] = "v" }
+                }
+            }),
+            ("[abc=v", new DecodeOptions(), new Dictionary<string, object?> { ["[abc"] = "v" }),
+            ("[[]b=v", new DecodeOptions(), new Dictionary<string, object?> { ["[[]b"] = "v" }),
+            ("a[b]c[d]e[f=v", new DecodeOptions { Depth = 5 }, new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?>
+                {
+                    ["b"] = new Dictionary<string, object?>
+                    {
+                        ["d"] = new Dictionary<string, object?> { ["[f"] = "v" }
+                    }
+                }
+            }),
+            ("a[b]c[d]e[f=v", new DecodeOptions { Depth = 1 }, new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?>
+                {
+                    ["b"] = new Dictionary<string, object?> { ["[d]e[f"] = "v" }
+                }
+            }),
+            ("a[bc=v", new DecodeOptions { Depth = 0 }, new Dictionary<string, object?> { ["a[bc"] = "v" }),
+            ("a.b[c=v", new DecodeOptions { AllowDots = true }, new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?>
+                {
+                    ["b"] = new Dictionary<string, object?> { ["[c"] = "v" }
+                }
+            }),
+            ("a]b=v", new DecodeOptions(), new Dictionary<string, object?> { ["a]b"] = "v" }),
+            ("a[b]extra=v", new DecodeOptions(), new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["b"] = "v" }
+            })
+        };
+
+        foreach (var (query, options, expected) in cases)
+            Qs.Decode(query, options).Should().BeEquivalentTo(expected, because: query);
     }
 
     [Fact]
@@ -3087,7 +3179,30 @@ public partial class DecodeTest
         var options = new DecodeOptions { ListLimit = -1, ThrowOnLimitExceeded = true };
 
         Action act = () => Qs.Decode("a[]=1&a[]=2", options);
-        act.Should().Throw<InvalidOperationException>();
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("List limit exceeded. Only -1 elements allowed in a list.");
+    }
+
+    [Fact]
+    public void Decode_NegativeListLimit_ConvertsDuplicateGrowthToOverflowMap()
+    {
+        Qs.Decode("a=x&a=y", new DecodeOptions { ListLimit = -1 })
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new Dictionary<string, object?> { ["0"] = "x", ["1"] = "y" }
+                }
+            );
+
+        Action act = () => Qs.Decode(
+            "a=x&a=y",
+            new DecodeOptions { ListLimit = -1, ThrowOnLimitExceeded = true }
+        );
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("List limit exceeded. Only -1 elements allowed in a list.");
     }
 
     [Fact]
@@ -5453,7 +5568,7 @@ public partial class DecodeTest
             .BeEquivalentTo(
                 new Dictionary<string, object?>
                 {
-                    ["a"] = new Dictionary<string, object?> { ["[b[c"] = "x" }
+                    ["a"] = new Dictionary<string, object?> { ["[b[c]"] = "x" }
                 }
             );
     }
@@ -5670,6 +5785,210 @@ public partial class DecodeTest
 
         Action act = () => Qs.Decode("a=1&a=2", opts);
         act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Theory]
+    [InlineData("a=x&a[0]=y")]
+    [InlineData("a[0]=x&a=y")]
+    [InlineData("a[0]=x&a[]=y")]
+    public void Decode_Qs6153_MixedListGrowthThrowsPastLimit(string query)
+    {
+        var options = new DecodeOptions { ListLimit = 1, ThrowOnLimitExceeded = true };
+
+        Action act = () => Qs.Decode(query, options);
+
+        act.Should()
+            .Throw<InvalidOperationException>()
+            .WithMessage("List limit exceeded. Only 1 element allowed in a list.");
+    }
+
+    [Theory]
+    [InlineData("a=x&a[0]=y")]
+    [InlineData("a[0]=x&a=y")]
+    [InlineData("a[0]=x&a[]=y")]
+    public void Decode_Qs6153_MixedListGrowthBecomesOverflowMap(string query)
+    {
+        var decoded = Qs.Decode(query, new DecodeOptions { ListLimit = 1 });
+
+        decoded.Should().BeEquivalentTo(
+            new Dictionary<string, object?>
+            {
+                ["a"] = new Dictionary<string, object?> { ["0"] = "x", ["1"] = "y" }
+            }
+        );
+    }
+
+    [Fact]
+    public void Decode_Qs6153_CumulativeCommaGrowthThrowsAfterDecodingAllValues()
+    {
+        var decodedValues = 0;
+        var options = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 5,
+            ThrowOnLimitExceeded = true,
+            DecoderWithKind = (value, _, kind) =>
+            {
+                if (kind == DecodeKind.Value)
+                    decodedValues++;
+
+                return value;
+            }
+        };
+
+        Action act = () => Qs.Decode("a=1,2,3&a=4,5,6", options);
+
+        act.Should().Throw<InvalidOperationException>();
+        decodedValues.Should().Be(6);
+    }
+
+    [Fact]
+    public void Decode_Qs6153_OverflowValuesMergeWithBracketAssignments()
+    {
+        var cases = new (string Query, int ListLimit, Dictionary<string, object?> Expected)[]
+        {
+            (
+                "a=1,2&a[]=x",
+                1,
+                new Dictionary<string, object?>
+                {
+                    ["0"] = new List<object?> { "1", "x" },
+                    ["1"] = "2"
+                }
+            ),
+            (
+                "a[]=x&a=1,2",
+                1,
+                new Dictionary<string, object?>
+                {
+                    ["0"] = new List<object?> { "x", "1" },
+                    ["1"] = "2"
+                }
+            ),
+            (
+                "a=x&a=x&a[]=x",
+                1,
+                new Dictionary<string, object?>
+                {
+                    ["0"] = new List<object?> { "x", "x" },
+                    ["1"] = "x"
+                }
+            ),
+            (
+                "a=1,2&a[2]=z&a[]=x",
+                2,
+                new Dictionary<string, object?>
+                {
+                    ["0"] = new List<object?> { "1", "x" },
+                    ["1"] = "2",
+                    ["2"] = "z"
+                }
+            )
+        };
+
+        foreach (var (query, listLimit, expected) in cases)
+        {
+            var decoded = Qs.Decode(
+                query,
+                new DecodeOptions { Comma = true, ListLimit = listLimit }
+            );
+
+            decoded["a"].Should().BeEquivalentTo(expected, because: query);
+        }
+    }
+
+    [Fact]
+    public void Decode_Qs6153_OversizedFlatCommaValueThrowsBeforeDecoding()
+    {
+        var decodedValues = 0;
+        var options = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 1,
+            ThrowOnLimitExceeded = true,
+            DecoderWithKind = (value, _, kind) =>
+            {
+                if (kind == DecodeKind.Value)
+                    decodedValues++;
+
+                return value;
+            }
+        };
+
+        Action act = () => Qs.Decode("a=1,2", options);
+
+        act.Should().Throw<InvalidOperationException>();
+        decodedValues.Should().Be(0);
+    }
+
+    [Fact]
+    public void Decode_Qs6153_BracketCommaGroupsCountAsOuterElements()
+    {
+        var options = new DecodeOptions
+        {
+            Comma = true,
+            ListLimit = 5,
+            ThrowOnLimitExceeded = true
+        };
+
+        Qs.Decode("a[]=1,2,3&a[]=4,5,6", options)
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new List<object?>
+                    {
+                        new List<object?> { "1", "2", "3" },
+                        new List<object?> { "4", "5", "6" }
+                    }
+                }
+            );
+
+        Action act = () => Qs.Decode(
+            "a[]=1,2,3",
+            new DecodeOptions
+            {
+                Comma = true,
+                ListLimit = 0,
+                ThrowOnLimitExceeded = true
+            }
+        );
+        act.Should().Throw<InvalidOperationException>();
+    }
+
+    [Fact]
+    public void Decode_Qs6153_TopLevelParameterCountDoesNotDisableLists()
+    {
+        Qs.Decode("a[0]=x&b=y", new DecodeOptions { ListLimit = 1 })
+            .Should()
+            .BeEquivalentTo(
+                new Dictionary<string, object?>
+                {
+                    ["a"] = new List<object?> { "x" },
+                    ["b"] = "y"
+                }
+            );
+    }
+
+    [Fact]
+    public void Decode_Qs6153_PreservesMultiStepCycleIdentityForDictionaryInput()
+    {
+        var a = new Dictionary<string, object?>();
+        var b = new Dictionary<string, object?>();
+        var c = new Dictionary<string, object?>();
+        a["b"] = b;
+        b["c"] = c;
+        c["d"] = a;
+
+        var decoded = Qs.Decode(new Dictionary<string, object?> { ["foo"] = a });
+        decoded["foo"].Should().BeSameAs(a);
+        var decodedA = (IDictionary)decoded["foo"]!;
+        decodedA["b"].Should().BeSameAs(b);
+        var decodedB = (IDictionary)decodedA["b"]!;
+        decodedB["c"].Should().BeSameAs(c);
+        var decodedC = (IDictionary)decodedB["c"]!;
+
+        decodedC["d"].Should().BeSameAs(decodedA);
     }
 
     [Fact]

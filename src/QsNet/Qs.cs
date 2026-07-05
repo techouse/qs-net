@@ -55,10 +55,6 @@ public static class Qs
             _ => new Dictionary<string, object?>()
         };
 
-        var finalOptions = opts;
-        if (opts is { ParseLists: true, ListLimit: > 0 } && tempObj.Count > opts.ListLimit)
-            finalOptions = opts.CopyWith(parseLists: false);
-
         var decodeFromString = input is string;
 
         if (tempObj.Count == 0)
@@ -67,7 +63,7 @@ public static class Qs
         var structuredScan = StructuredKeyScan.Empty;
         if (decodeFromString)
         {
-            structuredScan = ScanStructuredKeys(tempObj, finalOptions);
+            structuredScan = ScanStructuredKeys(tempObj, opts);
             if (!structuredScan.HasAnyStructuredSyntax)
             {
                 var flatObj = new Dictionary<object, object?>(tempObj.Count);
@@ -94,13 +90,13 @@ public static class Qs
             )
             {
                 obj[key] = obj.TryGetValue(key, out var existing)
-                    ? Utils.Merge(existing, value, finalOptions)
+                    ? Utils.Merge(existing, value, opts)
                     : value;
 
                 continue;
             }
 
-            var parsed = Decoder.ParseKeys(key, value, finalOptions, decodeFromString);
+            var parsed = Decoder.ParseKeys(key, value, opts, decodeFromString);
 
             if (parsed is null)
                 continue;
@@ -113,7 +109,7 @@ public static class Qs
             }
 
             obj = NormalizeObjectMap(
-                Utils.Merge(obj, parsed, finalOptions)
+                Utils.Merge(obj, parsed, opts)
             );
         }
 

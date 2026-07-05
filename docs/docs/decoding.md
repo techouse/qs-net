@@ -70,7 +70,7 @@ Qs.Decode("a=b&c=d", new DecodeOptions { ParameterLimit = 1 });
 - Empty query segments and empty keys are ignored before `ParameterLimit` accounting.
 - Comma-list limit behavior is deterministic:
   - `ThrowOnLimitExceeded = true` throws on overflow.
-  - `ThrowOnLimitExceeded = false` truncates to the remaining list capacity.
+  - `ThrowOnLimitExceeded = false` preserves every value in a numeric-keyed overflow dictionary.
 - Some JavaScript `qs` edge-case limitations are intentionally fixed rather than mirrored.
 
 ### Ignore leading `?`
@@ -196,7 +196,9 @@ Qs.Decode("a[]=&a[]=b");
 list entries only when `index < ListLimit`; an index at or above the limit
 becomes a dictionary entry by default, or throws when `ThrowOnLimitExceeded` is
 true. Implicit list growth, comma lists, and duplicate-combine paths use the same
-element count before overflow conversion or exception.
+element count before overflow conversion or exception. Overflow conversion
+preserves every value in a numeric-keyed dictionary. List parsing is disabled
+only when `ParseLists` is false; top-level parameter count does not change it.
 
 Large indices convert to a dictionary by default:
 
