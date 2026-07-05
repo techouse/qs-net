@@ -1,3 +1,9 @@
+## 1.5.1-dev
+
+* [FIX] match Node `qs` 6.15.3 cumulative list-limit enforcement across duplicate, comma, and mixed list merges, including pre-split rejection of oversized flat comma values
+* [FIX] align lenient unbalanced-bracket handling and preserve multi-step cyclic dictionary identity during decoding
+* [CHORE] update the comparison baseline to `qs` 6.15.3 and pnpm 11.9.0, with regression coverage for the new upstream behavior
+
 ## 1.5.0
 
 * [DOCS] document using core `QsNet` with RestEase's `[RawQueryString]` parameter, including query-composition and double-encoding guidance, and extend the QsNet usage skill with the same integration guidance

@@ -60,7 +60,7 @@ internal sealed class MergeFrame(object? target, object? source, DecodeOptions o
     }
 
     public object? Target { get; } = target;
-    public object? Source { get; } = source;
+    public object? Source { get; set; } = source;
     public DecodeOptions Options { get; } = options;
     public MergePhase Phase { get; set; } = MergePhase.Start;
     public MergeAssignment Assignment { get; } = MergeAssignment.Root;

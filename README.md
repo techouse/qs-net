@@ -466,7 +466,9 @@ Qs.Decode("a[]=&a[]=b");
 list entries only when `index < ListLimit`; an index at or above the limit
 becomes a dictionary entry by default, or throws when `ThrowOnLimitExceeded` is
 true. Implicit list growth, comma lists, and duplicate-combine paths use the same
-element count before overflow conversion or exception.
+element count before overflow conversion or exception. Overflow conversion
+preserves every value in a numeric-keyed dictionary. List parsing is disabled
+only when `ParseLists` is false; top-level parameter count does not change it.
 
 Large indices convert to a dictionary by default:
 
