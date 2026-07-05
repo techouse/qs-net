@@ -1,4 +1,4 @@
-## 1.5.1-dev
+## 1.5.1
 
 * [FIX] match Node `qs` 6.15.3 cumulative list-limit enforcement across duplicate, comma, and mixed list merges, including pre-split rejection of oversized flat comma values
 * [FIX] align lenient unbalanced-bracket handling and preserve multi-step cyclic dictionary identity during decoding
