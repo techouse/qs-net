@@ -49,6 +49,6 @@
     <ItemGroup>
         <ProjectReference Include="..\QsNet\QsNet.csproj"/>
         <PackageReference Include="RestSharp" Version="114.0.0"/>
-        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.300" PrivateAssets="All"/>
+        <PackageReference Include="Microsoft.SourceLink.GitHub" Version="10.0.301" PrivateAssets="All"/>
     </ItemGroup>
 </Project>
