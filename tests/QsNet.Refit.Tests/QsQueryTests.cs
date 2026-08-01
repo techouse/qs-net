@@ -309,6 +309,7 @@ public class QsQueryTests
 
     public interface IQueryApi
     {
+#pragma warning disable RF006 // QsQuery intentionally uses Refit.Reflection for dictionary query-map interop.
         [Get("/users")]
         [QueryUriFormat(UriFormat.Unescaped)]
         Task<HttpResponseMessage> Search([Query] QsQuery query);
@@ -316,6 +317,7 @@ public class QsQueryTests
         [Get("/users")]
         [QueryUriFormat(UriFormat.Unescaped)]
         Task<HttpResponseMessage> Search([Query] QsQuery<UserQuery> query);
+#pragma warning restore RF006
     }
 
     private sealed class CaptureHandler : HttpMessageHandler
