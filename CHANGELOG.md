@@ -1,3 +1,10 @@
+## 1.5.2
+
+* [CHORE] upgrade `actions/setup-dotnet` to v6 across CI, documentation, and publishing workflows, and `actions/setup-node` to v7 in the comparison CI
+* [CHORE] update test tooling to `Microsoft.NET.Test.Sdk` 18.9.0 and `xunit.runner.visualstudio` 4.0.0
+* [CHORE] update `Microsoft.SourceLink.GitHub` to 10.0.400 across the package projects
+* [CHORE] update Refit test dependencies to 15.2.0, add `Refit.Reflection`, and locally suppress the intentional RF006 diagnostics for `QsQuery`
+
 ## 1.5.1
 
 * [FIX] match Node `qs` 6.15.3 cumulative list-limit enforcement across duplicate, comma, and mixed list merges, including pre-split rejection of oversized flat comma values
