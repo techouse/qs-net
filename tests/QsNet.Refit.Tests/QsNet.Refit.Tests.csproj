@@ -5,11 +5,11 @@
         <IsPackable>false</IsPackable>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="FluentAssertions" Version="8.11.0"/>
-        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0"/>
-        <PackageReference Include="Refit" Version="15.2.0"/>
-        <PackageReference Include="Refit.Reflection" Version="15.2.0"/>
-        <PackageReference Include="xunit" Version="2.9.3"/>
+        <PackageReference Include="FluentAssertions" Version="8.11.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
+        <PackageReference Include="Refit" Version="16.0.0" />
+        <PackageReference Include="Refit.Reflection" Version="16.0.0" />
+        <PackageReference Include="xunit" Version="2.9.3" />
         <PackageReference Include="xunit.runner.visualstudio" Version="4.0.0">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -20,6 +20,6 @@
         </PackageReference>
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\..\src\QsNet.Refit\QsNet.Refit.csproj"/>
+        <ProjectReference Include="..\..\src\QsNet.Refit\QsNet.Refit.csproj" />
     </ItemGroup>
 </Project>
