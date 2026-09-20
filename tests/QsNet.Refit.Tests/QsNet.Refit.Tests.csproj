@@ -5,7 +5,7 @@
         <IsPackable>false</IsPackable>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="FluentAssertions" Version="8.10.0"/>
+        <PackageReference Include="FluentAssertions" Version="8.11.0"/>
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.9.0"/>
         <PackageReference Include="Refit" Version="15.2.0"/>
         <PackageReference Include="Refit.Reflection" Version="15.2.0"/>
