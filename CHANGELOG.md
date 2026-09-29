@@ -1,4 +1,4 @@
-## Unreleased
+## 1.6.0
 
 * [FEAT] add optional `EncodeOptions.Depth` to reject encoding beyond a configured nesting depth while keeping the default unlimited, with a separate `CopyWithDepth` method preserving existing `CopyWith` source and binary compatibility
 * [FIX] enforce strict `ListLimit` on comma groups under bracket-push keys (`[]=`), including nested keys
