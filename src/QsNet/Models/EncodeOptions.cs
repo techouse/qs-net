@@ -115,6 +115,12 @@ public sealed class EncodeOptions
     public string Delimiter { get; init; } = "&";
 
     /// <summary>
+    ///     Maximum nesting depth during encoding. Null (the default) allows unlimited depth.
+    ///     Exceeding a finite limit throws an InvalidOperationException.
+    /// </summary>
+    public int? Depth { get; init; }
+
+    /// <summary>
     ///     Set to false in order to disable encoding.
     /// </summary>
     public bool Encode { get; init; } = true;
@@ -256,6 +262,125 @@ public sealed class EncodeOptions
         ValueEncoder? encoder = null,
         DateSerializer? dateSerializer = null
     ) =>
+        CopyWithCore(
+            depth: null,
+            addQueryPrefix,
+            allowDots,
+            allowEmptyLists,
+            charset,
+            charsetSentinel,
+            delimiter,
+            encode,
+            encodeDotInKeys,
+            encodeValuesOnly,
+            filter,
+            format,
+            listFormat,
+            skipNulls,
+            strictNullHandling,
+            commaRoundTrip,
+            commaCompactNulls,
+            sort,
+            indices,
+            encoder,
+            dateSerializer
+        );
+
+    /// <summary>
+    ///     Creates a new instance of EncodeOptions with the specified depth and other properties changed.
+    /// </summary>
+    /// <param name="depth">The finite depth limit to apply</param>
+    /// <param name="addQueryPrefix">Set to override AddQueryPrefix</param>
+    /// <param name="allowDots">Set to override AllowDots</param>
+    /// <param name="allowEmptyLists">Set to override AllowEmptyLists</param>
+    /// <param name="charset">Set to override Charset</param>
+    /// <param name="charsetSentinel">Set to override CharsetSentinel</param>
+    /// <param name="delimiter">Set to override Delimiter</param>
+    /// <param name="encode">Set to override Encode</param>
+    /// <param name="encodeDotInKeys">Set to override EncodeDotInKeys</param>
+    /// <param name="encodeValuesOnly">Set to override EncodeValuesOnly</param>
+    /// <param name="filter">Set to override Filter</param>
+    /// <param name="format">Set to override Format</param>
+    /// <param name="listFormat">Set to override ListFormat</param>
+    /// <param name="skipNulls">Set to override SkipNulls</param>
+    /// <param name="strictNullHandling">Set to override StrictNullHandling</param>
+    /// <param name="commaRoundTrip">Set to override CommaRoundTrip</param>
+    /// <param name="commaCompactNulls">Set to override CommaCompactNulls</param>
+    /// <param name="sort">Set to override Sort</param>
+    /// <param name="indices">Set to override Indices (deprecated)</param>
+    /// <param name="encoder">Set to override the encoder function</param>
+    /// <param name="dateSerializer">Set to override the date serializer function</param>
+    /// <returns>A new EncodeOptions instance with the specified changes</returns>
+    public EncodeOptions CopyWithDepth(
+        int depth,
+        bool? addQueryPrefix = null,
+        bool? allowDots = null,
+        bool? allowEmptyLists = null,
+        Encoding? charset = null,
+        bool? charsetSentinel = null,
+        string? delimiter = null,
+        bool? encode = null,
+        bool? encodeDotInKeys = null,
+        bool? encodeValuesOnly = null,
+        IFilter? filter = null,
+        Format? format = null,
+        ListFormat? listFormat = null,
+        bool? skipNulls = null,
+        bool? strictNullHandling = null,
+        bool? commaRoundTrip = null,
+        bool? commaCompactNulls = null,
+        Comparison<object?>? sort = null,
+        bool? indices = null,
+        ValueEncoder? encoder = null,
+        DateSerializer? dateSerializer = null
+    ) =>
+        CopyWithCore(
+            depth,
+            addQueryPrefix,
+            allowDots,
+            allowEmptyLists,
+            charset,
+            charsetSentinel,
+            delimiter,
+            encode,
+            encodeDotInKeys,
+            encodeValuesOnly,
+            filter,
+            format,
+            listFormat,
+            skipNulls,
+            strictNullHandling,
+            commaRoundTrip,
+            commaCompactNulls,
+            sort,
+            indices,
+            encoder,
+            dateSerializer
+        );
+
+    private EncodeOptions CopyWithCore(
+        int? depth,
+        bool? addQueryPrefix,
+        bool? allowDots,
+        bool? allowEmptyLists,
+        Encoding? charset,
+        bool? charsetSentinel,
+        string? delimiter,
+        bool? encode,
+        bool? encodeDotInKeys,
+        bool? encodeValuesOnly,
+        IFilter? filter,
+        Format? format,
+        ListFormat? listFormat,
+        bool? skipNulls,
+        bool? strictNullHandling,
+        bool? commaRoundTrip,
+        bool? commaCompactNulls,
+        Comparison<object?>? sort,
+        bool? indices,
+        ValueEncoder? encoder,
+        DateSerializer? dateSerializer
+    ) =>
         new()
         {
             AddQueryPrefix = addQueryPrefix ?? AddQueryPrefix,
@@ -279,6 +404,7 @@ public sealed class EncodeOptions
             Indices = indices ?? Indices,
 #pragma warning restore CS0618 // Type or member is obsolete
             Encoder = encoder ?? Encoder,
-            DateSerializer = dateSerializer ?? DateSerializer
+            DateSerializer = dateSerializer ?? DateSerializer,
+            Depth = depth ?? Depth
         };
 }

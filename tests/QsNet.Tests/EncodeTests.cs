@@ -4421,22 +4421,40 @@ public class EncodeTests
         qs.Should().Be("a[]");
     }
 
-    [Fact]
-    public void EncodeDotInKeys_TopLevelDotNotEncoded_When_AllowDots_False_PrimitivePath()
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ShouldEncodeDotsInTopLevelPrimitiveKeys(bool allowDots)
     {
-        var data = new Dictionary<string, object?>
-        {
-            ["a.b"] = "x"
-        };
+        var data = new Dictionary<string, object?> { ["name.obj"] = "John" };
+        var options = new EncodeOptions { EncodeDotInKeys = true, AllowDots = allowDots };
 
-        var qs = Qs.Encode(data, new EncodeOptions
+        var encoded = Qs.Encode(data, options);
+
+        encoded.Should().Be("name%252Eobj=John");
+        Qs.Decode(encoded, new DecodeOptions { AllowDots = true, DecodeDotInKeys = true })
+            .Should().BeEquivalentTo(data);
+        Qs.Encode(data, options.CopyWith(encodeValuesOnly: true)).Should().Be("name%2Eobj=John");
+        Qs.Encode(data, options.CopyWith(encode: false)).Should().Be("name%2Eobj=John");
+        Qs.Encode(new Dictionary<string, object?> { ["name.obj"] = null },
+                options.CopyWith(strictNullHandling: true))
+            .Should().Be("name%252Eobj");
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ShouldUseDotEscapedTopLevelPrefixForFunctionFilter(bool allowDots)
+    {
+        var options = new EncodeOptions
         {
             EncodeDotInKeys = true,
-            AllowDots = false
-        });
+            AllowDots = allowDots,
+            Filter = new FunctionFilter((prefix, value) => prefix == "name%2Eobj" ? "Jane" : value)
+        };
 
-        // Top-level primitive path does not apply encodeDotInKeys to the keyPrefix
-        qs.Should().Be("a.b=x");
+        Qs.Encode(new Dictionary<string, object?> { ["name.obj"] = "John" }, options)
+            .Should().Be("name%252Eobj=Jane");
     }
 
     [Fact]
@@ -5505,6 +5523,81 @@ public class EncodeTests
                 ListFormat = ListFormat.Comma
             }
         ).Should().Be("d=SERIALIZED");
+    }
+
+    [Fact]
+    public void ShouldEnforceEncodeDepthOnValuesAndEmptyContainers()
+    {
+        var atLimit = new Dictionary<string, object?>
+        {
+            ["a"] = new Dictionary<string, object?>
+            {
+                ["b"] = new Dictionary<string, object?> { ["c"] = "d" }
+            }
+        };
+        var tooDeep = new Dictionary<string, object?>
+        {
+            ["a"] = new Dictionary<string, object?>
+            {
+                ["b"] = new Dictionary<string, object?>
+                {
+                    ["c"] = new Dictionary<string, object?> { ["d"] = "e" }
+                }
+            }
+        };
+
+        Qs.Encode(atLimit, new EncodeOptions { Depth = 2 }).Should().Be("a%5Bb%5D%5Bc%5D=d");
+        Action nested = () => Qs.Encode(tooDeep, new EncodeOptions { Depth = 2 });
+        nested.Should().Throw<InvalidOperationException>()
+            .WithMessage("Input depth exceeded depth option of 2");
+
+        Qs.Encode(new Dictionary<string, object?> { ["a"] = "b" }, new EncodeOptions { Depth = 0 })
+            .Should().Be("a=b");
+        Action fastPath = () => Qs.Encode(atLimit, new EncodeOptions { Encode = false, Depth = 0 });
+        fastPath.Should().Throw<InvalidOperationException>()
+            .WithMessage("Input depth exceeded depth option of 0");
+
+        var nestedEmpty = new Dictionary<string, object?>
+        {
+            ["a"] = new Dictionary<string, object?>
+            {
+                ["b"] = new Dictionary<string, object?> { ["c"] = new Dictionary<string, object?>() }
+            }
+        };
+        Action empty = () => Qs.Encode(nestedEmpty, new EncodeOptions { Depth = 1 });
+        empty.Should().Throw<InvalidOperationException>()
+            .WithMessage("Input depth exceeded depth option of 1");
+
+        Action comma = () => Qs.Encode(
+            new Dictionary<string, object?> { ["a"] = new List<object?> { "b" } },
+            new EncodeOptions { Depth = 0, ListFormat = ListFormat.Comma }
+        );
+        comma.Should().Throw<InvalidOperationException>()
+            .WithMessage("Input depth exceeded depth option of 0");
+    }
+
+    [Fact]
+    public void ShouldRejectOverDepthValueBeforeFiltering()
+    {
+        var visited = new List<string>();
+        var options = new EncodeOptions
+        {
+            Depth = 0,
+            Filter = new FunctionFilter((prefix, value) =>
+            {
+                visited.Add(prefix);
+                return value;
+            })
+        };
+
+        Action act = () => Qs.Encode(
+            new Dictionary<string, object?> { ["a"] = new Dictionary<string, object?> { ["b"] = "c" } },
+            options
+        );
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Input depth exceeded depth option of 0");
+        visited.Should().Equal("", "a");
     }
 
     [Fact]
