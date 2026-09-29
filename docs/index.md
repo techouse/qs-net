@@ -24,6 +24,7 @@ Ported from [qs](https://www.npmjs.com/package/qs) for JavaScript.
 - UTF-8 and Latin1 charsets, plus optional charset sentinel (`utf8=✓`)
 - Custom encoders/decoders, key sorting, filtering, and strict null handling
 - Supports `DateTime` serialization via a pluggable serializer
+- Optional encoding depth limit for serializing externally influenced nested data
 - Extensive tests (xUnit + FluentAssertions), performance-minded implementation
 
 ---
@@ -51,8 +52,9 @@ string qs = Qs.Encode(new Dictionary<string, object?>
 
 - **Performance:** The implementation mirrors qs semantics but is optimized for C#/.NET. Deep parsing, list compaction,
   and cycle-safe compaction are implemented iteratively where it matters.
-- **Safety:** Defaults (depth, parameterLimit) help mitigate abuse in user-supplied inputs; you can loosen them when you
-  fully trust the source.
+- **Safety:** Decoder depth and parameter defaults limit untrusted query strings. `ListLimit` changes overflowing lists
+  into dictionaries by default; enable `ThrowOnLimitExceeded` to reject oversized comma groups, including `[]=` values,
+  and enforce a transport size limit. Encoding is unlimited by default; set `EncodeOptions.Depth` to reject deeply nested input.
 - **Interop:** Exposes knobs similar to qs (filters, sorters, custom encoders/decoders) to make migrations
   straightforward.
 
