@@ -343,6 +343,11 @@ Qs.Decode("a=b&c=d", new DecodeOptions { ParameterLimit = 1 });
 // => { "a": "b" }
 ```
 
+`ParameterLimit` counts query parameters, not the values a parameter produces.
+With `Comma = true`, one comma-separated parameter can contain more values than this limit.
+For untrusted input, use `ThrowOnLimitExceeded = true` with `ListLimit` and bound the
+request size at the transport layer.
+
 ### Ignore leading `?`
 
 ```csharp
@@ -462,13 +467,14 @@ Qs.Decode("a[]=&a[]=b");
 // => { "a": ["", "b"] }
 ```
 
-`ListLimit` is the maximum element count for lists. Explicit numeric indices are
-list entries only when `index < ListLimit`; an index at or above the limit
-becomes a dictionary entry by default, or throws when `ThrowOnLimitExceeded` is
-true. Implicit list growth, comma lists, and duplicate-combine paths use the same
-element count before overflow conversion or exception. Overflow conversion
-preserves every value in a numeric-keyed dictionary. List parsing is disabled
-only when `ParseLists` is false; top-level parameter count does not change it.
+`ListLimit` controls when lists switch to numeric-keyed dictionaries; it is not
+a hard cap on decoded values by default. Explicit numeric indices are list
+entries only when `index < ListLimit`; an index at or above the limit becomes
+a dictionary entry. Implicit list growth, comma lists, and duplicate-combine
+paths also switch to dictionaries when they exceed the limit, preserving all
+values. Set `ThrowOnLimitExceeded = true` to reject oversized lists and comma
+groups (including values under `[]=`) instead. List parsing is disabled only
+when `ParseLists` is false; `ParameterLimit` does not bound comma-split values.
 
 Large indices convert to a dictionary by default:
 
@@ -496,6 +502,19 @@ Comma-separated values:
 ```csharp
 Qs.Decode("a=b,c", new DecodeOptions { Comma = true });
 // => { "a": ["b", "c"] }
+```
+
+```csharp
+Qs.Decode("a[]=1,2,3", new DecodeOptions
+{
+    Comma = true,
+    ListLimit = 3,
+    ThrowOnLimitExceeded = true
+});
+// => { "a": [["1", "2", "3"]] }
+
+// a[]=1,2,3,4 with the same options throws InvalidOperationException:
+// "List limit exceeded. Only 3 elements allowed in a list."
 ```
 
 ### Primitive/scalar values
@@ -616,6 +635,33 @@ Qs.Encode(
 // => "a[b][c]=d&a[b][e]=f"
 ```
 
+### Encoding depth (unlimited by default)
+
+`EncodeOptions.Depth` limits how many levels below each top-level key are
+serialized. The default `null` permits any nesting depth; exceeding a finite
+limit throws `InvalidOperationException` rather than truncating output.
+
+```csharp
+Qs.Encode(
+    new Dictionary<string, object?>
+    {
+        ["a"] = new Dictionary<string, object?>
+        {
+            ["b"] = new Dictionary<string, object?> { ["c"] = "d" }
+        }
+    },
+    new EncodeOptions { Depth = 2 }
+);
+// => "a%5Bb%5D%5Bc%5D=d"
+
+// Depth = 1 throws "Input depth exceeded depth option of 1" for this input.
+```
+
+Use `options.CopyWithDepth(depth: 2)` to change the limit while preserving other
+settings. `CopyWithDepth` requires an integer limit; ordinary `CopyWith()`
+calls retain the current depth and preserve existing source and binary compatibility.
+To restore unlimited encoding, create an options instance with `Depth = null`.
+
 Dot notation:
 
 ```csharp
@@ -648,6 +694,19 @@ Qs.Encode(
 );
 // => "name%252Eobj.first=John&name%252Eobj.last=Doe"
 ```
+
+Literal dots in top-level keys are encoded even when the value is a scalar:
+
+```csharp
+Qs.Encode(
+    new Dictionary<string, object?> { ["name.obj"] = "John" },
+    new EncodeOptions { EncodeDotInKeys = true }
+);
+// => "name%252Eobj=John"
+```
+
+With `EncodeDotInKeys = true`, a function filter receives the dot-escaped
+top-level prefix (for example `name%2Eobj`), matching Node `qs` 6.16.
 
 Allow empty lists:
 

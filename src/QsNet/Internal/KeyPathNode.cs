@@ -91,7 +91,7 @@ internal sealed class KeyPathNode
         return _materialized;
     }
 
-    private static string ReplaceDots(string value) =>
+    internal static string ReplaceDots(string value) =>
 #if NETSTANDARD2_0
         value.IndexOf('.') >= 0 ? value.Replace(".", "%2E") : value;
 #else

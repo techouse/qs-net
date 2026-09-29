@@ -1356,6 +1356,29 @@ public class UtilsTests
     }
 
     [Fact]
+    public void Combine_WithOverflowObject_SpreadsOnlyOneLevelAndTracksLastIndex()
+    {
+        var options = new DecodeOptions { ListLimit = 1 };
+        var overflow = Utils.CombineWithLimit(new List<object?> { "a" }, "b", options);
+
+        var combined = Utils.CombineWithLimit(overflow, new List<object?> { "c", "d" }, options);
+        combined.Should().BeSameAs(overflow);
+        Utils.CombineWithLimit(overflow, new List<object?>(), options).Should().BeSameAs(overflow);
+        Utils.CombineWithLimit(overflow, new List<object?> { new List<object?> { "e", "f" } }, options);
+        Utils.CombineWithLimit(overflow, "g", options);
+
+        combined.Should().BeEquivalentTo(new Dictionary<object, object?>
+        {
+            ["0"] = "a",
+            ["1"] = "b",
+            ["2"] = "c",
+            ["3"] = "d",
+            ["4"] = new List<object?> { "e", "f" },
+            ["5"] = "g"
+        });
+    }
+
+    [Fact]
     public void Combine_WithPlainMap_DoesNotUseOverflowBehavior()
     {
         var plain = new Dictionary<object, object?> { ["0"] = "a", ["1"] = "b" };

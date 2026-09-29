@@ -46,6 +46,7 @@ internal static class Encoder
     /// <param name="encodeValuesOnly">If true, only encodes values without keys.</param>
     /// <param name="charset">The character encoding to use (default is UTF-8).</param>
     /// <param name="addQueryPrefix">If true, adds a '?' prefix to the output.</param>
+    /// <param name="depth">Maximum nesting depth; null allows unlimited depth.</param>
     /// <returns>The encoded result.</returns>
     public static object Encode(
         object? data,
@@ -68,7 +69,8 @@ internal static class Encoder
         Formatter? formatter = null,
         bool encodeValuesOnly = false,
         Encoding? charset = null,
-        bool addQueryPrefix = false
+        bool addQueryPrefix = false,
+        int? depth = null
     )
     {
         var fmt = formatter ?? IdentityFormatter;
@@ -101,6 +103,7 @@ internal static class Encoder
                 fmt,
                 encodeValuesOnly,
                 cs,
+                depth,
                 out var linearResult
             )
         )
@@ -131,7 +134,9 @@ internal static class Encoder
                 fmt,
                 encodeValuesOnly,
                 cs,
-                addQueryPrefix
+                addQueryPrefix,
+                depth,
+                0
             )
         );
 
@@ -149,6 +154,18 @@ internal static class Encoder
             {
                 case EncodePhase.Start:
                     {
+                        if (frame.MaxDepth.HasValue && frame.CurrentDepth > frame.MaxDepth.Value)
+                        {
+                            // Release this traversal's ancestors without removing caller-owned entries.
+                            foreach (var pending in stack)
+                                if (pending is { IsCycleTracked: true, CycleKey: not null })
+                                    pending.SideChannel.Exit(pending.CycleKey);
+
+                            throw new InvalidOperationException(
+                                $"Input depth exceeded depth option of {frame.MaxDepth}"
+                            );
+                        }
+
                         var obj = frame.Data;
                         string? pathText = null;
 
@@ -483,7 +500,9 @@ internal static class Encoder
                                 frame.Formatter,
                                 frame.EncodeValuesOnly,
                                 frame.Charset,
-                                frame.AddQueryPrefix
+                                frame.AddQueryPrefix,
+                                frame.MaxDepth,
+                                frame.CurrentDepth + 1
                             )
                         );
                         break;
@@ -568,13 +587,15 @@ internal static class Encoder
         Formatter formatter,
         bool encodeValuesOnly,
         Encoding charset,
+        int? depth,
         out object? result
     )
     {
         result = null;
 
         if (
-            undefined
+            depth.HasValue
+            || undefined
             || encoder is not null
             || sort is not null
             || filter is not null

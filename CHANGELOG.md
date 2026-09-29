@@ -1,3 +1,11 @@
+## Unreleased
+
+* [FEAT] add optional `EncodeOptions.Depth` to reject encoding beyond a configured nesting depth while keeping the default unlimited, with a separate `CopyWithDepth` method preserving existing `CopyWith` source and binary compatibility
+* [FIX] enforce strict `ListLimit` on comma groups under bracket-push keys (`[]=`), including nested keys
+* [FIX] spread later comma-separated values across consecutive numeric keys after list overflow while preserving bracketed groups as nested elements
+* [FIX] encode literal dots in top-level scalar keys when `EncodeDotInKeys` is enabled
+* [FIX] release encoder traversal tracking after a depth-limit failure so reused internal side channels do not report false cycles
+
 ## 1.5.2
 
 * [CHORE] upgrade `actions/setup-dotnet` to v6 across CI, documentation, and publishing workflows, and `actions/setup-node` to v7 in the comparison CI

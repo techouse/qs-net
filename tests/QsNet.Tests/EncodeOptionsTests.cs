@@ -120,6 +120,23 @@ public class EncodeOptionsTests
     }
 
     [Fact]
+    public void ShouldPreserveAndOverrideEncodeDepthWhenCopyingOptions()
+    {
+        var original = new EncodeOptions { Depth = 4, Encode = false };
+
+        original.CopyWith().Depth.Should().Be(4);
+        original.CopyWithDepth(depth: 2).Depth.Should().Be(2);
+        var payload = new Dictionary<string, object?>
+        {
+            ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
+        };
+        QsNet.Qs.Encode(payload, original.CopyWith(default)).Should().Be("a[b]=c");
+        Action act = () => QsNet.Qs.Encode(payload, original.CopyWithDepth(depth: 0));
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("Input depth exceeded depth option of 0");
+    }
+
+    [Fact]
     public void AllowDots_IsImpliedTrue_When_EncodeDotInKeys_True_And_NotExplicit()
     {
         var opts = new EncodeOptions { EncodeDotInKeys = true };

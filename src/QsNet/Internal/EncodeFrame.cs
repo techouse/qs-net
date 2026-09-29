@@ -36,7 +36,9 @@ internal sealed class EncodeFrame(
     Formatter formatter,
     bool encodeValuesOnly,
     Encoding charset,
-    bool addQueryPrefix)
+    bool addQueryPrefix,
+    int? maxDepth,
+    int currentDepth)
 {
     public object? Data { get; } = data;
     public bool Undefined { get; } = undefined;
@@ -59,6 +61,8 @@ internal sealed class EncodeFrame(
     public bool EncodeValuesOnly { get; } = encodeValuesOnly;
     public Encoding Charset { get; } = charset;
     public bool AddQueryPrefix { get; } = addQueryPrefix;
+    public int? MaxDepth { get; } = maxDepth;
+    public int CurrentDepth { get; } = currentDepth;
 
     public EncodePhase Phase { get; set; } = EncodePhase.Start;
     public object? Obj { get; set; }

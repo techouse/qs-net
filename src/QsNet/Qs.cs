@@ -384,7 +384,7 @@ public static class Qs
                 !hasKey,
                 // Isolate side-channel state per top-level key; sibling references are not cycles.
                 new SideChannelFrame(),
-                key,
+                opts.EncodeDotInKeys ? KeyPathNode.ReplaceDots(key) : key,
                 opts.ListFormat.GetValueOrDefault().GetGenerator(),
                 commaRoundTrip,
                 commaCompactNulls,
@@ -401,7 +401,8 @@ public static class Qs
                 opts.Formatter,
                 opts.EncodeValuesOnly,
                 opts.Charset,
-                opts.AddQueryPrefix
+                opts.AddQueryPrefix,
+                opts.Depth
             );
 
             switch (encoded)
