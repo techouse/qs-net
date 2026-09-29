@@ -55,7 +55,7 @@ internal static class Decoder
             var idx = str.IndexOf(',');
             if (idx >= 0)
             {
-                if (isFlatListValue && options.ThrowOnLimitExceeded)
+                if (options.ThrowOnLimitExceeded)
                 {
                     var commaCount = 0;
                     var commaIndex = idx;

@@ -4888,27 +4888,43 @@ public partial class DecodeTest
     }
 
     [Fact]
-    public void ShouldAppendCommaListAsSingleElementWhenExistingValueIsOverflowMap()
+    public void ShouldFlattenCommaListWhenExistingValueIsOverflowMap()
     {
-        var opts = new DecodeOptions
-        {
-            Comma = true,
-            ListLimit = 2,
-            ThrowOnLimitExceeded = false,
-            ParseLists = true,
-            Duplicates = Duplicates.Combine
-        };
+        var opts = new DecodeOptions { Comma = true, ListLimit = 2 };
 
         var result = Qs.Decode("a=1,2,3&a=4,5", opts);
 
-        var dict = Assert.IsType<Dictionary<string, object?>>(result);
-        var map = Assert.IsAssignableFrom<IDictionary<string, object?>>(dict["a"]);
-        map["0"].Should().Be("1");
-        map["1"].Should().Be("2");
-        map["2"].Should().Be("3");
+        result["a"].Should().BeEquivalentTo(new Dictionary<string, object?>
+        {
+            ["0"] = "1",
+            ["1"] = "2",
+            ["2"] = "3",
+            ["3"] = "4",
+            ["4"] = "5"
+        });
+    }
 
-        var nested = Assert.IsType<List<object?>>(map["3"]);
-        nested.Select(x => x?.ToString()).Should().Equal("4", "5");
+    [Fact]
+    public void ShouldAppendRepeatedCommaGroupsInOrderAfterOverflow()
+    {
+        var result = Qs.Decode(
+            "a=1,2,3,4,5,6&a=7,8&a=9,10",
+            new DecodeOptions { Comma = true, ListLimit = 5 }
+        );
+
+        result["a"].Should().BeEquivalentTo(new Dictionary<string, object?>
+        {
+            ["0"] = "1",
+            ["1"] = "2",
+            ["2"] = "3",
+            ["3"] = "4",
+            ["4"] = "5",
+            ["5"] = "6",
+            ["6"] = "7",
+            ["7"] = "8",
+            ["8"] = "9",
+            ["9"] = "10"
+        });
     }
 
     [Fact]
@@ -5000,14 +5016,15 @@ public partial class DecodeTest
             Duplicates = Duplicates.Combine
         };
 
-        var result = Qs.Decode("a[]=1&a[]=2&a[]=3,4", opts);
+        var result = Qs.Decode("a[]=1&a[]=2&a[]=3&a[]=4,5", opts);
 
-        var dict = Assert.IsType<Dictionary<string, object?>>(result);
-        var map = Assert.IsAssignableFrom<IDictionary<string, object?>>(dict["a"]);
-        map["0"].Should().Be("1");
-        map["1"].Should().Be("2");
-        var nested = Assert.IsType<List<object?>>(map["2"]);
-        nested.Select(x => x?.ToString()).Should().Equal("3", "4");
+        result["a"].Should().BeEquivalentTo(new Dictionary<string, object?>
+        {
+            ["0"] = "1",
+            ["1"] = "2",
+            ["2"] = "3",
+            ["3"] = new List<object?> { "4", "5" }
+        });
     }
 
     [Fact]
@@ -5030,20 +5047,50 @@ public partial class DecodeTest
         inner.Select(x => x?.ToString()).Should().Equal("1", "2", "3");
     }
 
-    [Fact]
-    public void ShouldNotApplyInnerListLimitForBracketSingleCommaSplit()
+    [Theory]
+    [InlineData("a[]=1,2,3,4", Duplicates.Combine)]
+    [InlineData("a[b][]=1,2,3,4", Duplicates.Combine)]
+    [InlineData("a[]=5&a[]=1,2,3,4", Duplicates.First)]
+    [InlineData("a[]=5&a[]=1,2,3,4", Duplicates.Last)]
+    public void ShouldRejectOversizedBracketCommaGroupBeforeCombining(string query, Duplicates duplicates)
     {
-        var opts = new DecodeOptions
+        var options = new DecodeOptions
         {
             Comma = true,
-            ListLimit = 1,
-            ThrowOnLimitExceeded = true
+            ListLimit = 3,
+            ThrowOnLimitExceeded = true,
+            Duplicates = duplicates
         };
 
-        var decoded = Assert.IsType<Dictionary<string, object?>>(Qs.Decode("foo[]=1,2,3,4", opts));
-        var outer = Assert.IsType<List<object?>>(decoded["foo"]);
-        var inner = Assert.IsType<List<object?>>(outer[0]);
-        inner.Select(x => x?.ToString()).Should().Equal("1", "2", "3", "4");
+        Action act = () => Qs.Decode(query, options);
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("List limit exceeded. Only 3 elements allowed in a list.");
+    }
+
+    [Fact]
+    public void ShouldPreserveBracketCommaGroupAtAndBeyondLenientLimit()
+    {
+        var strict = new DecodeOptions { Comma = true, ListLimit = 3, ThrowOnLimitExceeded = true };
+        var lenient = strict.CopyWith(throwOnLimitExceeded: false);
+        Qs.Decode("a[]=1,2,3", strict).Should().BeEquivalentTo(new Dictionary<string, object?>
+        {
+            ["a"] = new List<object?> { new List<object?> { "1", "2", "3" } }
+        });
+        Qs.Decode("a[]=1,2,3,4", lenient).Should().BeEquivalentTo(new Dictionary<string, object?>
+        {
+            ["a"] = new List<object?> { new List<object?> { "1", "2", "3", "4" } }
+        });
+    }
+
+    [Fact]
+    public void ShouldEnforceCommaLimitForObjectInput()
+    {
+        var options = new DecodeOptions { Comma = true, ListLimit = 3, ThrowOnLimitExceeded = true };
+        var input = new Dictionary<string, object?> { ["a"] = "1,2,3,4" };
+
+        Action act = () => Qs.Decode(input, options);
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("List limit exceeded. Only 3 elements allowed in a list.");
     }
 
     #region Nested brackets

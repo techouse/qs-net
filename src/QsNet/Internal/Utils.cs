@@ -1223,13 +1223,20 @@ internal static partial class Utils
     {
         if (!IsOverflow(a)) return EnforceListLimit(Combine<object?>(a, b), options);
         var target = (IDictionary)a!;
-        var nextIndex = GetOverflowMaxIndex(target) + 1;
         if (options.ThrowOnLimitExceeded)
             throw CreateListLimitExceededException(options.ListLimit);
 
-        // Overflow dictionaries continue accepting appended values using synthetic numeric-string keys.
-        target[nextIndex.ToString(CultureInfo.InvariantCulture)] = b;
-        SetOverflowMaxIndex(target, nextIndex);
+        // Match Combine<object?>: spread one level, retaining nested list elements.
+        var maxIndex = GetOverflowMaxIndex(target);
+        if (b is IEnumerable<object?> values)
+        {
+            foreach (var value in values)
+                target[(++maxIndex).ToString(CultureInfo.InvariantCulture)] = value;
+        }
+        else
+            target[(++maxIndex).ToString(CultureInfo.InvariantCulture)] = b;
+
+        SetOverflowMaxIndex(target, maxIndex);
         return target;
 
     }
