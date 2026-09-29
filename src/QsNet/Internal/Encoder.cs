@@ -155,9 +155,16 @@ internal static class Encoder
                 case EncodePhase.Start:
                     {
                         if (frame.MaxDepth.HasValue && frame.CurrentDepth > frame.MaxDepth.Value)
+                        {
+                            // Release this traversal's ancestors without removing caller-owned entries.
+                            foreach (var pending in stack)
+                                if (pending is { IsCycleTracked: true, CycleKey: not null })
+                                    pending.SideChannel.Exit(pending.CycleKey);
+
                             throw new InvalidOperationException(
                                 $"Input depth exceeded depth option of {frame.MaxDepth}"
                             );
+                        }
 
                         var obj = frame.Data;
                         string? pathText = null;

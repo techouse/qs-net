@@ -2033,6 +2033,29 @@ public class EncodeTests
     }
 
     [Fact]
+    public void ShouldReleaseTrackedAncestorsAfterEncodeDepthFailure()
+    {
+        var target = new Dictionary<string, object?>
+        {
+            ["a"] = new Dictionary<string, object?> { ["b"] = "c" }
+        };
+        var callerContainer = new Dictionary<string, object?> { ["outside"] = "value" };
+        var sideChannel = new SideChannelFrame();
+        sideChannel.Enter(callerContainer).Should().BeTrue();
+
+        Action tooDeep = () => Encoder.Encode(target, false, sideChannel, "root", depth: 1);
+        tooDeep.Should().Throw<InvalidOperationException>()
+            .WithMessage("Input depth exceeded depth option of 1");
+
+        Encoder.Encode(target, false, sideChannel, "root", depth: 2)
+            .Should().BeEquivalentTo(new List<object?> { "root[a][b]=c" });
+
+        Action callerCycle = () => Encoder.Encode(callerContainer, false, sideChannel, "caller", depth: 0);
+        callerCycle.Should().Throw<InvalidOperationException>().WithMessage("Cyclic object value");
+        sideChannel.Exit(callerContainer);
+    }
+
+    [Fact]
     public void Encode_NonCircularDuplicatedReferencesCanStillWork()
     {
         var hourOfDay = new Dictionary<string, object?> { { "function", "hour_of_day" } };
